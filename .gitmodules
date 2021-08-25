@@ -1,0 +1,3 @@
+[submodule "turb_sim_py"]
+	path = turb_sim_py
+	url = https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1.git
