@@ -22,11 +22,11 @@ img = img(1:256, 1:256);
 params.t_params.D = 0.095;
 params.t_params.L = 1000;
 params.t_params.d = 1.38;
-params.t_params.Cn2 = 1e-14;
+params.t_params.Cn2 = 1e-13;
 params.t_params.lambda = 0.525e-6;
 
 opts.frames = 1;
 
-temp = sim_fun(img, params, opts);
+[temp, ph, outPSF] = sim_fun(img, params, opts);
 
 out_stack = uint8(256*temp);
