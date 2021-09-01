@@ -129,6 +129,7 @@ else
     opts.frames = size(img,3);
 end
 
+rng(12345);
 
 % set turbulence parameters
 D      = params.t_params.D;
