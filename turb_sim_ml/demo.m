@@ -16,13 +16,13 @@ if size(img_in,3)~=1
 end
 
 % crop instead of resizing
-img = img(1:256, 1:256);
+%img = img(1:256, 1:256);
 %img = imresize(img,[256,256]);
 
 params.t_params.D = 0.095;
 params.t_params.L = 1000;
 params.t_params.d = 1.38;
-params.t_params.Cn2 = 1e-14;
+params.t_params.Cn2 = 5e-14;
 params.t_params.lambda = 0.525e-6;
 
 opts.frames = 1;

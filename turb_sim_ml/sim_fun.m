@@ -199,7 +199,7 @@ blocklength = rowsH + rows/K;
 weight = exp(-r.^2/(2*(blocklength/4)^2));
 
 
-mc_first = true;
+mc_first = false;
 
 if(mc_first == false)
     
