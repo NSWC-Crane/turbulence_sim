@@ -51,7 +51,7 @@ cv::Mat noll_cov_matrix(Z, D, fried):
     
     int32_t idx, jdx;
     float coef1, num, den;
-    cv::Mat cov = cv::Mat::zeros(Z, Z, CV_32FC1);
+    cv::Mat cov = cv::Mat::zeros(Z, Z, CV_64FC1);
     //C = np.zeros((Z,Z))
     
     
@@ -107,14 +107,14 @@ cv::Mat gen_zernike_coeff(num_zern, d_r0):
     :return:
     */
     
-    C = nollCovMat(num_zern, 1, 1)
-    e_val, e_vec = np.linalg.eig(C)
-    R = np.real(e_vec * np.sqrt(e_val))
+    // C = nollCovMat(num_zern, 1, 1)
+    // e_val, e_vec = np.linalg.eig(C)
+    // R = np.real(e_vec * np.sqrt(e_val))
 
-    b = np.random.randn(int(num_zern), 1) * D_r0 ** (3.0/10.0)
-    a = np.matmul(R, b)
+    // b = np.random.randn(int(num_zern), 1) * D_r0 ** (3.0/10.0)
+    // a = np.matmul(R, b)
 
-    return a
+    // return a
 }
 
 
