@@ -1,4 +1,4 @@
-function img_out = sim_fun(img,params,opts)
+function [img_out, ph, outPSF] = sim_fun(img,params,opts)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % out = sim_fun(y,params,opts)
 % 
@@ -129,6 +129,7 @@ else
     opts.frames = size(img,3);
 end
 
+rng(12345);
 
 % set turbulence parameters
 D      = params.t_params.D;
@@ -171,16 +172,19 @@ C     = Zernike_GenCoeff;
 C     = C(4:36,4:36);
 [U,S] = eig(C);
 R     = real(U*sqrt(S));
+
+
+%% generate the bluring point spread functions/kernels
 outPSF = zeros(length(idx_r),length(idx_c),T,frames);
 for k = 1:frames
-    parfor i=1:T
+    for i=1:T
         if mod(i,10)==0
 %             fprintf('i = %3g / %3g \n', i, T);
         end
         b = randn(size(C,1),1);
         a = R*b;
-        [ph, ~] = ZernikeCalc(4:36, a*kappa, rowsW, 'STANDARD');
-        U      = exp(1i*2*pi*ph/2).*W;
+        [ph(:,:,i,k), ~] = ZernikeCalc(4:36, a*kappa, rowsW, 'STANDARD');
+        U      = exp(1i*2*pi*ph(:,:,i,k)/2).*W;
         uu     = fftshift(abs(ifft2(U, rowsW*fftK, colsW*fftK)).^2);
         outPSF(:,:,i,k) = uu(idx_r, idx_c)/sum(sum(uu(idx_r, idx_c)));
     end
@@ -194,54 +198,118 @@ blocklength = rowsH + rows/K;
 [~,r] = cart2pol(x,y);
 weight = exp(-r.^2/(2*(blocklength/4)^2));
 
-num = zeros(rows+rowsH);
-den = zeros(rows+rowsH);
-for k = 1:frames
-    if in_im
-        img_pad = padarray(img, [rowsH/2, colsH/2], 'symmetric');
-    else
-        img_pad = padarray(img(:,:,k), [rowsH/2, colsH/2], 'symmetric');
-    end
-    for i=1:K
-%         fprintf('%3g \n', i);
-        for j=1:K
-            idx   = (i-1)*K+j;
-            idx1  = (i-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
-            idx2  = (j-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
-            block = img_pad(idx1, idx2);
-            tmp   = imfilter(block, outPSF(:,:,idx,k), 'symmetric');
-            num(idx1, idx2) = num(idx1, idx2) + weight.*tmp;
-            den(idx1, idx2) = den(idx1, idx2) + weight;
+
+mc_first = false;
+
+if(mc_first == false)
+    
+    %% blur the frame
+    num = zeros(rows+rowsH);
+    den = zeros(rows+rowsH);
+    for k = 1:frames
+        if in_im
+            img_pad = padarray(img, [rowsH/2, colsH/2], 'symmetric');
+        else
+            img_pad = padarray(img(:,:,k), [rowsH/2, colsH/2], 'symmetric');
         end
+        for i=1:K
+    %         fprintf('%3g \n', i);
+            for j=1:K
+                idx   = (i-1)*K+j;
+                idx1  = (i-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
+                idx2  = (j-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
+                block = img_pad(idx1, idx2);
+                tmp   = imfilter(block, outPSF(:,:,idx,k), 'symmetric');
+                num(idx1, idx2) = num(idx1, idx2) + weight.*tmp;
+                den(idx1, idx2) = den(idx1, idx2) + weight;
+            end
+        end
+        out      = num./den;
+        img_blur(:,:,k) = out(rowsH/2+1:rows+rowsH/2, colsH/2+1:cols+colsH/2);
+        fprintf('blurring frame %3g / %3g \n', k, frames);
     end
-    out      = num./den;
-    img_blur(:,:,k) = out(rowsH/2+1:rows+rowsH/2, colsH/2+1:cols+colsH/2);
-    fprintf('blurring frame %3g / %3g \n', k, frames);
-end
 
-N     = 2*rows;
-smax  = delta0/D*N;
-sset  = linspace(0,delta0/D*N,N);
-f     = @(k) k^(-14/3)*besselj(0,2*sset*k)*besselj(2,k)^2;
-I0    = integral(f, 1e-8, 1e3, 'ArrayValued', true);
-g     = @(k) k^(-14/3)*besselj(2,2*sset*k)*besselj(2,k)^2;
-I2    = integral(g, 1e-8, 1e3, 'ArrayValued', true);   
-[x,y] = meshgrid(1:N,1:N);
-s     = round(sqrt((x-N/2).^2 + (y-N/2).^2));
-s     = min(max(s,1),N);
-C     = (I0(s) + I2(s))/I0(1);
-C(N/2,N/2)= 1;
-C     = C*I0(1)*c2*(D/r0)^(5/3)/(2^(5/3))*(2*lambda/(pi*D))^2*2*pi;
+    %% apply the motion compensation
+    N     = 2*rows;
+    smax  = delta0/D*N;
+    sset  = linspace(0,delta0/D*N,N);
+    f     = @(k) k^(-14/3)*besselj(0,2*sset*k)*besselj(2,k)^2;
+    I0    = integral(f, 1e-8, 1e3, 'ArrayValued', true);
+    g     = @(k) k^(-14/3)*besselj(2,2*sset*k)*besselj(2,k)^2;
+    I2    = integral(g, 1e-8, 1e3, 'ArrayValued', true);   
+    [x,y] = meshgrid(1:N,1:N);
+    s     = round(sqrt((x-N/2).^2 + (y-N/2).^2));
+    s     = min(max(s,1),N);
+    C     = (I0(s) + I2(s))/I0(1);
+    C(N/2,N/2)= 1;
+    C     = C*I0(1)*c2*(D/r0)^(5/3)/(2^(5/3))*(2*lambda/(pi*D))^2*2*pi;
 
-Cfft   = fft2(C);
-S_half = sqrt(Cfft);
-S_half(S_half<0.002*max(S_half(:))) = 0;
-for i = 1:frames
-    MVx    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
-    MVx    = MVx(rows/2+1:2*rows-rows/2, 1:rows);
-    MVy    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
-    MVy    = MVy(1:cols,cols/2+1:2*cols-cols/2);
-    img_out(:,:,i) = MotionCompensate(img_blur(:,:,i),MVx,MVy,0.5);
+    Cfft   = fft2(C);
+    S_half = sqrt(Cfft);
+    S_half(S_half<0.002*max(S_half(:))) = 0;
+    for i = 1:frames
+        MVx    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
+        MVx    = MVx(rows/2+1:2*rows-rows/2, 1:rows);
+        MVy    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
+        MVy    = MVy(1:cols,cols/2+1:2*cols-cols/2);
+        img_out(:,:,i) = MotionCompensate(img_blur(:,:,i),MVx,MVy,0.5);
+    end
+
+else
+    %% apply the motion compensation
+    N     = 2*rows;
+    smax  = delta0/D*N;
+    sset  = linspace(0,delta0/D*N,N);
+    f     = @(k) k^(-14/3)*besselj(0,2*sset*k)*besselj(2,k)^2;
+    I0    = integral(f, 1e-8, 1e3, 'ArrayValued', true);
+    g     = @(k) k^(-14/3)*besselj(2,2*sset*k)*besselj(2,k)^2;
+    I2    = integral(g, 1e-8, 1e3, 'ArrayValued', true);   
+    [x,y] = meshgrid(1:N,1:N);
+    s     = round(sqrt((x-N/2).^2 + (y-N/2).^2));
+    s     = min(max(s,1),N);
+    C     = (I0(s) + I2(s))/I0(1);
+    C(N/2,N/2)= 1;
+    C     = C*I0(1)*c2*(D/r0)^(5/3)/(2^(5/3))*(2*lambda/(pi*D))^2*2*pi;
+
+    Cfft   = fft2(C);
+    S_half = sqrt(Cfft);
+    S_half(S_half<0.002*max(S_half(:))) = 0;
+    for i = 1:frames
+        MVx    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
+        MVx    = MVx(rows/2+1:2*rows-rows/2, 1:rows);
+        MVy    = real(ifft2(S_half.*randn(2*rows,2*cols)))*sqrt(2)*2*rows*(L/delta0);
+        MVy    = MVy(1:cols,cols/2+1:2*cols-cols/2);
+        img_mc(:,:,i) = MotionCompensate(img(:,:),MVx,MVy,0.5);
+    end
+
+    %% blur the frame
+    num = zeros(rows+rowsH);
+    den = zeros(rows+rowsH);
+    for k = 1:frames
+        if in_im
+            img_pad = padarray(img_mc(:,:,k), [rowsH/2, colsH/2], 'symmetric');
+        else
+            img_pad = padarray(img_mc(:,:,k), [rowsH/2, colsH/2], 'symmetric');
+        end
+        for i=1:K
+    %         fprintf('%3g \n', i);
+            for j=1:K
+                idx   = (i-1)*K+j;
+                idx1  = (i-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
+                idx2  = (j-1)*rows/K+rowsH/2+[-rowsH/2+1:rows/K+rowsH/2];
+                block = img_pad(idx1, idx2);
+                tmp   = imfilter(block, outPSF(:,:,idx,k), 'symmetric');
+                num(idx1, idx2) = num(idx1, idx2) + weight.*tmp;
+                den(idx1, idx2) = den(idx1, idx2) + weight;
+            end
+        end
+        out      = num./den;
+        img_out(:,:,k) = out(rowsH/2+1:rows+rowsH/2, colsH/2+1:cols+colsH/2);
+        fprintf('blurring frame %3g / %3g \n', k, frames);
+    end
+
+    % needed for swapping
+    %img_out = img_blur;
 end
 
 end
