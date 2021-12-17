@@ -168,7 +168,7 @@ int BasicBlurringExample(char** errorChain, cv::Mat img)
 // ----------------------------------------------------------------------------------------
 int main(int argc, char** argv)
 {   
-    std::string data_dir = "../DataFiles/";
+    std::string data_dir = "../../data/";
     std::string filename = "checker_board_32x32.png";
 
     int errorCode;
