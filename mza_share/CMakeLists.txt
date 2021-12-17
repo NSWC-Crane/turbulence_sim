@@ -113,7 +113,7 @@ message(STATUS "Project Includes: ")
 foreach(S ${project_includes})
     message(STATUS "  " ${S})
 endforeach()
-message("--------------------------------------------------------------------------------")
+message(STATUS "--------------------------------------------------------------------------------")
 
 message(" ")
 
