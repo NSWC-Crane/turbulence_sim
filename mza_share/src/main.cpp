@@ -52,12 +52,19 @@ cv::Mat vectorToMat(double* vec, int nRows, int nCols)
 }
 
 
+double spherical_r0(double lambda, std::vector<double> Cn2, double L, bool ind = true)
+{
+    const double k = 2*CV_PI/lambda;
+    const double b0 = 0.158625;
+    double prod_terms = b0 * k * k * Cn2.at(0) * L;
+    return std::pow(prod_terms, (-3.0 / 5.0));
+}
+
+
 // Basic example computes time-averaged blurring and applies to an image
-int BasicBlurringExample(char** errorChain, cv::Mat img)
+int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat &imgBlur)
 {
     int errorCode = 0;
-    std::string data_dir = "../DataFiles/";
-    std::string filename = "checker_board_32x32.png";
     int nX, nY;
     std::vector<double> x, y;
     double lambda = 1e-6, TxD = 0.5, hp = 100, ht = 10, rd = 5000, re = 0, L;
@@ -65,11 +72,14 @@ int BasicBlurringExample(char** errorChain, cv::Mat img)
     nX = img.rows;
     nY = img.cols;
 
-    parse_input_range("-0.64:0.0025:0.6375", x);
-    parse_input_range("-0.64:0.0025:0.6375", y);
+    generate_range(-0.64, 0.6375, 0.0025, x);
+    generate_range(-0.64, 0.6375, 0.0025, y);
+    // parse_input_range("-0.64:0.0025:0.6375", x);
+    // parse_input_range("-0.64:0.0025:0.6375", y);
 
     // Setup geometry, screens
     double RP[3], RT[3], VP[3], VT[3], K[3];
+    // returns position and velocity vectors for Platform and Target: RP, RT, VP, VT 
     SimpleGeom(errorChain, &hp, 1, &ht, 1, &rd, 1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0,
         RP, RT, VP, VT, &re);
 
@@ -79,6 +89,8 @@ int BasicBlurringExample(char** errorChain, cv::Mat img)
 
     double screenX[nscreens], screenDx[nscreens], z[nscreens], dz[nscreens], h[nscreens];
     double xRange[2] = { 0, 1 };
+
+    // compute the phase screens distance (z) and thickness (dz) 
     computeScreensECF(errorChain,
         // inputs: nScreens, x0, dx0, maxAlt, xRange0, nGeoms, posPlat, posTarg, earthRadius, nEarthRadii,
         nscreens, NULL, NULL, NULL, NULL, 1, RP, RT, &re, 1,
@@ -89,6 +101,9 @@ int BasicBlurringExample(char** errorChain, cv::Mat img)
     HV57(errorChain, h, nscreens, Cn2);
     double r0 = 0;
     SphericalR0(errorChain, &lambda, Cn2, &L, z, dz, 1, 100, &r0);
+    std::vector<double> cn2_vec(std::begin(Cn2), std::end(Cn2));
+    //double r01 = spherical_r0(lambda, cn2_vec, L);
+    r0 = spherical_r0(lambda, cn2_vec, L);
 
     // Compute higher-order OTF
     int M = (nX > nY) ? getNextPower2(nX) : getNextPower2(nY);
@@ -126,40 +141,12 @@ int BasicBlurringExample(char** errorChain, cv::Mat img)
     double dA = sqrt(dx0 * dy0);
 
     std::vector<double> imgOut(nX * nY);
-    std::vector<double> imgOut2(nX * nY);
     errorCode = ApplyBlurSpec(errorChain, nX, nY, img.ptr<double>(0), M, M, BlurSpec.data(), &dA, imgOut.data());
     if (errorCode < 0) { return errorCheck(errorChain, "BasicBlurringExample", SC_ERRSTATUS, "when calling ApplyBlurSpec."); }
-
-
-    // Save image 
-    cv::Mat imgOutMat = vectorToMat(imgOut.data(), nX, nY);
-
-    // horizontally concatenate images 
-    // cv::Mat concat_imgs;
-    // cv::hconcat(img, imgOutMat, concat_imgs);
-
-    cv::multiply(255, imgOutMat, imgOutMat);
-    imgOutMat.convertTo(imgOutMat, CV_8UC1);
     
-    cv::imwrite(data_dir + "blurred_img.png", imgOutMat);
-
-    /* Equivalent Matlab code
-    d = load('subjects');
-    Obj = d.soldier;
-    lambda = 1e-6;
-    TxD = 0.5;
-    G = GeomStruct('Simple', 100, 10, 5000);
-    Atm = ChangeAtm(AtmStruct, 'G', G);
-
-    OTFHO = HigherOrderBlurSpec(Obj.x, Obj.y, lambda, TxD, G, Atm, 'FRIED');
-    OTFTilt = JitterBlurSpec(Obj.x, Obj.y, lambda / TxD, lambda / TxD, Atm.L);
-    BlurSpec = OTFHO.*OTFTilt;
-
-    dx = max(diff(Obj.x)); dy = max(diff(Obj.y));
-    Img = ApplyBlurSpec(Obj, BlurSpec, sqrt(dx.*dy));
-
-    figure; imagesc(Obj); colormap(gray); axis image
-    figure; imagesc(Img); colormap(gray); axis image*/
+    imgBlur = vectorToMat(imgOut.data(), nX, nY);
+    cv::multiply(255, imgBlur, imgBlur);
+    imgBlur.convertTo(imgBlur, CV_8UC1);
 
     return errorCode;
 }
@@ -170,6 +157,7 @@ int main(int argc, char** argv)
 {   
     std::string data_dir = "../../data/";
     std::string filename = "checker_board_32x32.png";
+    cv::Mat img, imgOut;
 
     int errorCode;
     std::string tmp(2000, ' ');
@@ -180,11 +168,11 @@ int main(int argc, char** argv)
     try
     {
         // read in image
-        cv::Mat img = cv::imread(data_dir + filename, cv::IMREAD_GRAYSCALE);
+        img = cv::imread(data_dir + filename, cv::IMREAD_GRAYSCALE);
         img.convertTo(img, CV_64FC1);
         cv::multiply(1.0 / 255.0, img, img);
 
-        BasicBlurringExample(errorChain, img);
+        BasicBlurringExample(errorChain, img, imgOut);
     }
     catch(std::exception& e)
     {
