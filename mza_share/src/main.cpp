@@ -173,6 +173,8 @@ int main(int argc, char** argv)
         cv::multiply(1.0 / 255.0, img, img);
 
         BasicBlurringExample(errorChain, img, imgOut);
+
+        cv::imwrite("test_blur.png", imgOut);
     }
     catch(std::exception& e)
     {
