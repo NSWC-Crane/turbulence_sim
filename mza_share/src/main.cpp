@@ -41,9 +41,9 @@ cv::Mat vectorToMat(double* vec, int nRows, int nCols)
 {
     cv::Mat mat(nRows, nCols, CV_64FC1);
 
-    for (int i = 0; i < nRows; i++) 
+    for (int i = 0; i < nRows; i++)
     {
-        for (int j = 0; j < nCols; j++) 
+        for (int j = 0; j < nCols; j++)
         {
             mat.at<double>(i, j) = *vec++;
         }
@@ -54,7 +54,7 @@ cv::Mat vectorToMat(double* vec, int nRows, int nCols)
 
 double spherical_r0(double lambda, std::vector<double> Cn2, double L, bool ind = true)
 {
-    const double k = 2*CV_PI/lambda;
+    const double k = 2 * CV_PI / lambda;
     const double b0 = 0.158625;
     double prod_terms = b0 * k * k * Cn2.at(0) * L;
     return std::pow(prod_terms, (-3.0 / 5.0));
@@ -62,7 +62,8 @@ double spherical_r0(double lambda, std::vector<double> Cn2, double L, bool ind =
 
 
 // Basic example computes time-averaged blurring and applies to an image
-int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat &imgBlur)
+int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat& imgBlur,
+    std::vector<double> Cn2, double L)
 {
     int errorCode = 0;
     int nX, nY;
@@ -74,36 +75,34 @@ int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat &imgBlur)
 
     generate_range(-0.64, 0.6375, 0.0025, x);
     generate_range(-0.64, 0.6375, 0.0025, y);
-    // parse_input_range("-0.64:0.0025:0.6375", x);
-    // parse_input_range("-0.64:0.0025:0.6375", y);
 
     // Setup geometry, screens
-    double RP[3], RT[3], VP[3], VT[3], K[3];
+    // double RP[3], RT[3], VP[3], VT[3], K[3];
     // returns position and velocity vectors for Platform and Target: RP, RT, VP, VT 
-    SimpleGeom(errorChain, &hp, 1, &ht, 1, &rd, 1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0,
-        RP, RT, VP, VT, &re);
+    // SimpleGeom(errorChain, &hp, 1, &ht, 1, &rd, 1, NULL, 0, NULL, 0, NULL, 0, NULL, 0, NULL, 0,
+    //    RP, RT, VP, VT, &re);
 
-    DifferenceElementwise(errorChain, 3, RT, RP, K);
-    vector2Norm(errorChain, 3, K, 1, &L);
-    const int nscreens = 100;
+    // DifferenceElementwise(errorChain, 3, RT, RP, K);
+    // vector2Norm(errorChain, 3, K, 1, &L);
+    // const int nscreens = 100;
 
-    double screenX[nscreens], screenDx[nscreens], z[nscreens], dz[nscreens], h[nscreens];
-    double xRange[2] = { 0, 1 };
+    // double screenX[nscreens], screenDx[nscreens], z[nscreens], dz[nscreens], h[nscreens];
+    // double xRange[2] = { 0, 1 };
 
     // compute the phase screens distance (z) and thickness (dz) 
-    computeScreensECF(errorChain,
+    // computeScreensECF(errorChain,
         // inputs: nScreens, x0, dx0, maxAlt, xRange0, nGeoms, posPlat, posTarg, earthRadius, nEarthRadii,
-        nscreens, NULL, NULL, NULL, NULL, 1, RP, RT, &re, 1,
+        // nscreens, NULL, NULL, NULL, NULL, 1, RP, RT, &re, 1,
         // outputs: x, dx, z, dz, h, xRange
-        screenX, screenDx, z, dz, h, xRange);
+        // screenX, screenDx, z, dz, h, xRange);
 
-    double Cn2[nscreens] = {};
-    HV57(errorChain, h, nscreens, Cn2);
-    double r0 = 0;
-    SphericalR0(errorChain, &lambda, Cn2, &L, z, dz, 1, 100, &r0);
-    std::vector<double> cn2_vec(std::begin(Cn2), std::end(Cn2));
+    // double Cn2[nscreens] = {};
+    // HV57(errorChain, h, nscreens, Cn2);
+    // double r0 = 0;
+    // SphericalR0(errorChain, &lambda, Cn2, &L, z, dz, 1, 100, &r0);
+    // std::vector<double> cn2_vec(std::begin(Cn2), std::end(Cn2));
     //double r01 = spherical_r0(lambda, cn2_vec, L);
-    r0 = spherical_r0(lambda, cn2_vec, L);
+    double r0 = spherical_r0(lambda, Cn2, L);
 
     // Compute higher-order OTF
     int M = (nX > nY) ? getNextPower2(nX) : getNextPower2(nY);
@@ -143,7 +142,7 @@ int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat &imgBlur)
     std::vector<double> imgOut(nX * nY);
     errorCode = ApplyBlurSpec(errorChain, nX, nY, img.ptr<double>(0), M, M, BlurSpec.data(), &dA, imgOut.data());
     if (errorCode < 0) { return errorCheck(errorChain, "BasicBlurringExample", SC_ERRSTATUS, "when calling ApplyBlurSpec."); }
-    
+
     imgBlur = vectorToMat(imgOut.data(), nX, nY);
     cv::multiply(255, imgBlur, imgBlur);
     imgBlur.convertTo(imgBlur, CV_8UC1);
@@ -154,7 +153,7 @@ int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat &imgBlur)
 
 // ----------------------------------------------------------------------------------------
 int main(int argc, char** argv)
-{   
+{
     std::string data_dir = "../../data/";
     std::string filename = "checker_board_32x32.png";
     cv::Mat img, imgOut;
@@ -164,6 +163,11 @@ int main(int argc, char** argv)
     char* errorChain[1];
     errorChain[0] = &tmp[0];
 
+    std::string window_name = "Blurring Example";
+    std::vector<double> Cn2;
+    Cn2.push_back(1e-14);
+
+
     // do work here
     try
     {
@@ -172,16 +176,25 @@ int main(int argc, char** argv)
         img.convertTo(img, CV_64FC1);
         cv::multiply(1.0 / 255.0, img, img);
 
-        BasicBlurringExample(errorChain, img, imgOut);
+        cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+
+        for (int range = 600; range <= 1000; range = range + 50)
+        {
+            BasicBlurringExample(errorChain, img, imgOut, Cn2, range);
+            cv::imshow(window_name, imgOut);
+            cv::waitKey(0);
+        }
 
         cv::imwrite("test_blur.png", imgOut);
     }
-    catch(std::exception& e)
+    catch (std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
     }
 
+    cv::destroyAllWindows();
+
     std::cout << "End of Program.  Press Enter to close..." << std::endl;
-	std::cin.ignore();
+    std::cin.ignore();
 
 }   // end of main
