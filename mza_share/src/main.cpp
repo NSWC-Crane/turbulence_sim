@@ -68,7 +68,7 @@ int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat& imgBlur,
     int errorCode = 0;
     int nX, nY;
     std::vector<double> x, y;
-    double lambda = 1e-6, TxD = 0.5, hp = 100, ht = 10, rd = 5000, re = 0, L;
+    double lambda = 1e-6, TxD = 0.5, hp = 100, ht = 10, rd = 5000, re = 0; //, L;
 
     nX = img.rows;
     nY = img.cols;
@@ -178,9 +178,9 @@ int main(int argc, char** argv)
 
         cv::namedWindow(window_name, cv::WINDOW_NORMAL);
 
-        for (int range = 600; range <= 1000; range = range + 50)
+        for (int L = 600; L <= 1000; L = L + 50)
         {
-            BasicBlurringExample(errorChain, img, imgOut, Cn2, range);
+            BasicBlurringExample(errorChain, img, imgOut, Cn2, L);
             cv::imshow(window_name, imgOut);
             cv::waitKey(0);
         }
