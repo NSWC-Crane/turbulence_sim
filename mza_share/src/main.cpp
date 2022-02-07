@@ -180,7 +180,7 @@ int main(int argc, char** argv)
 
         for (int L = 600; L <= 1000; L = L + 50)
         {
-            BasicBlurringExample(errorChain, img, imgOut, Cn2, L);
+            BasicBlurringExample(errorChain, img, imgOut, Cn2, (double)L);
             cv::imshow(window_name, imgOut);
             cv::waitKey(0);
         }
