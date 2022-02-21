@@ -57,7 +57,10 @@ double spherical_r0(double lambda, std::vector<double> Cn2, double L, bool ind =
     const double k = 2 * CV_PI / lambda;
     const double b0 = 0.158625;
     double prod_terms = b0 * k * k * Cn2.at(0) * L;
-    return std::pow(prod_terms, (-3.0 / 5.0));
+    //return std::pow(prod_terms, (-3.0 / 5.0));
+
+    // typically a faster way of doing powers
+    return std::exp(-0.6 * std::log(prod_terms));
 }
 
 
@@ -143,6 +146,42 @@ int BasicBlurringExample(char** errorChain, cv::Mat img, cv::Mat& imgBlur,
     errorCode = ApplyBlurSpec(errorChain, nX, nY, img.ptr<double>(0), M, M, BlurSpec.data(), &dA, imgOut.data());
     if (errorCode < 0) { return errorCheck(errorChain, "BasicBlurringExample", SC_ERRSTATUS, "when calling ApplyBlurSpec."); }
 
+    cv::Mat inv_fft;
+    cv::Mat cv_bs = cv::Mat(nY, nX, CV_64FC1, BlurSpec.data());
+    cv::idft(cv_bs, inv_fft);
+
+
+    //std::vector<cv::Mat> planes(2);
+    //cv::split(inv_fft, planes);
+    //cv::magnitude(planes[0], planes[1], planes[0]);
+
+    cv::Mat magnitudeImage = inv_fft;
+
+    cv::Mat q0(magnitudeImage, cv::Rect(0, 0, nX>>1, nY >> 1));//The top left of the ROI area
+
+    cv::Mat q1(magnitudeImage, cv::Rect(nX >> 1, 0, nX >> 1, nY >> 1));//The top right of the ROI area
+
+    cv::Mat q2(magnitudeImage, cv::Rect(0, nY >> 1, nX >> 1, nY >> 1));//The lower left of the ROI area
+
+    cv::Mat q3(magnitudeImage, cv::Rect(nX >> 1, nY >> 1, nX >> 1, nY >> 1));//The top left of the ROI area
+
+
+    cv::Mat tmp;// Exchange quadrant (top left and bottom right exchange)
+
+    q0.copyTo(tmp);
+
+    q3.copyTo(q0);
+
+    tmp.copyTo(q3);
+
+
+
+    q1.copyTo(tmp);//Upper right and bottom left exchange
+
+    q2.copyTo(q1);
+
+    tmp.copyTo(q2);
+
     imgBlur = vectorToMat(imgOut.data(), nX, nY);
     cv::multiply(255, imgBlur, imgBlur);
     imgBlur.convertTo(imgBlur, CV_8UC1);
@@ -165,7 +204,7 @@ int main(int argc, char** argv)
 
     std::string window_name = "Blurring Example";
     std::vector<double> Cn2;
-    Cn2.push_back(1e-14);
+    Cn2.push_back(1e-16);
 
 
     // do work here
