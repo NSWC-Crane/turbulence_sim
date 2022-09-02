@@ -29,7 +29,7 @@ wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the
 r0 = 0.0386         # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
                     # All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
 
-obj_size = 2.06*1   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
+obj_size = 0.63   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
                     # will be done automatically.
 
 param_obj = util.p_obj(N, D, L, r0, wvl, obj_size) # generating the parameter object, some other things are computed within this
