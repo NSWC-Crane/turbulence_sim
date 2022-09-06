@@ -74,6 +74,10 @@ def gen_PSD(p_obj):
     smax = p_obj['delta0'] / p_obj['D'] * N
     c1 = 2 * ((24 / 5) * gamma(6 / 5)) ** (5 / 6)
     c2 = 4 * c1 / np.pi * (gamma(11 / 6)) ** 2
+    c3  =(p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
+
+    i0_val = I0(0)
+
     s_arr = np.linspace(0, smax, N)
     I0_arr = np.float32(s_arr * 0)
     I2_arr = np.float32(s_arr * 0)
@@ -83,10 +87,17 @@ def gen_PSD(p_obj):
     i, j = np.int32(N / 2), np.int32(N / 2)
     [x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
     s = np.sqrt((x - i) ** 2 + (y - j) ** 2)
-    C = (In_m(s, p_obj['delta0'] / p_obj['D'] * N , I0_arr) + In_m(s, p_obj['delta0'] / p_obj['D'] * N, I2_arr)) / I0(0)
+
+    In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N , I0_arr)
+    In_2 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I2_arr)
+
+    C = (In_1 + In_2) / i0_val
     C[round(N / 2), round(N / 2)] = 1
-    C = C * I0(0) * c2 * (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
+
+    C = C * i0_val * c2 * c3
+
     Cfft = np.fft.fft2(C)
+
     S_half = np.sqrt(Cfft)
     S_half_max = np.max(np.max(np.abs(S_half)))
     S_half[np.abs(S_half) < 0.0001 * S_half_max] = 0
