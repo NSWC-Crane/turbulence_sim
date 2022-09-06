@@ -74,7 +74,7 @@ cv::Mat motion_compensate(cv::Mat &src, cv::Mat MVx, cv::Mat MVy, double pel)
     
     // [xgrid ygrid] = meshgrid(1:N, 1:M);
     cv::Mat x_grid, y_grid;
-    meshgrid(cv::Range(0, N-1), cv::Range(0, M-1), x_grid, y_grid);
+    //meshgrid(cv::Range(0, N-1), cv::Range(0, M-1), x_grid, y_grid);
     
     // X = min(max(xgrid+Dx, 1), N);
     // Y = min(max(ygrid+Dy, 1), N);
