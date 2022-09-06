@@ -8,7 +8,7 @@
 # 3. cd build
 # 4. depending on your system (windows/linux) type the following
 # Example CMake build line for windows & VS2015
-# windows: cmake -G "Visual Studio 14 2015 Win64" -DUSE_AVX_INSTRUCTIONS=ON ..
+# windows: cmake -G "Visual Studio 16 2019" -A x64 -DCMAKE_TOOLCHAIN_FILE="D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake" ..
 # linux: cmake -DUSE_AVX_INSTRUCTIONS=ON ..
 #
 # 5. To compile:
@@ -29,6 +29,9 @@ if("${PLATFORM}" STREQUAL "")
 endif()
 message("Platform: " ${PLATFORM})
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(WIN32)
 
@@ -43,7 +46,24 @@ if(WIN32)
     else()
         set(COMMON_ROOT "D:/Common")
     endif()
-
+    
+    #set(GSL_DIR "D:/Projects/vcpkg/installed/x64-windows/")
+    
+    include(cmake_utils/find_GSL.cmake)
+    if(GSL_FOUND)
+        set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
+        set(project_libs ${project_libs} ${GSL_LIBRARIES})
+    endif()
+    
+    
+    
+    #set(CMAKE_TOOLCHAIN_FILE "D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    #    CACHE STRING "Vcpkg toolchain file")
+    
+    #find_package(GSL REQUIRED
+        #HINTS "D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake"
+    #    )
+    
 else()
 
     if(${PLATFORM} STREQUAL "MainGear")
@@ -57,9 +77,7 @@ else()
 
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+
 
 
 #include(${COMMON_ROOT}/cmake_utils/use_cpp_11.cmake)
@@ -71,6 +89,7 @@ file(GLOB SOURCES "src/*.c*"
     )
 
 set(project_includes
+    ${project_includes}
     "include"
     "${COMMON_ROOT}/include"
     )
@@ -104,6 +123,16 @@ foreach(S ${project_includes})
     message("  " ${S})
 endforeach()
 message("--------------------------------------------------------------------------------")
+
+message(" ")
+
+message("--------------------------------------------------------------------------------")
+message("Project Libraries: ")
+foreach(S ${project_libs})
+    message("  " ${S})
+endforeach()
+message("--------------------------------------------------------------------------------")
+
 message(" ")
 
 include_directories(${project_includes})
@@ -111,8 +140,8 @@ add_executable(${exe_name} ${SOURCES})
 
 if(WIN32)
 
-    target_link_libraries(${exe_name} ${project_libs})
-    
+    target_link_libraries(${exe_name} ${project_libs} gsl gslcblas)
+   
     message("MSVC Version: " ${MSVC_VERSION})
     # uncomment for MSVC and cmake greater than 3.6.0
     set(default_build_type "Release")
@@ -122,7 +151,9 @@ if(WIN32)
     endif()
     
 elseif(UNIX)
-    target_link_libraries(${exe_name} ${project_libs} ${CMAKE_DL_LIBS})    
+#    target_link_libraries(${exe_name} ${project_libs} ${CMAKE_DL_LIBS})    
+    target_link_libraries(${exe_name} ${project_libs})    
+    target_link_libraries(${exe_name} PRIVATE GSL::gsl GSL::gslcblas)
 
 endif()
 
