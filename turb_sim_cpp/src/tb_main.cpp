@@ -41,6 +41,13 @@ typedef void* HINSTANCE;
 #include "motion_compensate.h"
 #include "turbulence_sim.h"
 
+#include <gsl/gsl_linalg.h>
+
+// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c
+#define ACC 40.0
+#define BIGNO 1.0e10
+#define BIGNI 1.0e-10
+
 // ----------------------------------------------------------------------------------------
 //bool compare(std::pair<uint8_t, uint8_t> p1, std::pair<uint8_t, uint8_t> p2)
 //{
@@ -72,10 +79,11 @@ inline std::ostream& operator<<(std::ostream& out, std::vector<T>& item)
 
 
 static double bessj0(double x)
-/*------------------------------------------------------------*/
-/* PURPOSE: Evaluate Bessel function of first kind and order  */
-/*          0 at input x                                      */
-/*------------------------------------------------------------*/
+//------------------------------------------------------------
+// PURPOSE: Evaluate Bessel function of first kind and order  
+//          0 at input x   
+// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c                                   
+//------------------------------------------------------------
 {
     double ax, z;
     double xx, y, ans, ans1, ans2;
@@ -103,10 +111,11 @@ static double bessj0(double x)
 }
 
 static double bessj1( double x )
-/*------------------------------------------------------------*/
-/* PURPOSE: Evaluate Bessel function of first kind and order  */
-/*          1 at input x                                      */
-/*------------------------------------------------------------*/
+//------------------------------------------------------------
+// PURPOSE: Evaluate Bessel function of first kind and order  
+//          1 at input x                                      
+// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c
+//------------------------------------------------------------
 {
    double ax,z;
    double xx,y,ans,ans1,ans2;
@@ -134,11 +143,12 @@ static double bessj1( double x )
 }
 
 double bessj( int n, double x )
-/*------------------------------------------------------------*/
-/* PURPOSE: Evaluate Bessel function of first kind and order  */
-/*          n at input x                                      */
-/* The function can also be called for n = 0 and n = 1.       */
-/*------------------------------------------------------------*/
+//------------------------------------------------------------
+// PURPOSE: Evaluate Bessel function of first kind and order  
+//          n at input x                                      
+// The function can also be called for n = 0 and n = 1.   
+// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c    
+//------------------------------------------------------------
 {
    int    j, jsum, m;
    double ax, bj, bjm, bjp, sum, tox, ans;
@@ -146,8 +156,8 @@ double bessj( int n, double x )
 
    if (n < 0)
    {
-      double   dblank;
-      setdblank_c( &dblank );
+      double   dblank = 0;              // mod
+      //setdblank_c( &dblank );         // mod
       return( dblank );
    }
    ax=fabs(x);
@@ -290,31 +300,60 @@ int main(int argc, char** argv)
 
         cv::Mat X = linspace(-31.5, 31.5, 1.0);
         double b0 = _j0(2.1);
-
-
         double b1 = bessj0(2.1);
         double b2 = BESSJ0(2.1);
 
-        meshgrid(-31.5, 31.5, 1.0, -31.5, 31.5, 1.0, X, Y);
+        //meshgrid(-31.5, 31.5, 1.0, -31.5, 31.5, 1.0, X, Y);
 
-        cv::Mat r;
-        cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
-        cv::Mat circ = cv::Mat(64, 64, CV_32FC1, cv::Scalar::all(0.0));
+        //cv::Mat r;
+        //cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
+        //cv::Mat circ = cv::Mat(64, 64, CV_32FC1, cv::Scalar::all(0.0));
 
-        for (idx = 0; idx < 64; ++idx)
-        {
-            for (jdx = 0; jdx < 64; ++jdx)
-            {
-                if (r.at<double>(idx, jdx) < 31)
-                    circ.at<float>(idx, jdx) = 1.0;
-            }
-        }
+        //for (idx = 0; idx < 64; ++idx)
+        //{
+        //    for (jdx = 0; jdx < 64; ++jdx)
+        //    {
+        //        if (r.at<double>(idx, jdx) < 31)
+        //            circ.at<float>(idx, jdx) = 1.0;
+        //    }
+        //}
 
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
 
+        bp = 0;
+        double A_data[] = {
+                0.57092943, 0.00313503, 0.88069151, 0.39626474,
+                0.33336008, 0.01876333, 0.12228647, 0.40085702,
+                0.55534451, 0.54090141, 0.85848041, 0.62154911,
+                0.64111484, 0.8892682 , 0.58922332, 0.32858322
+        };
+        
+        double b_data[] = {
+                1.5426693 , 0.74961678, 2.21431998, 2.14989419
+        };
+        
+        // Access the above C arrays through GSL views
+        gsl_matrix_view A = gsl_matrix_view_array(A_data, 4, 4);
+        gsl_vector_view b = gsl_vector_view_array(b_data, 4);
 
         bp = 1;
+
+        uint32_t N = 16;
+        double pixel = 0.0125;
+        double D = 0.095;
+        double L = 1000;
+        double wavelenth = 525e-9;
+        double obj_size = N * pixel;
+        double r0 = 0.386;
+
+        param_obj P(N, D, L, r0, wavelenth, obj_size);
+
+        cv::Mat s_half;
+        generate_psd(P, s_half);
+
+        bp = 2;
+
 
     }
     catch(std::exception& e)

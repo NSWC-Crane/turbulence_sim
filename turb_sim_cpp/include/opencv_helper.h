@@ -11,20 +11,40 @@
 #include <opencv2/imgproc.hpp>
 
 template <typename T>
-cv::Mat linspace(const T x_start, const T x_stop, const T x_step)
-{
-    std::vector<T> t_x;
-    for (T idx = x_start; idx <= x_stop; idx = idx + x_step)
-        t_x.push_back(idx);
+//cv::Mat linspace(const T x_start, const T x_stop, const T x_step)
+//{
+//    std::vector<T> t_x;
+//    for (T idx = x_start; idx < x_stop; idx = idx + x_step)
+//        t_x.push_back(idx);
+//
+//    cv::Mat x(t_x);
+//
+//    return x.reshape(1, 1).clone();
+//
+//}   // end of linspace
 
+cv::Mat linspace(const T x_start, const T x_stop, uint64_t N)
+{
+    uint64_t idx;
+    std::vector<T> t_x;
+    double step = (double)(x_stop - x_start) / (double)(N-1);
+
+    T start = x_start;
+    //for (idx = x_start; idx <= x_stop; idx = idx + step)
+    for (idx = 0; idx < N; ++idx)
+    {
+        t_x.push_back(start);
+        start += step;
+    }
     cv::Mat x(t_x);
 
     return x.reshape(1, 1).clone();
 
 }   // end of linspace
 
+
 template <typename T>
-void meshgrid(const T x_start, const T x_stop, const T x_step, const T y_start, const T y_stop, const T y_step, cv::Mat& X, cv::Mat& Y)
+void meshgrid(T x_start, T x_stop, uint64_t N_x, T y_start, T y_stop, uint64_t N_y, cv::Mat& X, cv::Mat& Y)
 {
     //T idx;
 
@@ -38,15 +58,15 @@ void meshgrid(const T x_start, const T x_stop, const T x_step, const T y_start, 
     //cv::Mat x(t_x);
     //cv::Mat y(t_y);
 
-    cv::Mat x = linspace(x_start, x_stop, x_step);
-    cv::Mat y = linspace(y_start, y_stop, y_step);
+    cv::Mat x = linspace(x_start, x_stop, N_x);
+    cv::Mat y = linspace(y_start, y_stop, N_y);
 
     cv::repeat(x, y.total(), 1, X);
     cv::repeat(y.t(), 1, x.total(), Y);
 }
 
 
-void meshgrid(const cv::Range& xgv, const cv::Range& ygv, cv::Mat& X, cv::Mat& Y)
+void meshgrid(cv::Range xgv, cv::Range ygv, cv::Mat& X, cv::Mat& Y)
 {
     std::vector<int> t_x, t_y;
     for (int i = xgv.start; i <= xgv.end; ++i)
@@ -84,5 +104,64 @@ cv::Mat circ(int32_t rows, int32_t cols)
     return w;
 
 }   // end of circ
+
+cv::Mat sqrt_cmplx(cv::Mat& src)
+{
+    std::complex<double> tmp;
+    cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
+
+    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<cv::Vec2d> res_it = result.begin<cv::Vec2d>();
+
+    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++res_it)
+    {
+        tmp = std::complex<double>((*it)[0], (*it)[1]);
+        tmp = std::sqrt(tmp);
+
+        (*res_it)[0] = tmp.real();
+        (*res_it)[1] = tmp.imag();
+
+    }
+
+    return result;
+}
+
+cv::Mat abs_cmplx(cv::Mat& src)
+{
+    std::complex<double> tmp;
+    cv::Mat result = cv::Mat::zeros(src.rows, src.cols, CV_64FC1);
+
+    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<double> res_it = result.begin<double>();
+
+    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++res_it)
+    {
+        tmp = std::complex<double>((*it)[0], (*it)[1]);
+        *res_it = std::abs(tmp);
+    }
+
+    return result;
+}
+
+
+void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
+{
+    std::complex<double> tmp;
+    cv::Mat result = cv::Mat::zeros(src.rows, src.cols, CV_64FC1);
+
+    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
+
+    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++dst_it)
+    {
+        tmp = std::complex<double>((*it)[0], (*it)[1]);
+        if (std::abs(tmp) < value)
+        {
+            (*dst_it)[0] = 0.0;
+            (*dst_it)[1] = 0.0;
+        }
+    }
+}
+
 
 #endif  // _OPENCV_HELPER_H_
