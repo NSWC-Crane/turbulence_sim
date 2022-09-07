@@ -1,9 +1,9 @@
 message(STATUS "--------------------------------------------------------------------------------")
 message(STATUS "Looking for GSL Library...")
 
-find_path(GSL_INCLUDE_DIRS gsl_cblas.h
+find_path(GSL_INCLUDE_DIRS gsl/gsl_cblas.h
     PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows" "${VCPKG_ROOT}/installed/x64-windows" ENV CPATH
-    PATH_SUFFIXES include/gsl
+    PATH_SUFFIXES include
     )
 
 find_library(GSL_LIBRARIES gsl
