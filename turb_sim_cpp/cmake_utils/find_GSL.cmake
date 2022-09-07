@@ -2,19 +2,19 @@ message(STATUS "----------------------------------------------------------------
 message(STATUS "Looking for GSL Library...")
 
 find_path(GSL_INCLUDE_DIRS gsl_cblas.h
-    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows" ENV CPATH
+    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows" "${VCPKG_ROOT}/installed/x64-windows" ENV CPATH
     PATH_SUFFIXES include/gsl
     )
 
 find_library(GSL_LIBRARIES gsl
     HINTS ${GSL_INCLUDE_DIRS}
-    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows"
+    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows" "${VCPKG_ROOT}/installed/x64-windows"
     PATH_SUFFIXES lib amd64 lib64 x64 
     )
     
 find_library(GSL_CBLAS_LIB gslcblas
     HINTS ${GSL_LIBRARIES}
-    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows"
+    PATHS /usr/local "D:/Projects/vcpkg/installed/x64-windows" "C:/Projects/vcpkg/installed/x64-windows" "${VCPKG_ROOT}/installed/x64-windows"
     PATH_SUFFIXES lib amd64 lib64 x64 
     )    
     
