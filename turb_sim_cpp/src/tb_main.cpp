@@ -253,7 +253,7 @@ double Sign(double X, double Y) {
     else return (fabs(X));
 }
 
-// ----------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
     int bp = 0;
@@ -287,8 +287,8 @@ int main(int argc, char** argv)
     //}
 
     // setup the windows to display the results
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::resizeWindow(window_name, 2*img_w, img_h);
+    //cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    //cv::resizeWindow(window_name, 2*img_w, img_h);
 
     // do work here
     try
@@ -297,11 +297,6 @@ int main(int argc, char** argv)
         const cv::Range ygv = cv::Range(0, 5);
         cv::Mat Y;
         //meshgrid(xgv, ygv, X, Y);
-
-        cv::Mat X = linspace(-31.5, 31.5, 1.0);
-        double b0 = _j0(2.1);
-        double b1 = bessj0(2.1);
-        double b2 = BESSJ0(2.1);
 
         //meshgrid(-31.5, 31.5, 1.0, -31.5, 31.5, 1.0, X, Y);
 
@@ -317,25 +312,36 @@ int main(int argc, char** argv)
         //            circ.at<float>(idx, jdx) = 1.0;
         //    }
         //}
-
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
+        
+        //-----------------------------------------------------------------------------
+        // test code
+        cv::RNG rng(123456);
 
-        bp = 0;
-        double A_data[] = {
-                0.57092943, 0.00313503, 0.88069151, 0.39626474,
-                0.33336008, 0.01876333, 0.12228647, 0.40085702,
-                0.55534451, 0.54090141, 0.85848041, 0.62154911,
-                0.64111484, 0.8892682 , 0.58922332, 0.32858322
-        };
-        
-        double b_data[] = {
-                1.5426693 , 0.74961678, 2.21431998, 2.14989419
-        };
-        
-        // Access the above C arrays through GSL views
-        gsl_matrix_view A = gsl_matrix_view_array(A_data, 4, 4);
-        gsl_vector_view b = gsl_vector_view_array(b_data, 4);
+        cv::Mat rn2 = cv::Mat::zeros(6, 6, CV_64FC1);
+        //cv::randn(rn, cv::Scalar::all(0), cv::Scalar::all(1));
+        cv::randn(rn2, 0.0, 1.0);
+
+        std::vector<cv::Mat> ch;
+
+        ch.push_back(rn2);
+        ch.push_back(rn2);
+
+        cv::Mat rn;
+        //cv::merge(ch.data(), 2, rn);
+
+        cv::Mat test = cv::Mat(6, 6, CV_64FC2, cv::Scalar::all(2));
+
+        std::vector<cv::Mat> t2(2);
+        cv::split(test, t2);
+        cv::merge(ch, rn);
+
+        //cv::Mat res1 = rn * test;
+        cv::Mat res2 = test.mul(rn);
+
+
+        //-----------------------------------------------------------------------------
 
         bp = 1;
 
