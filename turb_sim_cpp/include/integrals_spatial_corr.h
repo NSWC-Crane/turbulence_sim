@@ -89,7 +89,7 @@ double I0(double s)
 	const double epsrel = 1e-4;
 
 	//int gsl_integration_qagiu(gsl_function *f, double a, double epsabs, double epsrel, size_t limit, gsl_integration_workspace *workspace, double *result, double *abserr)
-	int code = gsl_integration_qagiu(&F, 0, epsabs, epsrel, neval, w, &I0_s, &error);
+	int code = gsl_integration_qagiu(&F, 0.0, epsabs, epsrel, neval, w, &I0_s, &error);
 
 	gsl_integration_workspace_free(w);
 

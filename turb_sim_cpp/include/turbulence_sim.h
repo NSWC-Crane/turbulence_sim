@@ -41,27 +41,6 @@ public:
     }
     
     //-----------------------------------------------------------------------------
-    void set_N(uint64_t N_)
-    {
-        N = N_;
-        init_params();
-    }
-    
-    //-----------------------------------------------------------------------------
-    void set_D(double D_)
-    {
-        D = D_;
-        init_params();
-    }    
-
-    //-----------------------------------------------------------------------------
-    void set_L(double L_)
-    {
-        L = L_;
-        init_params();
-    }
-    
-    //-----------------------------------------------------------------------------
     void update_params(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_)
     {
         N = N_;
@@ -79,7 +58,6 @@ public:
     void update_params(double L_)
     {
         L = L_;
-
         init_params();
     }
 
@@ -93,20 +71,48 @@ public:
         
     }
     
-    //-----------------------------------------------------------------------------
-    double get_delta0(void) { return delta0; }
 
     //-----------------------------------------------------------------------------
     double get_D(void) { return D; }
+    void set_D(double D_) 
+    { 
+        D = D_; 
+        init_params();
+    }
 
     //-----------------------------------------------------------------------------
-    double get_D_r0(void) { return D_r0; }
-    
+    double get_L(void) { return L; }
+    void set_L(double L_) 
+    { 
+        L = L_; 
+        init_params();
+    }
+   
     //-----------------------------------------------------------------------------
     uint64_t get_N(void) { return N; }
+    void set_N(uint64_t N_) 
+    { 
+        N = N_; 
+        init_params();
+    }
 
     //-----------------------------------------------------------------------------
     double get_wavelength(void) { return wavelength; }
+    void set_wavelength(double w_) 
+    { 
+        wavelength = w_; 
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    cv::Mat get_S(void) { return S; }
+    void set_S(cv::Mat S_) { S = S_.clone(); }
+
+    //-----------------------------------------------------------------------------
+    double get_D_r0(void) { return D_r0; }
+
+    //-----------------------------------------------------------------------------
+    double get_delta0(void) { return delta0; }
 
 //-----------------------------------------------------------------------------
 private:
@@ -125,6 +131,8 @@ private:
     double ob_s;
     double scaling;
     
+    cv::Mat S;
+
 };
 
 
@@ -141,11 +149,12 @@ https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Tur
 
 */
 
-void generate_psd(param_obj p, cv::Mat &s_half)
+void generate_psd(param_obj p)
 {
     uint64_t idx;
     cv::Mat x, y;
-    
+    cv::Mat s_half;
+
     uint32_t N = 2 * p.get_N();
     
     double delta0_D = (p.get_delta0() / p.get_D());
@@ -206,12 +215,15 @@ void generate_psd(param_obj p, cv::Mat &s_half)
     //C = C * I0(0) * c2 * (p.get_D_r0()) ** (5.0 / 3.0) / (2 ** (5.0 / 3.0)) * (2 * p.wavelength / (CV_PI * p.D)) ** 2 * 2 * CV_PI;
     C = C * (i0_val * c2 * c3);
 
-    cv::Mat c_fft = cv::Mat::zeros(C.rows, C.cols, CV_64FC1);
-    cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
+    // test of complex vector under the hood
+    std::vector<std::complex<double>> c_fft_vec(C.rows * C.cols, 0.0);
 
-    //cv::Mat c_fft = np.fft.fft2(C)
+
+    cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
+    cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
     
-    s_half = sqrt_cmplx(c_fft);
+    s_half = cv::Mat::zeros(C.rows, C.cols, CV_64FC2);
+    sqrt_cmplx(c_fft, s_half);
 
     // find the maximum magnitude of the FFT
     double s_half_max;
@@ -219,16 +231,50 @@ void generate_psd(param_obj p, cv::Mat &s_half)
 
     cv::minMaxIdx(abs_s_half, NULL, &s_half_max, NULL, NULL);
 
+    // threshold - all elements < 0.0001 * S_half_max = 0
     threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
  /*   
-    // threshold - all elements < 0.0001 * S_half_max = 0
     S_half[np.abs(S_half) < 0.0001 * S_half_max] = 0
 */
 
-    //return S_half
+    p.set_S(s_half);
 }
 
+//-----------------------------------------------------------------------------
+/*
+This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
+generated.However, it is** significantly** faster to generate the PSD onceand then use it to draw the values from.
+This is also done automatically, because it is significantly faster.
 
+: param img : The input image(assumed to be N x N pixels)
+: param p_obj : The parameter object -- with the PSD is preferred
+: return : The output, tilted image
+
+adapted from here :
+https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+*/
+
+void generate_tilt_image(cv::Mat& src, param_obj p, cv::Mat& dst)
+{
+    double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
+    uint64_t N = 2 * p.get_N();
+
+    //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    
+        
+        //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+
+        //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+        //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+        //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+        
+        //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+        //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
+
+        //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
+        //#plt.show()
+
+}
 
 
 
