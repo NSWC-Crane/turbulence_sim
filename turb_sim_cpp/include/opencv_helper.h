@@ -105,25 +105,25 @@ cv::Mat circ(int32_t rows, int32_t cols)
 
 }   // end of circ
 
-cv::Mat sqrt_cmplx(cv::Mat& src)
+void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
 {
     std::complex<double> tmp;
-    cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
+    //cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
 
     cv::MatIterator_<cv::Vec2d> it, end;
-    cv::MatIterator_<cv::Vec2d> res_it = result.begin<cv::Vec2d>();
+    cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
 
-    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++res_it)
+    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++dst_it)
     {
         tmp = std::complex<double>((*it)[0], (*it)[1]);
         tmp = std::sqrt(tmp);
 
-        (*res_it)[0] = tmp.real();
-        (*res_it)[1] = tmp.imag();
+        (*dst_it)[0] = tmp.real();
+        (*dst_it)[1] = tmp.imag();
 
     }
 
-    return result;
+    //return result;
 }
 
 cv::Mat abs_cmplx(cv::Mat& src)
@@ -146,16 +146,16 @@ cv::Mat abs_cmplx(cv::Mat& src)
 
 void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
 {
-    std::complex<double> tmp;
+    double tmp;
     cv::Mat result = cv::Mat::zeros(src.rows, src.cols, CV_64FC1);
 
-    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<double> it, end;
     cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
 
-    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++dst_it)
+    for (it = src.begin<double>(), end = src.end<double>(); it != end; ++it, ++dst_it)
     {
-        tmp = std::complex<double>((*it)[0], (*it)[1]);
-        if (std::abs(tmp) < value)
+        //tmp = std::complex<double>((*it)[0], (*it)[1]);
+        if (*it < value)
         {
             (*dst_it)[0] = 0.0;
             (*dst_it)[1] = 0.0;
