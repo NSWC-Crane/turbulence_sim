@@ -350,7 +350,7 @@ int main(int argc, char** argv)
         param_obj P(N, D, L, r0, wavelenth, obj_size);
 
         cv::Mat s_half;
-        generate_psd(P, s_half);
+        generate_psd(P);
 
         bp = 2;
 
