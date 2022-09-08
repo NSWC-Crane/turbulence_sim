@@ -17,6 +17,7 @@
 class param_obj
 {
 public:
+    std::vector<std::complex<double>> S_vec;
 
     param_obj(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
     {
@@ -109,6 +110,10 @@ public:
     void set_S(cv::Mat S_) { S = S_.clone(); }
 
     //-----------------------------------------------------------------------------
+    std::vector<std::complex<double>> get_S_vec(void) { return S_vec; }
+    void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
+
+    //-----------------------------------------------------------------------------
     double get_D_r0(void) { return D_r0; }
 
     //-----------------------------------------------------------------------------
@@ -133,6 +138,7 @@ private:
     
     cv::Mat S;
 
+
 };
 
 
@@ -149,7 +155,7 @@ https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Tur
 
 */
 
-void generate_psd(param_obj p)
+void generate_psd(param_obj &p)
 {
     uint64_t idx;
     cv::Mat x, y;
@@ -222,7 +228,9 @@ void generate_psd(param_obj p)
     cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
     cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
     
-    s_half = cv::Mat::zeros(C.rows, C.cols, CV_64FC2);
+
+    p.S_vec.resize(C.rows * C.cols);
+    s_half = cv::Mat(C.rows, C.cols, CV_64FC2, p.S_vec.data());
     sqrt_cmplx(c_fft, s_half);
 
     // find the maximum magnitude of the FFT
@@ -254,25 +262,47 @@ adapted from here :
 https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 */
 
-void generate_tilt_image(cv::Mat& src, param_obj p, cv::Mat& dst)
+void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
 {
+    uint64_t idx;
     double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
+    uint64_t N_2 = p.get_N() >> 1;
+
+    cv::Mat m_vx, m_vy;
+    cv::Mat rnd_x(N, N, CV_64FC1);
+    cv::Mat rnd_y(N, N, CV_64FC1);
+    cv::Mat S = cv::Mat(N, N, CV_64FC2, p.S_vec.data());
 
     //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, 1.0);
+    cv::MatIterator_<double> it = rnd_x.begin<double>();
+    cv::MatIterator_<double> end = rnd_x.end<double>();
+    for (idx = 0; idx < N*N, it != end; ++idx, ++it)
+    {
+        p.S_vec[idx] *= *it;
+    }
+
+    cv::dft(S, m_vx, cv::DFT_INVERSE + cv::DFT_SCALE + cv::DFT_REAL_OUTPUT, S.rows);
+    cv::dft(S, m_vy, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+
+    //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+
+
+    //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+    //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, 1.0);
+
+
+    //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
-        
-        //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
 
-        //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
-        //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-        //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
-        
-        //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
-        //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
+    //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+    
+    //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
 
-        //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
-        //#plt.show()
+    //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
+    //#plt.show()
 
 }
 

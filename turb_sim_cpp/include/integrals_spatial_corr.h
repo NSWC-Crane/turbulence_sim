@@ -125,16 +125,6 @@ double I0(double s)
 
 
 //-----------------------------------------------------------------------------
-/*
-def I2(s):
-	# z = np.linspace(1e-6, 1e3, 1e5)
-	# f_z = (z**(-14/3))*jv(2,2*s*z)*(jv(2,z)**2)
-	# I2_s = np.trapz(f_z, z)
-
-	I2_s, _ = integrate.quad( lambda z: (z**(-14/3))*jv(2,2*s*z)*(jv(2,z)**2), 1e-4, np.inf, limit = 100000)
-	# print('I2: ',I2_s)
-	return I2_s
-*/
 double I2(double s)
 {
 	uint32_t idx;
@@ -177,29 +167,7 @@ double I2(double s)
 	int code = gsl_integration_qagiu(&F, 0, epsabs, epsrel, neval, w, &I2_s, &error);
 
 	gsl_integration_workspace_free(w);
-/*
-	// start the simpson rule integration: f(x0)
-	I2_s = 0.0;
-	z += delta_z;
 
-	for (idx = 1; idx < n + 1; idx += 2)
-	{
-		j0 = gsl_sf_bessel_Jn(2, s * z);
-		j2 = gsl_sf_bessel_Jn(2, z);
-		I2_s += 4.0 * j0 * j2 * j2 * std::exp(c1 * std::log(z));
-		z += delta_z;
-
-		j0 = gsl_sf_bessel_Jn(2, s * z);
-		j2 = gsl_sf_bessel_Jn(2, z);
-		I2_s += 2.0 * j0 * j2 * j2 * std::exp(c1 * std::log(z));
-		z += delta_z;
-	}
-
-	j0 = gsl_sf_bessel_Jn(2, s * z);
-	j2 = gsl_sf_bessel_Jn(2, z);
-	I2_s += j0 * j2 * j2 * std::exp(c1 * std::log(z));
-	I2_s *= 3.0 / delta_z;
-*/
 	return I2_s;
 }
 

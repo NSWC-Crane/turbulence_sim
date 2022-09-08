@@ -321,7 +321,9 @@ int main(int argc, char** argv)
 
         cv::Mat rn2 = cv::Mat::zeros(6, 6, CV_64FC1);
         //cv::randn(rn, cv::Scalar::all(0), cv::Scalar::all(1));
-        cv::randn(rn2, 0.0, 1.0);
+        //cv::randn(rn2, 0.0, 1.0);
+
+        rng.fill(rn2, cv::RNG::NORMAL, 0.0, 1.0);
 
         std::vector<cv::Mat> ch;
 
@@ -340,6 +342,18 @@ int main(int argc, char** argv)
         //cv::Mat res1 = rn * test;
         cv::Mat res2 = test.mul(rn);
 
+        // vector version
+        std::vector<std::complex<double>> c_fft_vec(6*6, std::complex < double>(2.0, 2.0));
+        
+        cv::Mat test2 = cv::Mat(6, 6, CV_64FC2, c_fft_vec.data());
+
+        cv::MatIterator_<double> it, end;
+        for (idx = 0, it = rn2.begin<double>(), end = rn2.end<double>(); idx < c_fft_vec.size(), it != end; ++idx, ++it)
+        {
+            c_fft_vec[idx] *= *it;
+        }
+
+
 
         //-----------------------------------------------------------------------------
 
@@ -351,12 +365,16 @@ int main(int argc, char** argv)
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
-        double r0 = 0.386;
+        double r0 = 0.0386;
 
         param_obj P(N, D, L, r0, wavelenth, obj_size);
 
         cv::Mat s_half;
         generate_psd(P);
+
+
+        generate_tilt_image(s_half, P, rng, s_half);
+
 
         bp = 2;
 
