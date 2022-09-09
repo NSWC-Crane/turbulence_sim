@@ -38,7 +38,6 @@ typedef void* HINSTANCE;
 #include <file_ops.h>
 
 #include "cv_dft_conv.h"
-#include "motion_compensate.h"
 #include "turbulence_sim.h"
 
 #include <gsl/gsl_linalg.h>
@@ -319,45 +318,20 @@ int main(int argc, char** argv)
         // test code
         cv::RNG rng(123456);
 
-        cv::Mat rn2 = cv::Mat::zeros(6, 6, CV_64FC1);
-        //cv::randn(rn, cv::Scalar::all(0), cv::Scalar::all(1));
-        //cv::randn(rn2, 0.0, 1.0);
-
-        rng.fill(rn2, cv::RNG::NORMAL, 0.0, 1.0);
-
-        std::vector<cv::Mat> ch;
-
-        ch.push_back(rn2);
-        ch.push_back(rn2);
-
-        cv::Mat rn;
-        //cv::merge(ch.data(), 2, rn);
-
-        cv::Mat test = cv::Mat(6, 6, CV_64FC2, cv::Scalar::all(2));
-
-        std::vector<cv::Mat> t2(2);
-        cv::split(test, t2);
-        cv::merge(ch, rn);
-
-        //cv::Mat res1 = rn * test;
-        cv::Mat res2 = test.mul(rn);
-
-        // vector version
-        std::vector<std::complex<double>> c_fft_vec(6*6, std::complex < double>(2.0, 2.0));
-        
-        cv::Mat test2 = cv::Mat(6, 6, CV_64FC2, c_fft_vec.data());
-
-        cv::MatIterator_<double> it, end;
-        for (idx = 0, it = rn2.begin<double>(), end = rn2.end<double>(); idx < c_fft_vec.size(), it != end; ++idx, ++it)
-        {
-            c_fft_vec[idx] *= *it;
-        }
-
-
-
         //-----------------------------------------------------------------------------
 
         bp = 1;
+
+        cv::Mat img = cv::imread("../../data/checker_board_32x32.png", cv::IMREAD_ANYCOLOR);
+        if (img.channels() >= 3)
+        {
+            img.convertTo(img, CV_64FC3);
+            img = get_channel(img, 1);
+        }
+        else
+        {
+            img.convertTo(img, CV_64FC1);
+        }
 
         uint32_t N = 16;
         double pixel = 0.0125;

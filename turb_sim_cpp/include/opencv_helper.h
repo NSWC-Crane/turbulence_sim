@@ -110,12 +110,12 @@ void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
     std::complex<double> tmp;
     //cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
 
-    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<cv::Vec2d> itr, end;
     cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
 
-    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++dst_it)
+    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++dst_it)
     {
-        tmp = std::complex<double>((*it)[0], (*it)[1]);
+        tmp = std::complex<double>((*itr)[0], (*itr)[1]);
         tmp = std::sqrt(tmp);
 
         (*dst_it)[0] = tmp.real();
@@ -131,12 +131,12 @@ cv::Mat abs_cmplx(cv::Mat& src)
     std::complex<double> tmp;
     cv::Mat result = cv::Mat::zeros(src.rows, src.cols, CV_64FC1);
 
-    cv::MatIterator_<cv::Vec2d> it, end;
+    cv::MatIterator_<cv::Vec2d> itr, end;
     cv::MatIterator_<double> res_it = result.begin<double>();
 
-    for (it = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); it != end; ++it, ++res_it)
+    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++res_it)
     {
-        tmp = std::complex<double>((*it)[0], (*it)[1]);
+        tmp = std::complex<double>((*itr)[0], (*itr)[1]);
         *res_it = std::abs(tmp);
     }
 
@@ -149,13 +149,13 @@ void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
     double tmp;
     cv::Mat result = cv::Mat::zeros(src.rows, src.cols, CV_64FC1);
 
-    cv::MatIterator_<double> it, end;
+    cv::MatIterator_<double> itr, end;
     cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
 
-    for (it = src.begin<double>(), end = src.end<double>(); it != end; ++it, ++dst_it)
+    for (itr = src.begin<double>(), end = src.end<double>(); itr != end; ++itr, ++dst_it)
     {
         //tmp = std::complex<double>((*it)[0], (*it)[1]);
-        if (*it < value)
+        if (*itr < value)
         {
             (*dst_it)[0] = 0.0;
             (*dst_it)[1] = 0.0;
@@ -163,5 +163,37 @@ void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
     }
 }
 
+inline cv::Mat get_channel(cv::Mat& src, uint32_t n)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
+
+    cv::MatIterator_<cv::Vec3d> itr;
+    cv::MatIterator_<cv::Vec3d> end;
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (itr = src.begin<cv::Vec3d>(), end = src.end<cv::Vec3d>(); itr != end; ++itr, ++dst_itr)
+    {
+        *dst_itr = (*itr)[n];
+    }
+
+    return dst;
+}
+
+
+inline cv::Mat clamp(cv::Mat& src, double min_value, double max_value)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
+
+    cv::MatIterator_<double> itr;
+    cv::MatIterator_<double> end;
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (itr = src.begin<double>(), end = src.end<double>(); itr != end; ++itr, ++dst_itr)
+    {        
+        *dst_itr = (*itr < min_value) ? min_value : ((*itr > max_value) ? max_value : *itr);
+    }
+
+    return dst;
+}
 
 #endif  // _OPENCV_HELPER_H_

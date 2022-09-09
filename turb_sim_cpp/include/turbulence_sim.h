@@ -12,7 +12,7 @@
 #include "opencv_helper.h"
 
 #include "integrals_spatial_corr.h"
-
+#include "motion_compensate.h"
 
 class param_obj
 {
@@ -268,23 +268,33 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
+    uint64_t N2 = N * N;
 
-    cv::Mat m_vx, m_vy;
+    std::complex<double> tmp;
+    //std::vector<std::complex<double>> m_vx_vec(N2, std::complex < double>(0.0, 0.0));
+    //std::vector<std::complex<double>> m_vy_vec(N2, std::complex < double>(0.0, 0.0));
+
+    cv::Mat mv_x;
+    cv::Mat mv_y;
     cv::Mat rnd_x(N, N, CV_64FC1);
     cv::Mat rnd_y(N, N, CV_64FC1);
-    cv::Mat S = cv::Mat(N, N, CV_64FC2, p.S_vec.data());
+    cv::Mat S = cv::Mat::zeros(N, N, CV_64FC2);
+    cv::MatIterator_<double> rnd_itr;
+    cv::MatIterator_<cv::Vec2d> S_itr;
 
     //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, 1.0);
-    cv::MatIterator_<double> it = rnd_x.begin<double>();
-    cv::MatIterator_<double> end = rnd_x.end<double>();
-    for (idx = 0; idx < N*N, it != end; ++idx, ++it)
+    rnd_itr = rnd_x.begin<double>();
+    S_itr = S.begin<cv::Vec2d>();
+    for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
     {
-        p.S_vec[idx] *= *it;
+        tmp = p.S_vec[idx] * (*rnd_itr);
+        *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
     }
 
-    cv::dft(S, m_vx, cv::DFT_INVERSE + cv::DFT_SCALE + cv::DFT_REAL_OUTPUT, S.rows);
-    cv::dft(S, m_vy, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+    cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+    mv_x = c1 * get_channel(mv_x, 0);
+    mv_x -= cv::mean(mv_x)[0];
 
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
 
@@ -292,7 +302,19 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, 1.0);
+    
+    rnd_itr = rnd_y.begin<double>();
+    S_itr = S.begin<cv::Vec2d>();
 
+    for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
+    {
+        tmp = p.S_vec[idx] * (*rnd_itr);
+        *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
+    }
+
+    cv::dft(S, mv_y, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+    mv_y = c1 * get_channel(mv_y, 0);
+    mv_y -= cv::mean(mv_y)[0];
 
     //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
@@ -300,6 +322,8 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
     //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
+    motion_compensate(src, dst, mv_x, mv_y, 0.5);
+
 
     //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
     //#plt.show()
