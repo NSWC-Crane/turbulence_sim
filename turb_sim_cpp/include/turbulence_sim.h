@@ -293,7 +293,7 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     }
 
     cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-    mv_x = c1 * get_channel(mv_x, 0);
+    mv_x = c1 * get_real(mv_x);
     mv_x -= cv::mean(mv_x)[0];
 
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
@@ -313,7 +313,7 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     }
 
     cv::dft(S, mv_y, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-    mv_y = c1 * get_channel(mv_y, 0);
+    mv_y = c1 * get_real(mv_y);
     mv_y -= cv::mean(mv_y)[0];
 
     //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]

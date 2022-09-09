@@ -80,7 +80,7 @@ double I0(double s)
 	F.params = reinterpret_cast<void*>(&params);
 
 	double result, error;
-	size_t neval = 100000;
+	size_t neval = 1000;
 	gsl_integration_workspace* w = gsl_integration_workspace_alloc(neval);
 
 	//const double xlow = 0;
@@ -89,7 +89,7 @@ double I0(double s)
 	const double epsrel = 1e-4;
 
 	//int gsl_integration_qagiu(gsl_function *f, double a, double epsabs, double epsrel, size_t limit, gsl_integration_workspace *workspace, double *result, double *abserr)
-	int code = gsl_integration_qagiu(&F, 0.0, epsabs, epsrel, neval, w, &I0_s, &error);
+	int code = gsl_integration_qagiu(&F, 1.0e-4, epsabs, epsrel, neval, w, &I0_s, &error);
 
 	gsl_integration_workspace_free(w);
 
@@ -155,7 +155,7 @@ double I2(double s)
 	F.params = reinterpret_cast<void*>(&params);
 
 	double result, error;
-	size_t neval = 100000;
+	size_t neval = 1000;
 	gsl_integration_workspace* w = gsl_integration_workspace_alloc(neval);
 
 	//const double xlow = 0;
@@ -164,7 +164,7 @@ double I2(double s)
 	const double epsrel = 1e-4;
 
 	//int gsl_integration_qagiu(gsl_function *f, double a, double epsabs, double epsrel, size_t limit, gsl_integration_workspace *workspace, double *result, double *abserr)
-	int code = gsl_integration_qagiu(&F, 0, epsabs, epsrel, neval, w, &I2_s, &error);
+	int code = gsl_integration_qagiu(&F, 1.0e-4, epsabs, epsrel, neval, w, &I2_s, &error);
 
 	gsl_integration_workspace_free(w);
 

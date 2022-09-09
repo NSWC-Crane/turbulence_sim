@@ -10,6 +10,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+//-----------------------------------------------------------------------------
 template <typename T>
 //cv::Mat linspace(const T x_start, const T x_stop, const T x_step)
 //{
@@ -23,6 +24,7 @@ template <typename T>
 //
 //}   // end of linspace
 
+//-----------------------------------------------------------------------------
 cv::Mat linspace(const T x_start, const T x_stop, uint64_t N)
 {
     uint64_t idx;
@@ -43,6 +45,7 @@ cv::Mat linspace(const T x_start, const T x_stop, uint64_t N)
 }   // end of linspace
 
 
+//-----------------------------------------------------------------------------
 template <typename T>
 void meshgrid(T x_start, T x_stop, uint64_t N_x, T y_start, T y_stop, uint64_t N_y, cv::Mat& X, cv::Mat& Y)
 {
@@ -65,7 +68,7 @@ void meshgrid(T x_start, T x_stop, uint64_t N_x, T y_start, T y_stop, uint64_t N
     cv::repeat(y.t(), 1, x.total(), Y);
 }
 
-
+//-----------------------------------------------------------------------------
 void meshgrid(cv::Range xgv, cv::Range ygv, cv::Mat& X, cv::Mat& Y)
 {
     std::vector<int> t_x, t_y;
@@ -82,7 +85,7 @@ void meshgrid(cv::Range xgv, cv::Range ygv, cv::Mat& X, cv::Mat& Y)
     cv::repeat(y.reshape(1, 1).t(), 1, x.total(), Y);
 }
 
-
+//-----------------------------------------------------------------------------
 cv::Mat circ(int32_t rows, int32_t cols)
 {
     cv::Mat X, Y;
@@ -105,6 +108,7 @@ cv::Mat circ(int32_t rows, int32_t cols)
 
 }   // end of circ
 
+//-----------------------------------------------------------------------------
 void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
 {
     std::complex<double> tmp;
@@ -126,6 +130,7 @@ void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
     //return result;
 }
 
+//-----------------------------------------------------------------------------
 cv::Mat abs_cmplx(cv::Mat& src)
 {
     std::complex<double> tmp;
@@ -143,7 +148,7 @@ cv::Mat abs_cmplx(cv::Mat& src)
     return result;
 }
 
-
+//-----------------------------------------------------------------------------
 void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
 {
     double tmp;
@@ -163,6 +168,7 @@ void threshold_cmplx(cv::Mat& src, cv::Mat &dst, double value)
     }
 }
 
+//-----------------------------------------------------------------------------
 inline cv::Mat get_channel(cv::Mat& src, uint32_t n)
 {
     cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
@@ -179,7 +185,41 @@ inline cv::Mat get_channel(cv::Mat& src, uint32_t n)
     return dst;
 }
 
+//-----------------------------------------------------------------------------
+inline cv::Mat get_real(cv::Mat& src)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
 
+    cv::MatIterator_<cv::Vec2d> itr;
+    cv::MatIterator_<cv::Vec2d> end;
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++dst_itr)
+    {
+        *dst_itr = (*itr)[0];
+    }
+
+    return dst;
+}
+
+//-----------------------------------------------------------------------------
+inline cv::Mat get_imag(cv::Mat& src)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
+
+    cv::MatIterator_<cv::Vec2d> itr;
+    cv::MatIterator_<cv::Vec2d> end;
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++dst_itr)
+    {
+        *dst_itr = (*itr)[1];
+    }
+
+    return dst;
+}
+
+//-----------------------------------------------------------------------------
 inline cv::Mat clamp(cv::Mat& src, double min_value, double max_value)
 {
     cv::Mat dst = cv::Mat(src.size(), CV_64FC1);

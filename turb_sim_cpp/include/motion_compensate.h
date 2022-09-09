@@ -83,7 +83,8 @@ void motion_compensate(cv::Mat &src, cv::Mat &dst, cv::Mat &mv_x, cv::Mat &mv_y,
     uint32_t img_h = src.rows;
     uint32_t img_w = src.cols;
 
-    cv::resize(src, img, cv::Size(), (uint32_t)(img_w/pel), (uint32_t)(img_h /pel), cv::INTER_LINEAR);
+    // img = resize(img, (np.int32(m/pel), np.int32(n/pel)), mode = 'reflect' )
+    cv::resize(src, img, cv::Size((uint32_t)(img_w/pel), (uint32_t)(img_h /pel)), 0, 0, cv::INTER_LINEAR);
 
     // BlockSize  = floor(size(img,1)/size(MVx,1));
     uint32_t block_size = std::floor(img_h / (double)mv_x.rows);

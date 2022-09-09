@@ -333,7 +333,7 @@ int main(int argc, char** argv)
             img.convertTo(img, CV_64FC1);
         }
 
-        uint32_t N = 16;
+        uint32_t N = 512;
         double pixel = 0.0125;
         double D = 0.095;
         double L = 1000;
@@ -346,8 +346,8 @@ int main(int argc, char** argv)
         cv::Mat s_half;
         generate_psd(P);
 
-
-        generate_tilt_image(s_half, P, rng, s_half);
+        cv::Mat img_tilt;
+        generate_tilt_image(img, P, rng, img_tilt);
 
 
         bp = 2;
