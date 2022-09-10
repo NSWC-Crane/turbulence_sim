@@ -236,4 +236,22 @@ inline cv::Mat clamp(cv::Mat& src, double min_value, double max_value)
     return dst;
 }
 
+//-----------------------------------------------------------------------------
+inline cv::Mat round(cv::Mat& src)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
+
+    cv::MatIterator_<double> itr;
+    cv::MatIterator_<double> end;
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (itr = src.begin<double>(), end = src.end<double>(); itr != end; ++itr, ++dst_itr)
+    {
+        *dst_itr = std::floor(*itr + 0.5);
+    }
+
+    return dst;
+}
+
+
 #endif  // _OPENCV_HELPER_H_

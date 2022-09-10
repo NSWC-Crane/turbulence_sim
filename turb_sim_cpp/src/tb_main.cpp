@@ -339,7 +339,7 @@ int main(int argc, char** argv)
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
-        double r0 = 0.0386;
+        double r0 = 0.0097;
 
         param_obj P(N, D, L, r0, wavelenth, obj_size);
 

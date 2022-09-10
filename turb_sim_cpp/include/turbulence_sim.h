@@ -271,8 +271,6 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     uint64_t N2 = N * N;
 
     std::complex<double> tmp;
-    //std::vector<std::complex<double>> m_vx_vec(N2, std::complex < double>(0.0, 0.0));
-    //std::vector<std::complex<double>> m_vy_vec(N2, std::complex < double>(0.0, 0.0));
 
     cv::Mat mv_x;
     cv::Mat mv_y;
@@ -293,11 +291,12 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     }
 
     cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-    mv_x = c1 * get_real(mv_x);
-    mv_x -= cv::mean(mv_x)[0];
+
 
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
-
+    cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
+    mv_xc = c1 * get_real(mv_xc);
+    mv_xc -= cv::mean(mv_xc)[0];
 
     //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
@@ -313,21 +312,58 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
     }
 
     cv::dft(S, mv_y, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-    mv_y = c1 * get_real(mv_y);
-    mv_y -= cv::mean(mv_y)[0];
 
     //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
-    
-
+    cv::Mat mv_yc = mv_y(cv::Rect(0, N_2, p.get_N(), p.get_N()));
+    mv_yc = c1 * get_real(mv_yc);
+    mv_yc -= cv::mean(mv_yc)[0];
     //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
     //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
-    motion_compensate(src, dst, mv_x, mv_y, 0.5);
-
+    motion_compensate(src, dst, mv_xc, mv_yc, 0.5);
 
     //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
     //#plt.show()
 
+}   // end of generate_tilt_image
+
+
+//def genBlurImage(p_obj, img) :
+void generate_blur_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
+{
+    //    smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
+    double smax = (p.get_delta0() / p.get_D()) * p.get_N();
+
+    //    temp = np.arange(1, 101)
+    cv::Mat tmp = linspace(1.0, 100.0, 100);
+
+    //    patchN = temp[np.argmin((smax * np.ones(100) / temp - 2) * *2)]
+    
+    
+    //    patch_size = round(p_obj['N'] / patchN)
+    //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN))
+    //    xx, yy = np.meshgrid(xtemp, xtemp)
+    //    xx_flat, yy_flat = xx.flatten(), yy.flatten()
+    //    NN = 32 # For extreme scenarios, this may need to be increased
+    //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
+    //    den = np.zeros((p_obj['N'], p_obj['N']))
+    //    patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1), np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1))
+    //
+    //    for i in range(int(patchN * *2)) :
+    //        aa = genZernikeCoeff(36, p_obj['Dr0'])
+    //        temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
+    //        psf = np.abs(temp) * *2
+    //        psf = psf / np.sum(psf.ravel())
+    //        # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+    //        psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+    //        patch_mask = np.zeros((p_obj['N'], p_obj['N']))
+    //        patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
+    //        patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
+    //        den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
+    //        img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
+    //
+    //        out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
+    //        return out_img
 }
 
 
