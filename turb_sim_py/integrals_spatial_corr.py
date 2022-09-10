@@ -46,9 +46,9 @@ def genTiltPSD(s_max, spacing, N, **kwargs):
 
 
 def I0(s):
-	z1 = np.linspace(1e-6, 1e3, 100000)
-	f_z = (z1**(-14/3))*jv(0,2*s*z1)*(jv(2,z1)**2)
-	I0_s1 = np.trapz(f_z, z1)
+	# z1 = np.linspace(1e-6, 1e3, 100000)
+	# f_z = (z1**(-14/3))*jv(0,2*s*z1)*(jv(2,z1)**2)
+	# I0_s1 = np.trapz(f_z, z1)
 
 	I0_s, _ = integrate.quad( lambda z: (z**(-14/3))*jv(0,2*s*z)*(jv(2,z)**2), 1e-4, np.inf, limit = 100000)
 	# print('I0: ',I0_s)

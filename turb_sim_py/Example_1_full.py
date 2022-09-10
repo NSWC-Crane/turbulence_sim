@@ -21,7 +21,7 @@ def rgb2gray(rgb):
 
 img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
 
-N = 16             # size of the image -- assumed to be square (pixels)
+N = 512             # size of the image -- assumed to be square (pixels)
 D = 0.095           # length of aperture diameter (meters)
 L = 1000            # length of propagation (meters)
 
@@ -55,11 +55,12 @@ fig = plt.figure(figsize=(columns, rows))
 
 for i in range(1):
     img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
-    img_blur = util.genBlurImage(param_obj, img_tilt)
 
     fig.add_subplot(1, 2,  1)
     plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
     plt.title('img_tilt')
+
+    img_blur = util.genBlurImage(param_obj, img_tilt)
 
     fig.add_subplot(1, 2, 2)
     plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)
