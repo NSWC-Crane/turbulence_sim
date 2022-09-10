@@ -85,11 +85,11 @@ double I0(double s)
 
 	//const double xlow = 0;
 	//const double xhigh = 1e6;
-	const double epsabs = 1e-4;
-	const double epsrel = 1e-4;
+	const double epsabs = 1e-5;
+	const double epsrel = 1e-5;
 
 	//int gsl_integration_qagiu(gsl_function *f, double a, double epsabs, double epsrel, size_t limit, gsl_integration_workspace *workspace, double *result, double *abserr)
-	int code = gsl_integration_qagiu(&F, 1.0e-4, epsabs, epsrel, neval, w, &I0_s, &error);
+	int code = gsl_integration_qagiu(&F, 0.0, epsabs, epsrel, neval, w, &I0_s, &error);
 
 	gsl_integration_workspace_free(w);
 
@@ -139,7 +139,6 @@ double I2(double s)
 	double c1 = -14.0 / 3.0;
 	// the integration step size
 	double delta_z = (1.0 - 0.0) / (double)n;
-	s = 2.0 * s;
 
 	// integration function: f(z) = z**(-14/3)) * jv(2,2*s*z) * (jv(2,z)**2
 	// integration: f(t/(1-t))/((1-t)^2)dt, 0 -> 1 ---> t = 1/(z+1)
@@ -160,11 +159,11 @@ double I2(double s)
 
 	//const double xlow = 0;
 	//const double xhigh = 1e6;
-	const double epsabs = 1e-4;
-	const double epsrel = 1e-4;
+	const double epsabs = 1e-5;
+	const double epsrel = 1e-5;
 
 	//int gsl_integration_qagiu(gsl_function *f, double a, double epsabs, double epsrel, size_t limit, gsl_integration_workspace *workspace, double *result, double *abserr)
-	int code = gsl_integration_qagiu(&F, 1.0e-4, epsabs, epsrel, neval, w, &I2_s, &error);
+	int code = gsl_integration_qagiu(&F, 0.0, epsabs, epsrel, neval, w, &I2_s, &error);
 
 	gsl_integration_workspace_free(w);
 
