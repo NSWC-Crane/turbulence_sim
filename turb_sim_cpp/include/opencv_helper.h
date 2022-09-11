@@ -86,6 +86,13 @@ void meshgrid(cv::Range xgv, cv::Range ygv, cv::Mat& X, cv::Mat& Y)
 }
 
 //-----------------------------------------------------------------------------
+void meshgrid(cv::Mat x_line, cv::Mat y_line, cv::Mat& X, cv::Mat& Y)
+{
+    cv::repeat(x_line.reshape(1, 1), y_line.total(), 1, X);
+    cv::repeat(y_line.reshape(1, 1).t(), 1, x_line.total(), Y);
+}
+
+//-----------------------------------------------------------------------------
 cv::Mat circ(int32_t rows, int32_t cols)
 {
     cv::Mat X, Y;
@@ -253,5 +260,39 @@ inline cv::Mat round(cv::Mat& src)
     return dst;
 }
 
+//-----------------------------------------------------------------------------
+inline cv::Mat cv_atan2(cv::Mat &y_src, cv::Mat& x_src)
+{
+    cv::Mat dst = cv::Mat(x_src.size(), CV_64FC1);
+
+    cv::MatIterator_<double> x_itr = x_src.begin<double>();
+    cv::MatIterator_<double> x_end = x_src.end<double>();
+    cv::MatIterator_<double> y_itr = y_src.begin<double>();
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for ( ; x_itr != x_end; ++x_itr, ++y_itr, ++dst_itr)
+    {
+        *dst_itr = std::atan2(*y_itr, *x_itr);
+    }
+
+    return dst;
+}   // end of cv_atan2
+
+//-----------------------------------------------------------------------------
+inline cv::Mat cv_sin(cv::Mat& src)
+{
+    cv::Mat dst = cv::Mat(src.size(), CV_64FC1);
+
+    cv::MatIterator_<double> itr = src.begin<double>();
+    cv::MatIterator_<double> end = src.end<double>();
+    cv::MatIterator_<double> dst_itr = dst.begin<double>();
+
+    for (; itr != end; ++itr, ++dst_itr)
+    {
+        *dst_itr = std::sin(*itr);
+    }
+
+    return dst;
+}   // end of cv_sin
 
 #endif  // _OPENCV_HELPER_H_
