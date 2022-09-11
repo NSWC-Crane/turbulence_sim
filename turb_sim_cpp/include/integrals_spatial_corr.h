@@ -15,17 +15,6 @@
 #include <gsl/gsl_integration.h>
 
 //-----------------------------------------------------------------------------
-/*
-def I0(s) :
-	# z = np.linspace(1e-6, 1e3, 1e5)
-	# f_z = (z**(-14/3))*jv(0,2*s*z)*(jv(2,z)**2)
-	# I0_s = np.trapz(f_z, z)
-
-	I0_s, _ = integrate.quad( lambda z: (z**(-14/3))*jv(0,2*s*z)*(jv(2,z)**2), 1e-4, np.inf, limit = 100000)
-	# print('I0: ',I0_s)
-	return I0_s
-*/
-
 struct Ix_params {
 	double s;
 	double c1;
