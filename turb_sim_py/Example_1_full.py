@@ -54,13 +54,14 @@ columns = 10
 fig = plt.figure(figsize=(columns, rows))
 
 for i in range(1):
-    img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
+    # img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
+    #
+    # fig.add_subplot(1, 2,  1)
+    # plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
+    # plt.title('img_tilt')
 
-    fig.add_subplot(1, 2,  1)
-    plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
-    plt.title('img_tilt')
-
-    img_blur = util.genBlurImage(param_obj, img_tilt)
+    # img_blur = util.genBlurImage(param_obj, img_tilt)
+    img_blur = util.genBlurImage(param_obj, img)
 
     fig.add_subplot(1, 2, 2)
     plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)
