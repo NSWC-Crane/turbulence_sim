@@ -19,7 +19,8 @@ import TurbSim_v1_main as util
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 
-img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
+# img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
+img = (plt.imread('../data/checker_board_32x32.png'))[:,:,1]
 
 N = 512             # size of the image -- assumed to be square (pixels)
 D = 0.095           # length of aperture diameter (meters)
