@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cmath>
 #include <vector>
+#include <limits>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -11,150 +12,21 @@
 
 #include "opencv_helper.h"
 
+#include "turbulence_param.h"
 #include "integrals_spatial_corr.h"
 #include "motion_compensate.h"
-
-class param_obj
-{
-public:
-    std::vector<std::complex<double>> S_vec;
-
-    param_obj(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
-    {
-        init_params();
-    }
-    
-    //-----------------------------------------------------------------------------
-    void init_params(void)
-    {
-        D_r0 = D / r0;
-        delta0 = (L * wavelength) / (2.0 * D);
-        k = (2.0 * CV_PI) / wavelength;
-        s_max = (delta0 / D) * (double)N;   //???????
-        spacing = delta0 / D;
-        ob_s = obj_size;
-        scaling = obj_size / (N * delta0);
-
-        s_max *= scaling;
-        spacing *= scaling;
-        ob_s *= scaling;
-        delta0 *= scaling;
-    }
-    
-    //-----------------------------------------------------------------------------
-    void update_params(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_)
-    {
-        N = N_;
-        D = D_;
-        L = L_;
-        r0 = r0_;
-        wavelength = w_;
-        obj_size = obj_size_;
-
-        init_params();
-        
-    }
-
-    //-----------------------------------------------------------------------------
-    void update_params(double L_)
-    {
-        L = L_;
-        init_params();
-    }
-
-    //-----------------------------------------------------------------------------
-    void update_params(double L_, double D_)
-    {
-        D = D_;
-        L = L_;
-
-        init_params();
-        
-    }
-    
-
-    //-----------------------------------------------------------------------------
-    double get_D(void) { return D; }
-    void set_D(double D_) 
-    { 
-        D = D_; 
-        init_params();
-    }
-
-    //-----------------------------------------------------------------------------
-    double get_L(void) { return L; }
-    void set_L(double L_) 
-    { 
-        L = L_; 
-        init_params();
-    }
-   
-    //-----------------------------------------------------------------------------
-    uint64_t get_N(void) { return N; }
-    void set_N(uint64_t N_) 
-    { 
-        N = N_; 
-        init_params();
-    }
-
-    //-----------------------------------------------------------------------------
-    double get_wavelength(void) { return wavelength; }
-    void set_wavelength(double w_) 
-    { 
-        wavelength = w_; 
-        init_params();
-    }
-
-    //-----------------------------------------------------------------------------
-    cv::Mat get_S(void) { return S; }
-    void set_S(cv::Mat S_) { S = S_.clone(); }
-
-    //-----------------------------------------------------------------------------
-    std::vector<std::complex<double>> get_S_vec(void) { return S_vec; }
-    void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
-
-    //-----------------------------------------------------------------------------
-    double get_D_r0(void) { return D_r0; }
-
-    //-----------------------------------------------------------------------------
-    double get_delta0(void) { return delta0; }
+#include "zernike_functions.h"
 
 //-----------------------------------------------------------------------------
-private:
-    uint64_t N;             // size of pixels of one image dimension (assumed to be square image N x N)
-    double D;               // size of aperture diameter (meters)
-    double L;               // length of propagation (meters)
-    double r0;              // Fried parameter (meters)
-    double wavelength;      // wavelength (meters)
-    double obj_size;
-    
-    double D_r0;
-    double delta0;
-    double k;
-    double s_max;
-    double spacing;
-    double ob_s;
-    double scaling;
-    
-    cv::Mat S;
-
-
-};
-
-
-//-----------------------------------------------------------------------------
-/*
-This function generates the PSD necessary for the tilt values (both x and y pixel shifts). The PSD is **4 times**
-the size of the image, this is to simplify the generation of the random vector using a property of Toeplitz
-matrices. This is further highlighted in the genTiltImg() function, where only 1/4 of the entire grid is used
-(this is because of symmetry about the origin -- hence why the PSD is quadruple the size).
-All that is required is the parameter list, p.
-
-adapted from here: 
-https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
-
-*/
-
+//This function generates the PSD necessary for the tilt values (both x and y pixel shifts). The PSD is **4 times**
+//the size of the image, this is to simplify the generation of the random vector using a property of Toeplitz
+//matrices. This is further highlighted in the genTiltImg() function, where only 1/4 of the entire grid is used
+//(this is because of symmetry about the origin -- hence why the PSD is quadruple the size).
+//All that is required is the parameter list, p.
+//
+//adapted from here: 
+//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+//
 void generate_psd(param_obj &p)
 {
     uint64_t idx;
@@ -249,20 +121,18 @@ void generate_psd(param_obj &p)
 }
 
 //-----------------------------------------------------------------------------
-/*
-This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
-generated.However, it is** significantly** faster to generate the PSD onceand then use it to draw the values from.
-This is also done automatically, because it is significantly faster.
-
-: param img : The input image(assumed to be N x N pixels)
-: param p_obj : The parameter object -- with the PSD is preferred
-: return : The output, tilted image
-
-adapted from here :
-https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
-*/
-
-void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
+//This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
+//generated.However, it is** significantly** faster to generate the PSD onceand then use it to draw the values from.
+//This is also done automatically, because it is significantly faster.
+//
+//: param img : The input image(assumed to be N x N pixels)
+//: param p_obj : The parameter object -- with the PSD is preferred
+//: return : The output, tilted image
+//
+//adapted from here :
+//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+//
+void generate_tilt_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
     double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
@@ -327,44 +197,85 @@ void generate_tilt_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
 
 }   // end of generate_tilt_image
 
-
-//def genBlurImage(p_obj, img) :
-void generate_blur_image(cv::Mat& src, param_obj p, cv::RNG& rng, cv::Mat& dst)
+//-----------------------------------------------------------------------------
+void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
 {
+    uint64_t idx;
+    uint64_t patch_N = 1;
+    uint64_t N = p.get_N();
+    double tmp_min = std::numeric_limits<double>::max();
+    double tmp;
+
+    std::vector<double> aa;
+
     //    smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     double smax = (p.get_delta0() / p.get_D()) * p.get_N();
 
     //    temp = np.arange(1, 101)
-    cv::Mat tmp = linspace(1.0, 100.0, 100);
+    //cv::Mat tmp = linspace(1.0, 100.0, 100);
 
     //    patchN = temp[np.argmin((smax * np.ones(100) / temp - 2) * *2)]
-    
-    
+    for (idx = 1; idx < 101; ++idx)
+    {
+        tmp = (smax / (double)(idx)-2) * (smax / (double)(idx)-2);
+        if (tmp < tmp_min)
+        {
+            patch_N = idx + 1;
+            tmp_min = tmp;
+        }
+    }
+       
     //    patch_size = round(p_obj['N'] / patchN)
-    //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN))
+    double patch_size = std::floor((N / patch_N) + 0.5);
+     
+    //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
+    cv::Mat x_tmp = linspace(0.0, (double)(N - N / patch_N), patch_N) + N/(double)(2*patch_N);
+    x_tmp = round(x_tmp);
+
     //    xx, yy = np.meshgrid(xtemp, xtemp)
+    cv::Mat xx, yy;
+    meshgrid(x_tmp, x_tmp, xx, yy);
+    
     //    xx_flat, yy_flat = xx.flatten(), yy.flatten()
-    //    NN = 32 # For extreme scenarios, this may need to be increased
+    
+    uint32_t NN = 32;    // For extreme scenarios, this may need to be increased
+    
     //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
     //    den = np.zeros((p_obj['N'], p_obj['N']))
+    dst = cv::Mat::zeros(N, N, CV_64FC1);
+    cv::Mat den = cv::Mat(N, N, CV_64FC1, cv::Scalar::all(1.0e-6));
+        
     //    patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1), np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1))
-    //
+    cv::Mat patch_indx, patch_indy;
+    meshgrid(-patch_size, patch_size, 2 * patch_size + 1, -patch_size, patch_size, 2 * patch_size + 1, patch_indx, patch_indy);
+
+
     //    for i in range(int(patchN * *2)) :
-    //        aa = genZernikeCoeff(36, p_obj['Dr0'])
-    //        temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-    //        psf = np.abs(temp) * *2
-    //        psf = psf / np.sum(psf.ravel())
-    //        # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
-    //        psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
-    //        patch_mask = np.zeros((p_obj['N'], p_obj['N']))
-    //        patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
-    //        patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
-    //        den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
-    //        img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
-    //
-    //        out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
-    //        return out_img
-}
+    for (idx = 0; idx < (patch_N * patch_N); ++idx)
+    {
+        // aa = genZernikeCoeff(36, p_obj['Dr0'])
+        aa = generate_zernike_coeff(36, p.get_D_r0(), rng);
+
+        // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
+        
+        
+        // psf = np.abs(temp) * *2
+        
+        
+        // psf = psf / np.sum(psf.ravel())
+        // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+        // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+        // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
+        // patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
+        // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
+        // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
+        // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
+        //
+    }
+    // out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
+
+
+}   // end of generate_blur_image
 
 
 
