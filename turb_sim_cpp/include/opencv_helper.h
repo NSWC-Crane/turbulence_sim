@@ -122,15 +122,15 @@ void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
     //cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
 
     cv::MatIterator_<cv::Vec2d> itr, end;
-    cv::MatIterator_<cv::Vec2d> dst_it = dst.begin<cv::Vec2d>();
+    cv::MatIterator_<cv::Vec2d> dst_itr = dst.begin<cv::Vec2d>();
 
-    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++dst_it)
+    for (itr = src.begin<cv::Vec2d>(), end = src.end<cv::Vec2d>(); itr != end; ++itr, ++dst_itr)
     {
         tmp = std::complex<double>((*itr)[0], (*itr)[1]);
         tmp = std::sqrt(tmp);
 
-        (*dst_it)[0] = tmp.real();
-        (*dst_it)[1] = tmp.imag();
+        (*dst_itr)[0] = tmp.real();
+        (*dst_itr)[1] = tmp.imag();
 
     }
 
@@ -294,5 +294,45 @@ inline cv::Mat cv_sin(cv::Mat& src)
 
     return dst;
 }   // end of cv_sin
+
+//-----------------------------------------------------------------------------
+cv::Mat mul_cmplx(std::complex<double> v, cv::Mat& src)
+{
+    std::complex<double> tmp;
+    cv::Mat dst = cv::Mat::zeros(src.rows, src.cols, CV_64FC2);
+
+    cv::MatIterator_<double> itr = src.begin<double>();
+    cv::MatIterator_<double> end = src.end<double>();
+    cv::MatIterator_<cv::Vec2d> dst_itr = dst.begin<cv::Vec2d>();
+
+    for ( ; itr != end; ++itr, ++dst_itr)
+    {
+        tmp = v * (*itr);
+        (*dst_itr)[0] = tmp.real();
+        (*dst_itr)[1] = tmp.imag();
+    }
+
+    return dst;
+}
+
+//-----------------------------------------------------------------------------
+cv::Mat exp_cmplx(std::complex<double> v, cv::Mat& src)
+{
+    std::complex<double> tmp;
+    cv::Mat dst = cv::Mat::zeros(src.rows, src.cols, CV_64FC2);
+
+    cv::MatIterator_<double> itr = src.begin<double>();
+    cv::MatIterator_<double> end = src.end<double>();
+    cv::MatIterator_<cv::Vec2d> dst_itr = dst.begin<cv::Vec2d>();
+
+    for (; itr != end; ++itr, ++dst_itr)
+    {
+        tmp = std::exp(v * (*itr));
+        (*dst_itr)[0] = tmp.real();
+        (*dst_itr)[1] = tmp.imag();
+    }
+
+    return dst;
+}
 
 #endif  // _OPENCV_HELPER_H_
