@@ -500,14 +500,16 @@ def genZernPoly(index, x_grid, y_grid):
     :param y_grid:
     :return:
     """
-    n,m = nollToZernInd(index)
+    n, m = nollToZernInd(index)
     radial = radialZernike(x_grid, y_grid, (n,m))
     #print(n,m)
     if m < 0:
-        return np.multiply(radial, np.sin(-m * np.arctan2(y_grid, x_grid)))
+        tmp =  np.sin(-m * np.arctan2(y_grid, x_grid))
     else:
-        return np.multiply(radial, np.cos(m * np.arctan2(y_grid, x_grid)))
+        tmp = np.cos(m * np.arctan2(y_grid, x_grid))
 
+    res = np.multiply(radial, tmp)
+    return res
 
 def radialZernike(x_grid, y_grid, z_ind):
     rho = np.sqrt(x_grid ** 2 + y_grid ** 2)
