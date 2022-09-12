@@ -314,11 +314,6 @@ int main(int argc, char** argv)
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
         
-        //-----------------------------------------------------------------------------
-        // test code
-        cv::RNG rng(123456);
-
-        //-----------------------------------------------------------------------------
 
         bp = 1;
 
@@ -342,6 +337,25 @@ int main(int argc, char** argv)
         double r0 = 0.0097;
 
         param_obj P(N, D, L, r0, wavelenth, obj_size);
+        
+        //-----------------------------------------------------------------------------
+        // test code
+        cv::RNG rng(123456);
+
+        cv::Mat m1 = cv::Mat::ones(4, 4, CV_64FC1);
+        cv::Mat m2 = 1.2*cv::Mat::ones(1, 4, CV_64FC1);
+
+        std::vector<double> coeff = generate_zernike_coeff(36, P.get_D_r0(), rng);
+
+        cv::Mat phase;
+        generate_zernike_phase(32, coeff, phase);
+
+        cv::Mat wave;
+        std::complex<double> c1 = 2.0 * CV_PI * std::sqrt(std::complex<double>(-1, 0));
+
+        wave = exp_cmplx(c1, phase);
+
+        //-----------------------------------------------------------------------------
 
         cv::Mat s_half;
         generate_psd(P);
