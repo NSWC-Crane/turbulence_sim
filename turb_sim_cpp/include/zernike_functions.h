@@ -109,10 +109,11 @@ cv::Mat noll_covariance_matrix(uint32_t Z, double D, double r0)
 //rows end at. For example [1, 3, 6, 10, 15, 21, 28, 36]
 //:param D_r0:
 //
-std::vector<double> generate_zernike_coeff(uint32_t N, double v, cv::RNG &rng)
+void generate_zernike_coeff(uint32_t N, double v, std::vector<double> &coeff, cv::RNG &rng)
 {
-    std::vector<double> result;
     double c1 = std::exp((3.0 / 10.0) * std::log(v));
+
+    coeff.clear();
 
     // C = nollCovMat(N, 1, 1)
     cv::Mat ncm = noll_covariance_matrix(N, 1, 1);
@@ -142,10 +143,8 @@ std::vector<double> generate_zernike_coeff(uint32_t N, double v, cv::RNG &rng)
 
     for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
     {
-        result.push_back(*itr);
+        coeff.push_back(*itr);
     }
-
-    return result;
 
 }   // end of generate_zernike_coeff
 
@@ -237,7 +236,6 @@ cv::Mat generate_zernike_poly(int64_t N, cv::Mat& x_grid, cv::Mat& y_grid)
 // This implementation uses Noll's indices. 1 -> (0,0), 2 -> (1,1), 3 -> (1, -1), 4 -> (2,0), 5 -> (2, -2), etc.
 //def zernikeGen(N, coeff, **kwargs)
 // 
-//void generate_zernike_phase(int64_t N, std::vector<double>& coeff, std::vector<cv::Mat>& dst)
 void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern_out)
 {
     uint64_t idx;
@@ -256,13 +254,11 @@ void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern
 
     //zern_out = np.zeros((N, N, num_coeff))
     zern_out = cv::Mat::zeros(N, N, CV_64FC1);
-    //dst.clear();
 
     for (idx = 0; idx < num_coeff; ++idx)
     {
         // zern_out[:, : , i] = coeff[i] * genZernPoly(i + 1, x_grid, y_grid)
-        zern_out += generate_zernike_poly(idx + 1, x_grid, y_grid);
-        //dst.push_back(coeff[idx] * zern_out);
+        zern_out += coeff[idx] * generate_zernike_poly(idx + 1, x_grid, y_grid);
     }
 
 }   // end of generate_zernike_phase
@@ -281,18 +277,19 @@ void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern
 //    :param N :
 //: param kwargs :
 // generate_psf(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
-void generate_psf(uint64_t N, param_obj &p, std::vector<double> &coeff, double z_i, cv::Mat& dst)
+void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, cv::Mat& psf, double z_i = 1.2, double pad_size = 0.0)
 {
     
     cv::Mat x_grid, y_grid;
+    cv::Mat x_samp_grid, y_samp_grid;
     cv::Mat mask;
+    std::complex<double> j(0, 1);
 
     //    wavelength = kwargs.get('wavelength', 500 * (10 * *(-9)))
     //    pad_size = kwargs.get('pad_size', 0)
     //    D = kwargs.get('D', 0.1)
     //    L = kwargs.get('L', -1)
     //    z_i = kwargs.get('z_i', 1.2)
-    double pad_saize = 0.0;
     
     //    vec = kwargs.get('coeff', np.asarray([[1], [0], [0], [0], [0], [0], [0], [0], [0]] ))
     //    x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
@@ -302,9 +299,12 @@ void generate_psf(uint64_t N, param_obj &p, std::vector<double> &coeff, double z
     x_grid = x_grid.mul(x_grid);
     y_grid = y_grid.mul(y_grid);
     mask = x_grid + y_grid;
-    sqrt_cmplx(mask, mask);
-    mask = (mask <= 1);
-    
+
+    cv::sqrt(mask, mask);
+    //mask = (mask <= 1);
+    cv::threshold(mask, mask, 1.0, 1.0, cv::THRESH_BINARY_INV);
+
+
     //    zernike_stack = zernikeGen(N, vec)
     //    phase = np.sum(zernike_stack, axis = 2)
     std::vector<cv::Mat> zernike_stack;
@@ -312,37 +312,43 @@ void generate_psf(uint64_t N, param_obj &p, std::vector<double> &coeff, double z
     generate_zernike_phase(N, coeff, phase);
         
     //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
-    cv::Mat wave;
-
+    cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
+    wave = mul_cmplx(mask, wave);
+    phase *= mask;
 
     //    pad_wave = np.pad(wave, int(pad_size / 2), 'constant', constant_values = 0)
     
     
     //    #c_psf = np.fft.fftshift(np.fft.fft2(pad_wave))
     //    h = np.fft.fftshift(np.fft.ifft2(pad_wave))
-    
+    //cv::Mat h;
+    cv::dft(wave, psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT, wave.rows);
+    fftshift(psf);
     
     //    #pad_wave = np.abs(pad_wave) * *2
     //    # numpy.correlate(x, x, mode = 'same')
-    //
     //    #plt.imshow(phase * mask)
     //    #plt.show()
-    //
     //    M = pad_size + N
     
     
     //    fs = N * wavelength * z_i / D
-    
+    //double fs = 0.5 * N * p.get_wavelength() * (z_i / p.get_D());
     
     //    temp = np.linspace(-fs / 2, fs / 2, M)
     
     
     //    x_samp_grid, y_samp_grid = np.meshgrid(temp, -temp)
-    
+    //meshgrid(-fs, fs, pad_size + N, fs, -fs, pad_size + N, x_samp_grid, y_samp_grid);
+    //x_samp_grid *= (p.get_L() / z_i);
+    //y_samp_grid *= (p.get_L() / z_i);
+
     //    if L == -1:
     //return h, x_samp_grid, y_samp_grid, phase* mask,
     //    else:
     //return h, (L / z_i)* x_samp_grid, (L / z_i)* y_samp_grid, phase* mask, wave
+
+
 
 }   // end of generate_psf
 
