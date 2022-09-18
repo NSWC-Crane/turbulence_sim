@@ -8,12 +8,12 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
-class param_obj
+class turbulence_param
 {
 public:
     std::vector<std::complex<double>> S_vec;
 
-    param_obj(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
+    turbulence_param(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
     {
         init_params();
     }
@@ -68,7 +68,7 @@ public:
     
 
     //-----------------------------------------------------------------------------
-    double get_D(void) { return D; }
+    inline double get_D(void) { return D; }
     void set_D(double D_) 
     { 
         D = D_; 
@@ -76,7 +76,7 @@ public:
     }
 
     //-----------------------------------------------------------------------------
-    double get_L(void) { return L; }
+    inline double get_L(void) { return L; }
     void set_L(double L_) 
     { 
         L = L_; 
@@ -84,7 +84,7 @@ public:
     }
    
     //-----------------------------------------------------------------------------
-    uint64_t get_N(void) { return N; }
+    inline uint64_t get_N(void) { return N; }
     void set_N(uint64_t N_) 
     { 
         N = N_; 
@@ -92,7 +92,7 @@ public:
     }
 
     //-----------------------------------------------------------------------------
-    double get_wavelength(void) { return wavelength; }
+    inline double get_wavelength(void) { return wavelength; }
     void set_wavelength(double w_) 
     { 
         wavelength = w_; 
@@ -104,14 +104,17 @@ public:
     void set_S(cv::Mat S_) { S = S_.clone(); }
 
     //-----------------------------------------------------------------------------
-    std::vector<std::complex<double>> get_S_vec(void) { return S_vec; }
+    inline std::vector<std::complex<double>> get_S_vec(void) { return S_vec; }
     void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
 
     //-----------------------------------------------------------------------------
-    double get_D_r0(void) { return D_r0; }
+    inline double get_D_r0(void) { return D_r0; }
 
     //-----------------------------------------------------------------------------
-    double get_delta0(void) { return delta0; }
+    inline double get_delta0(void) { return delta0; }
+
+    //-----------------------------------------------------------------------------
+    inline double get_scaling(void) { return scaling; }
 
 //-----------------------------------------------------------------------------
 private:
@@ -133,7 +136,7 @@ private:
     cv::Mat S;
 
 
-};
+};  // end of turbulence_param
 
 
 #endif  // _TURBULENCE_PARAMETERS_H_
