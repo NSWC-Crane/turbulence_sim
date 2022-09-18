@@ -27,10 +27,10 @@ D = 0.095           # length of aperture diameter (meters)
 L = 1000            # length of propagation (meters)
 
 wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
-r0 = 0.0386         # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
+r0 = 0.0097        # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
                     # All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
 
-pixel = 0.0125
+pixel = 0.00125
 obj_size = N * pixel   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
                     # will be done automatically.
 
@@ -55,14 +55,14 @@ columns = 10
 fig = plt.figure(figsize=(columns, rows))
 
 for i in range(1):
-    # img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
-    #
-    # fig.add_subplot(1, 2,  1)
-    # plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
-    # plt.title('img_tilt')
+    img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
 
-    # img_blur = util.genBlurImage(param_obj, img_tilt)
-    img_blur = util.genBlurImage(param_obj, img)
+    fig.add_subplot(1, 2,  1)
+    plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
+    plt.title('img_tilt')
+    #
+    img_blur = util.genBlurImage(param_obj, img_tilt)
+    # img_blur = util.genBlurImage(param_obj, img)
 
     fig.add_subplot(1, 2, 2)
     plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)

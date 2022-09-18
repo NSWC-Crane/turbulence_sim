@@ -151,7 +151,8 @@ def genBlurImage(p_obj, img):
 
     for i in range(int(patchN**2)):
         aa = genZernikeCoeff(36, p_obj['Dr0'])
-        temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
+        # temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
+        temp = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])[0]
         psf = np.abs(temp) ** 2
         psf = psf / np.sum(psf.ravel())
         # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
@@ -429,7 +430,8 @@ def psfGen(N, **kwargs):
     mask = np.sqrt(x_grid ** 2 + y_grid ** 2) <= 1
     zernike_stack = zernikeGen(N, vec)
     phase = np.sum(zernike_stack, axis=2)
-    wave = np.exp((1j * 2 * np.pi * phase)) * mask
+    wave = np.exp((1j * 2 * np.pi * phase))
+    wave *= mask
 
     pad_wave = np.pad(wave, int(pad_size/2), 'constant', constant_values=0)
     #c_psf = np.fft.fftshift(np.fft.fft2(pad_wave))
