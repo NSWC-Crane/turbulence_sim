@@ -313,7 +313,31 @@ cv::Mat mul_cmplx(std::complex<double> v, cv::Mat& src)
     }
 
     return dst;
-}
+}   // end of mul_cmplx
+
+//-----------------------------------------------------------------------------
+// m1 is real
+// m2 is complex
+cv::Mat mul_cmplx(cv::Mat& m1, cv::Mat& m2)
+{
+    std::complex<double> tmp;
+    cv::Mat dst = cv::Mat::zeros(m1.rows, m1.cols, CV_64FC2);
+
+    cv::MatIterator_<double> m1_itr = m1.begin<double>();
+    cv::MatIterator_<double> end = m1.end<double>();
+    cv::MatIterator_<cv::Vec2d> m2_itr = m2.begin<cv::Vec2d>();
+    cv::MatIterator_<cv::Vec2d> dst_itr = dst.begin<cv::Vec2d>();
+
+    for (; m1_itr != end; ++m1_itr, ++m2_itr, ++dst_itr)
+    {
+        // (a + 0i) * (c + di) = ac + adi 
+        tmp = std::complex<double>((*m1_itr) * (*m2_itr)[0], (*m1_itr) * (*m2_itr)[1]);
+        (*dst_itr)[0] = tmp.real();
+        (*dst_itr)[1] = tmp.imag();
+    }
+
+    return dst;
+}   // end of mul_cmplx
 
 //-----------------------------------------------------------------------------
 cv::Mat exp_cmplx(std::complex<double> v, cv::Mat& src)
@@ -334,5 +358,27 @@ cv::Mat exp_cmplx(std::complex<double> v, cv::Mat& src)
 
     return dst;
 }
+
+//-----------------------------------------------------------------------------
+void fftshift(cv::Mat& img)
+{
+    // get the center
+    int cx = img.cols >> 1;
+    int cy = img.rows >> 1;
+
+    cv::Mat q0(img, cv::Rect(0, 0, cx, cy));   // Top-Left - Create a ROI per quadrant
+    cv::Mat q1(img, cv::Rect(cx, 0, cx, cy));  // Top-Right
+    cv::Mat q2(img, cv::Rect(0, cy, cx, cy));  // Bottom-Left
+    cv::Mat q3(img, cv::Rect(cx, cy, cx, cy)); // Bottom-Right
+
+    cv::Mat tmp;                            // swap quadrants (Top-Left with Bottom-Right)
+    q0.copyTo(tmp);
+    q3.copyTo(q0);
+    tmp.copyTo(q3);
+
+    q1.copyTo(tmp);                     // swap quadrant (Top-Right with Bottom-Left)
+    q2.copyTo(q1);
+    tmp.copyTo(q2);
+}   // end of fftshift
 
 #endif  // _OPENCV_HELPER_H_
