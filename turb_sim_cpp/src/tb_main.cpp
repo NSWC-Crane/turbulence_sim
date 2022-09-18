@@ -316,54 +316,72 @@ int main(int argc, char** argv)
         
 
         bp = 1;
-
-        cv::Mat img = cv::imread("../../data/checker_board_32x32.png", cv::IMREAD_ANYCOLOR);
-        if (img.channels() >= 3)
+        cv::Mat img;
+        cv::Mat tmp_img = cv::imread("../../data/checker_board_32x32.png", cv::IMREAD_ANYCOLOR);
+        if (tmp_img.channels() >= 3)
         {
-            img.convertTo(img, CV_64FC3);
-            img = get_channel(img, 1);
+            tmp_img.convertTo(tmp_img, CV_64FC3, 1.0/255.0);
+            tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
-            img.convertTo(img, CV_64FC1);
+            tmp_img.convertTo(tmp_img, CV_64FC1, 1.0/255.0);
         }
 
-        uint32_t N = 512;
-        double pixel = 0.0125;
+        uint32_t N = 256;
+        img = tmp_img(cv::Rect(16, 16, N, N));
+
+        double pixel = 0.00125;
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
-        double r0 = 0.0097;
+        // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
+        double r0 = 0.0197;
 
-        param_obj P(N, D, L, r0, wavelenth, obj_size);
-        
+        turbulence_param P(N, D, L, r0, wavelenth, obj_size);
+        cv::Mat s_half;
+        generate_psd(P);  
+
         //-----------------------------------------------------------------------------
         // test code
-        cv::RNG rng(123456);
+        cv::RNG rng;
 
-        cv::Mat m1 = cv::Mat::ones(4, 4, CV_64FC1);
-        cv::Mat m2 = 1.2*cv::Mat::ones(1, 4, CV_64FC1);
+        //std::complex<double> j(0, 1);
 
-        std::vector<double> coeff = generate_zernike_coeff(36, P.get_D_r0(), rng);
+        //std::vector<double> coeff;
+        //generate_zernike_coeff(36, P.get_D_r0(), coeff, rng);
 
-        cv::Mat phase;
-        generate_zernike_phase(32, coeff, phase);
+        ////cv::Mat phase;
+        ////generate_zernike_phase(32, coeff, phase);
 
-        cv::Mat wave;
-        std::complex<double> c1 = 2.0 * CV_PI * std::sqrt(std::complex<double>(-1, 0));
+        //cv::Mat wave;
+        //std::complex<double> c1 = 2.0 * CV_PI * j;
 
-        wave = exp_cmplx(c1, phase);
+        ////wave = exp_cmplx(c1, phase);
+        //cv::Mat dst;
+        //generate_psf(32, P, coeff, dst);
 
         //-----------------------------------------------------------------------------
-
-        cv::Mat s_half;
-        generate_psd(P);
-
         cv::Mat img_tilt;
-        generate_tilt_image(img, P, rng, img_tilt);
+        cv::Mat img_blur;
 
+        for (idx = 0; idx < 10; ++idx)
+        {
+            start_time = std::chrono::system_clock::now();
 
+            generate_tilt_image(img, P, rng, img_tilt);
+
+            generate_blur_image(img_tilt, P, rng, img_blur);
+
+            stop_time = std::chrono::system_clock::now();
+            elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
+
+            std::cout << "time (s): " << elapsed_time.count() << std::endl;
+
+            cv::imshow("img_blur", img_blur);
+            cv::waitKey(0);
+        }
         bp = 2;
 
 

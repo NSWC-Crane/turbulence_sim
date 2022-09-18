@@ -27,7 +27,7 @@
 //adapted from here: 
 //https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-void generate_psd(param_obj &p)
+void generate_psd(turbulence_param &p)
 {
     uint64_t idx;
     cv::Mat x, y;
@@ -132,7 +132,7 @@ void generate_psd(param_obj &p)
 //adapted from here :
 //https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-void generate_tilt_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
+void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
     double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
@@ -198,15 +198,25 @@ void generate_tilt_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
 }   // end of generate_tilt_image
 
 //-----------------------------------------------------------------------------
-void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
+void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
-    uint64_t patch_N = 1;
+    uint64_t patch_N = 0;
     uint64_t N = p.get_N();
     double tmp_min = std::numeric_limits<double>::max();
     double tmp;
+    double psf_sum;
+    double z_i = 1.2;
+    double pad_size = 0.0;
 
-    std::vector<double> aa;
+    cv::Mat patch_mask;
+    cv::Mat psf, temp_psf;
+    cv::Mat img_patches = cv::Mat::zeros(N, N, CV_64FC1);
+    cv::Mat tmp_conv;
+
+    std::vector<double> coeff;
+
+    uint32_t NN = 32;    // For extreme scenarios, this may need to be increased
 
     //    smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     double smax = (p.get_delta0() / p.get_D()) * p.get_N();
@@ -220,7 +230,7 @@ void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
         tmp = (smax / (double)(idx)-2) * (smax / (double)(idx)-2);
         if (tmp < tmp_min)
         {
-            patch_N = idx + 1;
+            patch_N = idx;
             tmp_min = tmp;
         }
     }
@@ -229,7 +239,7 @@ void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
     double patch_size = std::floor((N / patch_N) + 0.5);
      
     //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
-    cv::Mat x_tmp = linspace(0.0, (double)(N - N / patch_N), patch_N) + N/(double)(2*patch_N);
+    cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)patch_N), patch_N) + N/(double)(2*patch_N);
     x_tmp = round(x_tmp);
 
     //    xx, yy = np.meshgrid(xtemp, xtemp)
@@ -237,8 +247,8 @@ void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
     meshgrid(x_tmp, x_tmp, xx, yy);
     
     //    xx_flat, yy_flat = xx.flatten(), yy.flatten()
-    
-    uint32_t NN = 32;    // For extreme scenarios, this may need to be increased
+    xx = xx.reshape(1, xx.total());
+    yy = yy.reshape(1, yy.total());
     
     //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
     //    den = np.zeros((p_obj['N'], p_obj['N']))
@@ -248,32 +258,62 @@ void generate_blur_image(cv::Mat& src, param_obj &p, cv::RNG& rng, cv::Mat& dst)
     //    patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1), np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1))
     cv::Mat patch_indx, patch_indy;
     meshgrid(-patch_size, patch_size, 2 * patch_size + 1, -patch_size, patch_size, 2 * patch_size + 1, patch_indx, patch_indy);
+    patch_indx = patch_indx.mul(patch_indx);
+    patch_indx *= (-1.0 / (patch_size * patch_size));
+    patch_indy = patch_indy.mul(patch_indy);
+    patch_indy *= (-1.0 / (patch_size * patch_size));
+    cv::exp(patch_indx, patch_indx);
+    cv::exp(patch_indy, patch_indy);
+    // np.ones((patch_size * 2 + 1, patch_size * 2 + 1))
 
+    cv::Mat exp_tmp = patch_indx.mul(patch_indy);
+    //exp_tmp = exp_tmp.mul(cv::Mat::ones(patch_size * 2 + 1, patch_size * 2 + 1, CV_64FC1));
+    cv::flip(exp_tmp, exp_tmp, -1);
 
     //    for i in range(int(patchN * *2)) :
     for (idx = 0; idx < (patch_N * patch_N); ++idx)
     {
         // aa = genZernikeCoeff(36, p_obj['Dr0'])
-        aa = generate_zernike_coeff(36, p.get_D_r0(), rng);
+        generate_zernike_coeff(36, p.get_D_r0(), coeff, rng);
 
         // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-        
+        generate_psf(NN, p, coeff, temp_psf, z_i, pad_size);
         
         // psf = np.abs(temp) * *2
-        
+        psf = abs_cmplx(temp_psf);
+        psf = psf.mul(psf);
         
         // psf = psf / np.sum(psf.ravel())
+        psf_sum = cv::sum(psf)[0];
+        psf *= 1.0 / psf_sum;
+        
         // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+        cv::resize(psf, psf, cv::Size(std::floor(NN / p.get_scaling() + 0.5), std::floor(NN / p.get_scaling() + 0.5)), 0.0, 0.0, cv::INTER_LINEAR);
+        cv::flip(psf, psf, -1);
+
         // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
+        patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
+
         // patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
+//        patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx) + 0.5), (uint64_t)(*xx.ptr<double>(idx) + 0.5)) = 1.0;
+        patch_mask.at<double>((uint64_t)(*xx.ptr<double>(idx) + 0.5), (uint64_t)(*yy.ptr<double>(idx) + 0.5)) = 1.0;
+
         // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
+        cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1));
+        
         // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
+        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1));
+        den += tmp_conv;
+
         // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
-        //
+        patch_mask = patch_mask.mul(src);
+        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1));
+        img_patches += tmp_conv;
+
     }
     // out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
-
+    dst = img_patches.mul(1.0 / den);
 
 }   // end of generate_blur_image
 
