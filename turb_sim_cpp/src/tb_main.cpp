@@ -346,21 +346,6 @@ int main(int argc, char** argv)
         // test code
         cv::RNG rng;
 
-        //std::complex<double> j(0, 1);
-
-        //std::vector<double> coeff;
-        //generate_zernike_coeff(36, P.get_D_r0(), coeff, rng);
-
-        ////cv::Mat phase;
-        ////generate_zernike_phase(32, coeff, phase);
-
-        //cv::Mat wave;
-        //std::complex<double> c1 = 2.0 * CV_PI * j;
-
-        ////wave = exp_cmplx(c1, phase);
-        //cv::Mat dst;
-        //generate_psf(32, P, coeff, dst);
-
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
         cv::Mat img_blur;
