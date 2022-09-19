@@ -74,7 +74,7 @@ def gen_PSD(p_obj):
     smax = p_obj['delta0'] / p_obj['D'] * N
     c1 = 2 * ((24 / 5) * gamma(6 / 5)) ** (5 / 6)
     c2 = 4 * c1 / np.pi * (gamma(11 / 6)) ** 2
-    c3  =(p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
+    c3 = (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
 
     i0_val = I0(0)
 
@@ -88,7 +88,7 @@ def gen_PSD(p_obj):
     [x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
     s = np.sqrt((x - i) ** 2 + (y - j) ** 2)
 
-    In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N , I0_arr)
+    In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I0_arr)
     In_2 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I2_arr)
 
     C = (In_1 + In_2) / i0_val

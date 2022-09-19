@@ -22,7 +22,7 @@ def rgb2gray(rgb):
 # img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
 img = (plt.imread('../data/checker_board_32x32.png'))[:,:,1]
 
-N = 512             # size of the image -- assumed to be square (pixels)
+N = 256             # size of the image -- assumed to be square (pixels)
 D = 0.095           # length of aperture diameter (meters)
 L = 1000            # length of propagation (meters)
 
