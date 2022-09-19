@@ -171,25 +171,30 @@ def In_m(s, spacing, In_arr):
 
 cv::Mat In_m(cv::Mat &s, double spacing, cv::Mat& src)
 {
+	// idx = np.int32(np.floor(s.flatten() / spacing))
 	//uint32_t idx = floor(s/spacing)
+	
+	// M, N = np.shape(s)[0], np.shape(s)[1]
 	uint32_t M = s.rows;
 	uint32_t N = s.cols;
-	cv::Mat In_s = cv::Mat::zeros(M, N, CV_64FC1);
+	cv::Mat dst = cv::Mat::zeros(M, N, CV_64FC1);
 
 	cv::Mat tmp;
-	s.convertTo(tmp, CV_32SC1, 1.0 / spacing);
+	s.convertTo(tmp, CV_64FC1, 1.0 / spacing);
 
-	cv::MatIterator_<int32_t> it, end;
-	cv::MatIterator_<double> In_s_it = In_s.begin<double>();
+	// In = np.reshape(np.take(In_arr, idx), [M, N])
+	cv::MatIterator_<double> tmp_itr = tmp.begin<double>();
+	cv::MatIterator_<double> tmp_end = tmp.end<double>();
+	cv::MatIterator_<double> dst_itr = dst.begin<double>();
 
 	double* src_ptr = src.ptr<double>(0);
 
-	for (it = tmp.begin<int32_t>(), end = tmp.end<int32_t>(); it != end; ++it, ++In_s_it)
+	for ( ; tmp_itr != tmp_end; ++tmp_itr, ++dst_itr)
 	{
-		*In_s_it = src_ptr[*it];
+		*dst_itr = src_ptr[(uint64_t)(*tmp_itr)];
 	}
 
-	return In_s;
+	return dst;
 }
 
 #endif  // _TS_INTEGRAL_SPATIAL_CORRELATION_H_
