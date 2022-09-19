@@ -11,70 +11,14 @@
 
 #include "opencv_helper.h"
 
-/*
-function g = MotionCompensate(img0, MVx, MVy, pel)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Integer pixel motion compensation
-%
-% g = reconstruct(img0, MVx, MVy, pel)
-% constructs a motion compensated frame of img0 according to the motion
-% vectors specified by MVx and MVy
-%
-%
-% Stanley Chan
-% 29 Apr, 2010
-% 10 Feb, 2011
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-img = imresize(img0, 1/pel, 'bilinear');
-BlockSize  = floor(size(img,1)/size(MVx,1));
-[m n C]    = size(img);
-M          = floor(m/block_size)*BlockSize;
-N          = floor(n/block_size)*BlockSize;
-f          = img(1:M, 1:N, 1:C);
-g          = zeros(M, N, C);
-MVxmap = imresize(MVx, BlockSize);
-MVymap = imresize(MVy, BlockSize);
-Dx = round(MVxmap*(1/pel));
-Dy = round(MVymap*(1/pel));
-[xgrid ygrid] = meshgrid(1:N, 1:M);
-X = min(max(xgrid+Dx, 1), N);
-Y = min(max(ygrid+Dy, 1), N);
-idx = (X(:)-1)*M + Y(:);
-for coloridx = 1:C
-    fc = f(:,:,coloridx);
-    g(:,:,coloridx) = reshape(fc(idx), M, N);
-end
-g = imresize(g, pel);
-*/
-
-/*
-def motion_compensate(img, Mvx, Mvy, pel):
-    m, n =  np.shape(img)[0], np.shape(img)[1]
-    img = resize(img, (np.int32(m/pel), np.int32(n/pel)), mode = 'reflect' )
-    Blocksize = np.floor(np.shape(img)[0]/np.shape(Mvx)[0])
-    m, n =  np.shape(img)[0], np.shape(img)[1]
-    M, N =  np.int32(np.ceil(m/Blocksize)*Blocksize), np.int32(np.ceil(n/Blocksize)*Blocksize)
-
-    f = img[0:M, 0:N]
-
-
-    Mvxmap = resize(Mvy, (N,M))
-    Mvymap = resize(Mvx, (N,M))
-
-
-    xgrid, ygrid = np.meshgrid(np.arange(0,N-0.99), np.arange(0,M-0.99))
-    X = np.clip(xgrid+np.round(Mvxmap/pel),0,N-1)
-    Y = np.clip(ygrid+np.round(Mvymap/pel),0,M-1)
-
-    idx = np.int32(Y.flatten()*N + X.flatten())
-    f_vec = f.flatten()
-    g = np.reshape(f_vec[idx],[N,M])
-
-    g = resize(g, (np.shape(g)[0]*pel,np.shape(g)[1]*pel))
-    return g
-*/
-
-
+//-----------------------------------------------------------------------------
+// Warping Function for Turbulence Simulator
+//
+// C++ version of original code by Stanley Chan
+// 
+// adapted from here:
+// https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/Motion_Compensate.py
+//
 void motion_compensate(cv::Mat &src, cv::Mat &dst, cv::Mat &mv_x, cv::Mat &mv_y, double pel)
 {
     uint64_t idx;
