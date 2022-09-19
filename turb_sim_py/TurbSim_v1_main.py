@@ -74,7 +74,7 @@ def gen_PSD(p_obj):
     smax = p_obj['delta0'] / p_obj['D'] * N
     c1 = 2 * ((24 / 5) * gamma(6 / 5)) ** (5 / 6)
     c2 = 4 * c1 / np.pi * (gamma(11 / 6)) ** 2
-    c3 = (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
+    c3  =(p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
 
     i0_val = I0(0)
 
@@ -88,11 +88,11 @@ def gen_PSD(p_obj):
     [x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
     s = np.sqrt((x - i) ** 2 + (y - j) ** 2)
 
-    In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I0_arr)
+    In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N , I0_arr)
     In_2 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I2_arr)
 
     C = (In_1 + In_2) / i0_val
-    C[round(N / 2), round(N / 2)] = 1
+    C[int(round(N / 2)), int(round(N / 2))] = 1
 
     C = C * i0_val * c2 * c3
 
@@ -121,10 +121,10 @@ def genTiltImg(img, p_obj):
         p_obj['S'] = S
         flag_noPSD = 1
     MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    MVx = MVx[round(p_obj['N'] / 2) :2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
+    MVx = MVx[int(round(p_obj['N'] / 2)) :2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
     #MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
     MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+    MVy = MVy[0:p_obj['N'], int(round(p_obj['N'] / 2)): 2 * p_obj['N'] - int(round(p_obj['N'] / 2))]
     #MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
     #plt.quiver(MVx[::10,::10], MVy[::10,::10], scale=60)
@@ -140,7 +140,7 @@ def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     temp = np.arange(1,101)
     patchN = temp[np.argmin((smax*np.ones(100)/temp - 2)**2)]
-    patch_size = round(p_obj['N'] / patchN)
+    patch_size = int(round(p_obj['N'] / patchN))
     xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, patchN))
     xx, yy = np.meshgrid(xtemp, xtemp)
     xx_flat, yy_flat = xx.flatten(), yy.flatten()
@@ -151,15 +151,18 @@ def genBlurImage(p_obj, img):
 
     for i in range(int(patchN**2)):
         aa = genZernikeCoeff(36, p_obj['Dr0'])
-        # temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
-        temp = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])[0]
+        temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
         psf = np.abs(temp) ** 2
         psf = psf / np.sum(psf.ravel())
         # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         psf = resize(psf, (round(NN/p_obj['scaling']), round(NN/p_obj['scaling'])))
         patch_mask = np.zeros((p_obj['N'], p_obj['N']))
-        patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
-        patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((patch_size*2+1, patch_size*2+1)), mode='same')
+        #print('xx ', xx_flat[i], ' yy ', yy_flat[i])
+        roundXX = int(round(xx_flat[i]))
+        roundYY = int(round(yy_flat[i]))
+        #print('xx ', roundXX, ' yy ', roundYY)
+        patch_mask[roundXX, roundYY] = 1
+        patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1))), mode='same')
         den += scipy.signal.fftconvolve(patch_mask, psf, mode='same')
         img_patches[:,:,i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
 
@@ -179,7 +182,7 @@ def genZernCorrHighOrder_v2():
     in the download for this simulator package [LOCATION].
     """
     lamb = 0.525e-6
-    Cn2 = 1e-15
+    Cn2 = 1e-14
     L = 7000
     A = 0.00969 * (2 * np.pi / lamb ) ** 2 * Cn2 * L
     D = 0.2034
@@ -430,8 +433,7 @@ def psfGen(N, **kwargs):
     mask = np.sqrt(x_grid ** 2 + y_grid ** 2) <= 1
     zernike_stack = zernikeGen(N, vec)
     phase = np.sum(zernike_stack, axis=2)
-    wave = np.exp((1j * 2 * np.pi * phase))
-    wave *= mask
+    wave = np.exp((1j * 2 * np.pi * phase)) * mask
 
     pad_wave = np.pad(wave, int(pad_size/2), 'constant', constant_values=0)
     #c_psf = np.fft.fftshift(np.fft.fft2(pad_wave))
@@ -502,16 +504,14 @@ def genZernPoly(index, x_grid, y_grid):
     :param y_grid:
     :return:
     """
-    n, m = nollToZernInd(index)
+    n,m = nollToZernInd(index)
     radial = radialZernike(x_grid, y_grid, (n,m))
     #print(n,m)
     if m < 0:
-        tmp =  np.sin(-m * np.arctan2(y_grid, x_grid))
+        return np.multiply(radial, np.sin(-m * np.arctan2(y_grid, x_grid)))
     else:
-        tmp = np.cos(m * np.arctan2(y_grid, x_grid))
+        return np.multiply(radial, np.cos(m * np.arctan2(y_grid, x_grid)))
 
-    res = np.multiply(radial, tmp)
-    return res
 
 def radialZernike(x_grid, y_grid, z_ind):
     rho = np.sqrt(x_grid ** 2 + y_grid ** 2)
