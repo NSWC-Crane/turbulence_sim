@@ -118,15 +118,15 @@
 
 //-----------------------------------------------------------------------------
 //This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
-//generated.However, it is** significantly** faster to generate the PSD onceand then use it to draw the values from.
+//generated.However, it is** significantly** faster to generate the PSD once and then use it to draw the values from.
 //This is also done automatically, because it is significantly faster.
 //
-//: param img : The input image(assumed to be N x N pixels)
-//: param p_obj : The parameter object -- with the PSD is preferred
-//: return : The output, tilted image
+// param img: The input image(assumed to be N x N pixels)
+// param p_obj: The parameter object -- with the PSD is preferred
+// return: The output, tilted image
 //
-//adapted from here :
-//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+// adapted from here:
+// https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
 void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
@@ -194,6 +194,8 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 }   // end of generate_tilt_image
 
 //-----------------------------------------------------------------------------
+//adapted from here :
+//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;

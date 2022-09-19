@@ -70,15 +70,15 @@ cv::Mat noll_covariance_matrix(uint32_t Z, double D, double r0)
             if ((abs(mi) == abs(mj)) & ((idx - jdx) % 2 == 0))
             {
                 // num = math.gamma(14.0/3.0) * math.gamma((ni + nj - 5.0/3.0)/2.0)
-                num = tgamma(14.0/3.0) * tgamma(((double)(ni + nj) - 5.0/3.0)/2.0);
+                num = std::tgamma(14.0/3.0) * std::tgamma(((double)(ni + nj) - 5.0/3.0)/2.0);
                 
                 // den = math.gamma((-ni + nj + 17.0/3.0)/2.0) * math.gamma((ni - nj + 17.0/3.0)/2.0) * math.gamma((ni + nj + 23.0/3.0)/2.0)
-                den = tgamma(((double)(-ni + nj) + 17.0/3.0)/2.0) * tgamma(((double)(ni - nj) + 17.0/3.0)/2.0) * tgamma(((double)(ni + nj) + 23.0/3.0)/2.0);
+                den = std::tgamma(((double)(-ni + nj) + 17.0/3.0)/2.0) * std::tgamma(((double)(ni - nj) + 17.0/3.0)/2.0) * std::tgamma(((double)(ni + nj) + 23.0/3.0)/2.0);
                       
                 // coef1 = 0.0072 * (np.pi ** (8.0/3.0)) * ((D/fried) ** (5.0/3.0)) * np.sqrt((ni + 1) * (nj + 1)) * ((-1) ** ((ni + nj - 2*abs(mi))/2.0))
                 // x^(y) = std::exp(y * std::log(x))                
                 c1 = 0.0072 * std::exp((8.0 / 3.0) * std::log(CV_PI)) * std::exp((5.0 / 3.0) * std::log(D / r0));
-                c1 *= std::sqrt((ni + 1) * (nj + 1)) * ((((ni + nj - 2 * abs(mi)) >> 1) & 0x01 == 1) ? -1.0 : 1.0);
+                c1 *= std::sqrt((ni + 1) * (nj + 1)) * ((((ni + nj - 2 * std::abs(mi)) >> 1) & 0x01 == 1) ? -1.0 : 1.0);
 
                 //C[i, j] = coef1*num/den
                 dst.at<double>(idx, jdx) = c1*num/den;
@@ -172,9 +172,9 @@ cv::Mat radial_zernike(int64_t n, int64_t m, cv::Mat& x_grid, cv::Mat& y_grid)
     {
         t1 = ((idx & 0x01 == 1) ? -1.0 : 1.0);
         t2 = std::tgamma(n - idx + 1);
-        t3 = (std::tgamma(idx + 1) * tgamma(((n + m) / 2.0) - idx + 1) * tgamma(((n - m) / 2.0) - idx + 1));
+        t3 = (std::tgamma(idx + 1) * std::tgamma(((n + m) / 2.0) - idx + 1) * std::tgamma(((n - m) / 2.0) - idx + 1));
         // temp = (-1) * *k * np.math.factorial(n - k) / (np.math.factorial(k) * np.math.factorial((n + m) / 2 - k) * np.math.factorial((n - m) / 2 - k))
-        tmp = ((idx & 0x01 == 1) ? -1.0 : 1.0) * std::tgamma(n - idx + 1) / (std::tgamma(idx + 1) * tgamma(((n + m) / 2.0) - idx + 1) * tgamma(((n - m) / 2.0) - idx + 1));
+        tmp = ((idx & 0x01 == 1) ? -1.0 : 1.0) * std::tgamma(n - idx + 1) / (std::tgamma(idx + 1) * std::tgamma(((n + m) / 2.0) - idx + 1) * std::tgamma(((n - m) / 2.0) - idx + 1));
 
         //    radial += temp * rho * *(n - 2 * k)
         cv::pow(rho, (n - 2 * idx), tmp_pow);
@@ -322,7 +322,7 @@ void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, c
     //    #c_psf = np.fft.fftshift(np.fft.fft2(pad_wave))
     //    h = np.fft.fftshift(np.fft.ifft2(pad_wave))
     //cv::Mat h;
-    cv::dft(wave, psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT, wave.rows);
+    cv::dft(wave, psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT + cv::DFT_SCALE, wave.rows);
     fftshift(psf);
     
     //    #pad_wave = np.abs(pad_wave) * *2

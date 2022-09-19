@@ -37,10 +37,11 @@ typedef void* HINSTANCE;
 #include <num2string.h>
 #include <file_ops.h>
 
-#include "cv_dft_conv.h"
+//#include "cv_dft_conv.h"
+#include "turbulence_param.h"
 #include "turbulence_sim.h"
 
-#include <gsl/gsl_linalg.h>
+//#include <gsl/gsl_linalg.h>
 
 // https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c
 #define ACC 40.0
