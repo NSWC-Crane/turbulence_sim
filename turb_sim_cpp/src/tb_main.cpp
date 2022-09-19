@@ -337,11 +337,9 @@ int main(int argc, char** argv)
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
-        double r0 = 0.0197;
+        double r0 = 0.0097;
 
         turbulence_param P(N, D, L, r0, wavelenth, obj_size);
-        cv::Mat s_half;
-        generate_psd(P);  
 
         //-----------------------------------------------------------------------------
         // test code
@@ -366,7 +364,10 @@ int main(int argc, char** argv)
         cv::Mat img_tilt;
         cv::Mat img_blur;
 
-        for (idx = 0; idx < 10; ++idx)
+        char k = 0;
+
+        while(k != 'q')
+        //for (idx = 0; idx < 10; ++idx)
         {
             start_time = std::chrono::system_clock::now();
 
@@ -380,7 +381,7 @@ int main(int argc, char** argv)
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
             cv::imshow("img_blur", img_blur);
-            cv::waitKey(0);
+            k = cv::waitKey(20);
         }
         bp = 2;
 

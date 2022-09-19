@@ -17,108 +17,104 @@
 #include "motion_compensate.h"
 #include "zernike_functions.h"
 
-//-----------------------------------------------------------------------------
-//This function generates the PSD necessary for the tilt values (both x and y pixel shifts). The PSD is **4 times**
-//the size of the image, this is to simplify the generation of the random vector using a property of Toeplitz
-//matrices. This is further highlighted in the genTiltImg() function, where only 1/4 of the entire grid is used
-//(this is because of symmetry about the origin -- hence why the PSD is quadruple the size).
-//All that is required is the parameter list, p.
+////-----------------------------------------------------------------------------
+////This function generates the PSD necessary for the tilt values (both x and y pixel shifts). The PSD is **4 times**
+////the size of the image, this is to simplify the generation of the random vector using a property of Toeplitz
+////matrices. This is further highlighted in the genTiltImg() function, where only 1/4 of the entire grid is used
+////(this is because of symmetry about the origin -- hence why the PSD is quadruple the size).
+////All that is required is the parameter list, p.
+////
+////adapted from here: 
+////https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+////
+//void generate_psd(turbulence_param &p)
+//{
+//    uint64_t idx;
+//    cv::Mat x, y;
+//    cv::Mat s_half;
 //
-//adapted from here: 
-//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+//    uint32_t N = 2 * p.get_N();
+//    
+//    double delta0_D = (p.get_delta0() / p.get_D());
+//    
+//    double s_max = delta0_D * (double)N;
+//    
+//    double i0_val = I0(0);
 //
-void generate_psd(turbulence_param &p)
-{
-    uint64_t idx;
-    cv::Mat x, y;
-    cv::Mat s_half;
-
-    uint32_t N = 2 * p.get_N();
-    
-    double delta0_D = (p.get_delta0() / p.get_D());
-    
-    double s_max = delta0_D * (double)N;
-    
-    double i0_val = I0(0);
-
-    // x^(y) = std::exp(y * std::log(x))
-    //double c1 = 2.0 * ((24.0 / 5.0) * tgamma(6.0 / 5.0)) ** (5.0 / 6.0)
-    double c1 = 2.0 * std::exp( (5.0 / 6.0) * std::log((24.0 / 5.0) * tgamma(6.0 / 5.0)));
-    
-    //double c2 = 4.0 * (c1 / CV_PI) * (tgamma(11.0 / 6.0)) ** 2.0
-    double c2 = ((4.0 * c1) / CV_PI) * (tgamma(11.0 / 6.0)) * (tgamma(11.0 / 6.0));
-
-    double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(p.get_D_r0()/2.0)) * (2 * p.get_wavelength() / (CV_PI * p.get_D())) * (2 * p.get_wavelength() / (CV_PI * p.get_D()));
-    
-    cv::Mat s_arr = linspace(0.0, s_max, N);
-    
-    cv::Mat I0_arr = cv::Mat::zeros(s_arr.size(),CV_64FC1);
-    cv::Mat I2_arr = cv::Mat::zeros(s_arr.size(),CV_64FC1);
-    
-    cv::MatIterator_<double> it, end;
-    cv::MatIterator_<double> I0_it = I0_arr.begin<double>();
-    cv::MatIterator_<double> I2_it = I2_arr.begin<double>();
-    for (it = s_arr.begin<double>(), end = s_arr.end<double>(); it != end; ++it)
-    {
-        //I0_arr[idx] = I0(s_arr[idx])
-        //I2_arr[idx] = I2(s_arr[idx])
-        *I0_it = I0(*it);
-        *I2_it = I2(*it);
-
-        ++I0_it;
-        ++I2_it;
-    }
-    
-    //i, j = np.int32(N / 2), np.int32(N / 2)
-    
-    //[x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
-    meshgrid(1.0, (double)N, N, 1.0, (double)N, N, x, y);
-    
-
-    cv::Mat tmp_x = (x - p.get_N()).mul(x - p.get_N());
-    cv::Mat tmp_y = (y - p.get_N()).mul(y - p.get_N());
-
-//    cv::Mat s = cv::sqrt((x - p.get_N()) * (x - p.get_N()) + (y - p.get_N()) * (y - p.get_N()));
-    cv::Mat s;
-    cv::sqrt(tmp_x + tmp_y, s);
-     
-    //C = (In_m(s, delta0_D * N , I0_arr) + In_m(s, delta0_D * N, I2_arr)) / I0(0)
-    cv::Mat In_1 = In_m(s, delta0_D * N, I0_arr);
-    cv::Mat In_2 = In_m(s, delta0_D * N, I2_arr);
-    cv::Mat C = (In_1 + In_2) * (1.0 / i0_val);
-
-    // C[p.get_N(), p.get_N()] = 1
-    C.at<double>(p.get_N(), p.get_N()) = 1.0;
-   
-    //C = C * I0(0) * c2 * (p.get_D_r0()) ** (5.0 / 3.0) / (2 ** (5.0 / 3.0)) * (2 * p.wavelength / (CV_PI * p.D)) ** 2 * 2 * CV_PI;
-    C = C * (i0_val * c2 * c3);
-
-    // test of complex vector under the hood
-    std::vector<std::complex<double>> c_fft_vec(C.rows * C.cols, 0.0);
-
-
-    cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
-    cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
-    
-
-    p.S_vec.resize(C.rows * C.cols);
-    s_half = cv::Mat(C.rows, C.cols, CV_64FC2, p.S_vec.data());
-    sqrt_cmplx(c_fft, s_half);
-
-    // find the maximum magnitude of the FFT
-    double s_half_max;
-    cv::Mat abs_s_half = abs_cmplx(s_half);
-
-    cv::minMaxIdx(abs_s_half, NULL, &s_half_max, NULL, NULL);
-
-    // threshold - all elements < 0.0001 * S_half_max = 0
-    threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
- /*   
-    S_half[np.abs(S_half) < 0.0001 * S_half_max] = 0
-*/
-
-    p.set_S(s_half);
-}
+//    // x^(y) = std::exp(y * std::log(x))
+//    //double c1 = 2.0 * ((24.0 / 5.0) * tgamma(6.0 / 5.0)) ** (5.0 / 6.0)
+//    double c1 = 2.0 * std::exp( (5.0 / 6.0) * std::log((24.0 / 5.0) * tgamma(6.0 / 5.0)));
+//    
+//    //double c2 = 4.0 * (c1 / CV_PI) * (tgamma(11.0 / 6.0)) ** 2.0
+//    double c2 = ((4.0 * c1) / CV_PI) * (tgamma(11.0 / 6.0)) * (tgamma(11.0 / 6.0));
+//
+//    double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(p.get_D_r0()/2.0)) * (2 * p.get_wavelength() / (CV_PI * p.get_D())) * (2 * p.get_wavelength() / (CV_PI * p.get_D()));
+//    
+//    cv::Mat s_arr = linspace(0.0, s_max, N);
+//    
+//    cv::Mat I0_arr = cv::Mat::zeros(s_arr.size(),CV_64FC1);
+//    cv::Mat I2_arr = cv::Mat::zeros(s_arr.size(),CV_64FC1);
+//    
+//    cv::MatIterator_<double> it, end;
+//    cv::MatIterator_<double> I0_itr = I0_arr.begin<double>();
+//    cv::MatIterator_<double> I2_itr = I2_arr.begin<double>();
+//    for (it = s_arr.begin<double>(), end = s_arr.end<double>(); it != end; ++it, ++I0_itr, ++I2_itr)
+//    {
+//        //I0_arr[idx] = I0(s_arr[idx])
+//        //I2_arr[idx] = I2(s_arr[idx])
+//        *I0_itr = I0(*it);
+//        *I2_itr = I2(*it);
+//    }
+//    
+//    //i, j = np.int32(N / 2), np.int32(N / 2)
+//    
+//    //[x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
+//    meshgrid(1.0, (double)N, N, 1.0, (double)N, N, x, y);
+//    
+//    cv::Mat tmp_x = (x - p.get_N()).mul(x - p.get_N());
+//    cv::Mat tmp_y = (y - p.get_N()).mul(y - p.get_N());
+//
+////    cv::Mat s = cv::sqrt((x - p.get_N()) * (x - p.get_N()) + (y - p.get_N()) * (y - p.get_N()));
+//    cv::Mat s;
+//    cv::sqrt(tmp_x + tmp_y, s);
+//     
+//    //C = (In_m(s, delta0_D * N , I0_arr) + In_m(s, delta0_D * N, I2_arr)) / I0(0)
+//    cv::Mat In_1 = In_m(s, delta0_D * N, I0_arr);
+//    cv::Mat In_2 = In_m(s, delta0_D * N, I2_arr);
+//    cv::Mat C = (In_1 + In_2) * (1.0 / i0_val);
+//
+//    // C[p.get_N(), p.get_N()] = 1
+//    C.at<double>(p.get_N(), p.get_N()) = 1.0;
+//   
+//    //C = C * I0(0) * c2 * (p.get_D_r0()) ** (5.0 / 3.0) / (2 ** (5.0 / 3.0)) * (2 * p.wavelength / (CV_PI * p.D)) ** 2 * 2 * CV_PI;
+//    C = C * (i0_val * c2 * c3);
+//
+//    // test of complex vector under the hood
+//    std::vector<std::complex<double>> c_fft_vec(C.rows * C.cols, 0.0);
+//
+//
+//    cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
+//    cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
+//    
+//    p.S_vec.resize(C.rows * C.cols);
+//    s_half = cv::Mat(C.rows, C.cols, CV_64FC2, p.S_vec.data());
+//    sqrt_cmplx(c_fft, s_half);
+//
+//    // find the maximum magnitude of the FFT
+//    double s_half_max;
+//    cv::Mat abs_s_half = abs_cmplx(s_half);
+//
+//    cv::minMaxIdx(abs_s_half, NULL, &s_half_max, NULL, NULL);
+//
+//    // threshold - all elements < 0.0001 * S_half_max = 0
+//    threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
+// /*   
+//    S_half[np.abs(S_half) < 0.0001 * S_half_max] = 0
+//*/
+//
+//    p.set_S(s_half);
+//
+//}   // end of generate_psd
 
 //-----------------------------------------------------------------------------
 //This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
@@ -227,7 +223,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //    patchN = temp[np.argmin((smax * np.ones(100) / temp - 2) * *2)]
     for (idx = 1; idx < 101; ++idx)
     {
-        tmp = (smax / (double)(idx)-2) * (smax / (double)(idx)-2);
+        tmp = (smax / (double)(idx)) - 2;
+        tmp *= tmp;
         if (tmp < tmp_min)
         {
             patch_N = idx;
