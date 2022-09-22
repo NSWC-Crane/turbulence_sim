@@ -371,7 +371,7 @@ int main(int argc, char** argv)
 
             cv::hconcat(img_tilt, img_blur, montage);
             cv::imshow(window_name, montage);
-            k = cv::waitKey(200);
+            k = cv::waitKey(10);
         }
         bp = 2;
 
