@@ -349,10 +349,10 @@ int main(int argc, char** argv)
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
         cv::Mat img_blur;
-
+        cv::Mat montage;
         char k = 0;
 
-        cv::resizeWindow(window_name, 2*N, 2*N);
+        cv::resizeWindow(window_name, 4*N, 2*N);
 
         while(k != 'q')
         //for (idx = 0; idx < 10; ++idx)
@@ -361,14 +361,16 @@ int main(int argc, char** argv)
 
             generate_tilt_image(img, P, rng, img_tilt);
 
-            generate_blur_image(img_tilt, P, rng, img_blur);
+            generate_blur_image(img, P, rng, img_blur);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::imshow(window_name, img_blur);
+
+            cv::hconcat(img_tilt, img_blur, montage);
+            cv::imshow(window_name, montage);
             k = cv::waitKey(200);
         }
         bp = 2;

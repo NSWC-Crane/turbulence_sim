@@ -131,7 +131,8 @@
 void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
-    double c1 = std::sqrt(2) * 2 * p.get_N() * (p.get_L() / p.get_delta0());
+    //double c1 = 2 * std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
+    double c1 = 0.25*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
     uint64_t N2 = N * N;
