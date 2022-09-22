@@ -273,7 +273,7 @@ int main(int argc, char** argv)
 
     cv::Mat img_f1, img_f2;
 
-    std::string window_name = "montage";
+    std::string window_name = "image";
 
 
 
@@ -287,7 +287,7 @@ int main(int argc, char** argv)
     //}
 
     // setup the windows to display the results
-    //cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
     //cv::resizeWindow(window_name, 2*img_w, img_h);
 
     // do work here
@@ -352,6 +352,8 @@ int main(int argc, char** argv)
 
         char k = 0;
 
+        cv::resizeWindow(window_name, 2*N, 2*N);
+
         while(k != 'q')
         //for (idx = 0; idx < 10; ++idx)
         {
@@ -366,8 +368,8 @@ int main(int argc, char** argv)
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::imshow("img_blur", img_blur);
-            k = cv::waitKey(20);
+            cv::imshow(window_name, img_blur);
+            k = cv::waitKey(200);
         }
         bp = 2;
 
