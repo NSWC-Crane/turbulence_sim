@@ -337,8 +337,11 @@ int main(int argc, char** argv)
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
+        double k = 2 * CV_PI / wavelenth;
+        double Cn2 = 1e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
-        double r0 = 0.0097;
+        //double r0 = 0.0097;
+        double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
         turbulence_param P(N, D, L, r0, wavelenth, obj_size);
 
@@ -350,11 +353,11 @@ int main(int argc, char** argv)
         cv::Mat img_tilt;
         cv::Mat img_blur;
         cv::Mat montage;
-        char k = 0;
+        char key = 0;
 
         cv::resizeWindow(window_name, 4*N, 2*N);
 
-        while(k != 'q')
+        while(key != 'q')
         //for (idx = 0; idx < 10; ++idx)
         {
             start_time = std::chrono::system_clock::now();
@@ -371,7 +374,7 @@ int main(int argc, char** argv)
 
             cv::hconcat(img_tilt, img_blur, montage);
             cv::imshow(window_name, montage);
-            k = cv::waitKey(10);
+            key = cv::waitKey(10);
         }
         bp = 2;
 
