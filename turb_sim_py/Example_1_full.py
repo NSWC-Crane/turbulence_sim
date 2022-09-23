@@ -10,7 +10,7 @@ Nicholas Chimitt and Stanley Chan
 Copyright 2021
 Purdue University, West Lafayette, In, USA.
 '''
-
+import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 import TurbSim_v1_main as util
@@ -27,10 +27,15 @@ D = 0.095           # length of aperture diameter (meters)
 L = 1000            # length of propagation (meters)
 
 wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
-r0 = 0.0097        # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
-                    # All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
 
-pixel = 0.00125
+Cn2 = 1e-14
+k = 2 * np.pi / wvl
+
+# the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
+# All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
+r0 = np.exp(-0.6 * np.log(0.158625 * k * k * Cn2 * L))
+
+pixel = 0.00246
 obj_size = N * pixel   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
                     # will be done automatically.
 
@@ -52,22 +57,32 @@ rows = 5
 columns = 10
 
 # create figure
-fig = plt.figure(figsize=(columns, rows))
+# fig = plt.figure(figsize=(columns, rows))
 
-for i in range(1):
+img = img[16:16+N, 16:16+N]
+
+# for i in range(1):
+while(1):
     img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
 
-    fig.add_subplot(1, 2,  1)
-    plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
-    plt.title('img_tilt')
-    #
+    # fig.add_subplot(1, 2,  1)
+    # plt.imshow(img_tilt, cmap='gray', vmin=0, vmax=1)
+    # plt.title('img_tilt')
+
     img_blur = util.genBlurImage(param_obj, img_tilt)
     # img_blur = util.genBlurImage(param_obj, img)
 
-    fig.add_subplot(1, 2, 2)
-    plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)
-    plt.title('img_tilt & img_blur')
-    plt.show()
+    # fig.add_subplot(1, 2, 2)
+    # plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)
+    # plt.title('img_tilt & img_blur')
+    # plt.show()
+
+    montage = np.concatenate((img_tilt, img_blur), axis=1)
+    cv2.imshow('Image', montage)
+    cv2.waitKey(10)
+
+
+cv2.destroyAllWindows()
 
 # breakpoint before code exists
 bp = 1
