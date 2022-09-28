@@ -33,7 +33,7 @@ for i = 1:length(ImgNames)
         ImageLapB = imfilter(double(ImageB),k,'symmetric');
         fftI=fft2(double(ImageLap),M,N);
         fftB=fft2(double(ImageLapB),M,N);
-        resultF = abs(abs(fftI)-abs(fftB));
+        resultF = abs(fftI)-abs(fftB);
         metricsF(i) = sum(sum(resultF))/(M*N);
 
     case('FFT of Diff LoGs')    
@@ -53,7 +53,7 @@ for i = 1:length(ImgNames)
             fftI=fft2(double(EdgeImg),M,N);
             fftB=fft2(double(EdgeImgB),M,N);
             %fftBshift = fftshift(fftB);
-            resultF = abs(fftI)-abs(fftB);
+            resultF = abs(abs(fftI)-abs(fftB));
             metricsF(i,j) = sum(sum(resultF))/(M*N);
         end
     case('Absolute Difference')
