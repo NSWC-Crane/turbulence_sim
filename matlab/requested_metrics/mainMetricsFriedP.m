@@ -25,7 +25,7 @@ MetricsF = [col1 col2];
 
 % For columns 3 and 4, read in cn2 and r0 columns in file named  
 % C:\Data\JSSAP\combined_sharpest_images_withCn2.xlsx
-col34 = xlsread('C:\Data\JSSAP\combined_sharpest_images_withCn2.xlsx','combined_sharpest_images_withCn','N:O');
+col34 = xlsread('C:\Data\JSSAP\combined_sharpest_images_withCn2FriedPar.xlsx','combined_sharpest_images_withCn','N:O');
 MetricsF = [MetricsF col34];
 
 % Call function FilterMetrics for each filter and then each range, zoom
@@ -33,36 +33,41 @@ MetricsF = [MetricsF col34];
 % Setup matrices for each metric
 AvgFDL = zeros(54,1);
 AvgDFL = zeros(54,1);
-AvgFDLoG = zeros(54,4);
-AvgDFLoG = zeros(54,4);
+AvgFDLoG = zeros(54,2);
+AvgDFLoG = zeros(54,2);
 AvgAbDiff = zeros(54,1);
+AvgAbDiffFFT = zeros(54,1);
 
 % Note MetricsF(:,1) is range
 % Note MetricsF(:,2) is zoom
 for indx = 1: length(MetricsF)
     
-        [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfo(MetricsF(indx,1), MetricsF(indx,2));
-        sigma = 1:1;
-        [metrics1] = FilterMetrics('FFT of Diff Laplacian', dirBase, dirSharp, basefileN, ImgNames, sigma);
-        AvgFDL(indx) = mean(metrics1);
+         [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfo(MetricsF(indx,1), MetricsF(indx,2));
+%         sigma = 1:1;
+%         [metrics1] = FilterMetrics('FFT of Diff Laplacian', dirBase, dirSharp, basefileN, ImgNames, sigma);
+%         AvgFDL(indx) = mean(metrics1);
+% 
+         sigma = 1:1;
+         [metrics2] = FilterMetrics('Diff of FFT Laplacian', dirBase, dirSharp, basefileN, ImgNames, sigma);
+         AvgDFL(indx) = mean(metrics2);
 
-        sigma = 1:1;
-        [metrics2] = FilterMetrics('Diff of FFT Laplacian', dirBase, dirSharp, basefileN, ImgNames, sigma);
-        AvgDFL(indx) = mean(metrics2);
+%         sigma = 1:4;
+%         [metrics3] = FilterMetrics('FFT of Diff LoGs', dirBase, dirSharp, basefileN, ImgNames, sigma);
+%         avgs = mean(metrics3);
+%         AvgFDLoG(indx,1:4) = avgs;
 
-        sigma = 1:4;
-        [metrics3] = FilterMetrics('FFT of Diff LoGs', dirBase, dirSharp, basefileN, ImgNames, sigma);
-        avgs = mean(metrics3);
-        AvgFDLoG(indx,1:4) = avgs;
-
-        sigma = 1:4;
+        sigma = 1:2;
         [metrics4] = FilterMetrics('Diff of FFT LoGs', dirBase, dirSharp, basefileN, ImgNames, sigma);
         avgs = mean(metrics4);
-        AvgDFLoG(indx,1:4) = avgs;
+        AvgDFLoG(indx,1:2) = avgs;
+
+%         sigma = 1:1;
+%         [metrics5] = FilterMetrics('Absolute Difference', dirBase, dirSharp, basefileN, ImgNames, sigma);
+%         AvgAbDiff(indx) = mean(metrics5);
 
         sigma = 1:1;
-        [metrics5] = FilterMetrics('Absolute Difference', dirBase, dirSharp, basefileN, ImgNames, sigma);
-        AvgAbDiff(indx) = mean(metrics5);
+        [metrics6] = FilterMetrics('Absolute FFT', dirBase, dirSharp, basefileN, ImgNames, sigma);
+        AvgAbDiffFFT(indx) = mean(metrics6);
 
 end
 
@@ -71,11 +76,20 @@ end
 symbs = ['*','*','*','*','*','*','*','s','s'];
 sz = 8;
 
+% figure()
+% gscatter(MetricsF(:,4), AvgAbDiff, MetricsF(:,1),[],symbs, sz) %, 'filled') %'LineWidth',2)
+% xlabel('Fried Parameter r_0')
+% ylabel('Metric')
+% title('Absolute Difference of Images')
+% outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\absdiff.png";
+% f = gcf;
+% exportgraphics(f,outf,'Resolution',300)
+% 
 figure()
-gscatter(MetricsF(:,4), AvgAbDiff, MetricsF(:,1),[],symbs, sz) %, 'filled') %'LineWidth',2)
+gscatter(MetricsF(:,4), AvgAbDiffFFT, MetricsF(:,1),[],symbs, sz) %, 'filled') %'LineWidth',2)
 xlabel('Fried Parameter r_0')
 ylabel('Metric')
-title('Absolute Difference of Images')
+title('Absolute Difference of FFT of Images')
 outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\absdiff.png";
 f = gcf;
 exportgraphics(f,outf,'Resolution',300)
@@ -85,37 +99,37 @@ gscatter(MetricsF(:,4), AvgDFL, MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWi
 xlabel('Fried Parameter r_0')
 ylabel('Metric')
 title('Difference of FFT of Laplacian Images')
-outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgDFLap.png";
+outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgDFLap_Modified.png";
 f = gcf;
 exportgraphics(f,outf,'Resolution',300)
+% 
+% figure()
+% gscatter(MetricsF(:,4), AvgFDL, MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWidth',2)
+% xlabel('Fried Parameter r_0')
+% ylabel('Metric')
+% title('FFT of Difference of Laplacian Images')
+% outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgFDLap.png";
+% f = gcf;
+% exportgraphics(f,outf,'Resolution',300)
 
-figure()
-gscatter(MetricsF(:,4), AvgFDL, MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWidth',2)
-xlabel('Fried Parameter r_0')
-ylabel('Metric')
-title('FFT of Difference of Laplacian Images')
-outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgFDLap.png";
-f = gcf;
-exportgraphics(f,outf,'Resolution',300)
+% for k = 1:2
+%     figure()
+%     gscatter(MetricsF(:,4), AvgFDLoG(:,k), MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWidth',2)
+%     xlabel('Fried Parameter r_0')
+%     ylabel('Metric')
+%     title("FFT of Difference of LoG Images, Sigma " + num2str(k))
+%     outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgFDLoG_S" + num2str(k) + ".png";
+%     f = gcf;
+%     exportgraphics(f,outf,'Resolution',300)
+% end
 
-for k = 1:4
-    figure()
-    gscatter(MetricsF(:,4), AvgFDLoG(:,k), MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWidth',2)
-    xlabel('Fried Parameter r_0')
-    ylabel('Metric')
-    title("FFT of Difference of LoG Images, Sigma " + num2str(k))
-    outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgFDLoG_S" + num2str(k) + ".png";
-    f = gcf;
-    exportgraphics(f,outf,'Resolution',300)
-end
-
-for k = 1:4
+for k = 1:2
     figure()
     gscatter(MetricsF(:,4), AvgDFLoG(:,k), MetricsF(:,1),[],symbs,sz) %, 'filled') %'LineWidth',2)
     xlabel('Fried Parameter r_0')
     ylabel('Metric')
     title("Difference of FFT of LoG Images, Sigma " + num2str(k))
-    outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgDFLoG_S" + num2str(k) + ".png";
+    outf = "C:\Projects\JSSAP\MetricsPlots\avgFried\avgDFLoG_S_Modified" + num2str(k) + ".png";
     f = gcf;
     exportgraphics(f,outf,'Resolution',300)
 end
