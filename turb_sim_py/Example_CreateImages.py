@@ -13,12 +13,6 @@ Purdue University, West Lafayette, In, USA.
 MODIFIED:  V Lockridge, NSWC Crane
 '''
 
-"""
-TO DO
-1.  Use opencv to import, write, filter 
-
-"""
-
 from matplotlib import pyplot as plt
 import numpy as np
 import TurbSim_v1_main as util
@@ -42,7 +36,7 @@ def ChangImgDtypeUint8(img):
         imgInt = imgInt.astype(np.uint8)
         return imgInt
     else:
-        print("Error:  max and min are ", (img.max(),img.min()) )
+        print("Warning:  max and min are ", (img.max(),img.min()) )
         
 
 D = 0.095
@@ -91,19 +85,6 @@ if __name__ == '__main__':
         img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
         img_blur = util.genBlurImage(param_obj, img_tilt)
         
-        ##############
-        
-        r0 = CalculateR0(cn2, L, wvl)
-       
-        param_obj = util.p_obj(N, D, L, r0, wvl, obj_size)
-        print(param_obj)
-        
-        S = util.gen_PSD(param_obj)     # finding the PSD, see the def for details
-        param_obj['S'] = S  
-        
-        img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
-        img_blur = util.genBlurImage(param_obj, img_tilt)
-        
         # Save all images
         cn2str = str(cn2)
         cn2str = cn2str.replace('.','p')
@@ -117,15 +98,7 @@ if __name__ == '__main__':
         imSoutC = 'z' + str(dfcomb.loc[row,'zoom']) + 'r' + str(L) + 'cn2_' + cn2str + '_GreenC_SimImg.png'
         imRoutC = 'z' + str(dfcomb.loc[row,'zoom']) + 'r' + str(L) + 'cn2_' + cn2str + '_GreenC_Real.png'               
         
-#        imageio.imwrite(os.path.join(dirOut, imBout),np.uint8(img))
-#        imageio.imwrite('result.png',np.uint8(img))
-#        imageio.imwrite('result.png',np.uint8(img))
-        
-#        plt.imsave(os.path.join(dirOut, imBout),img, cmap = 'gray')
-#        plt.imsave(os.path.join(dirOut, imSout),img_blur, cmap = 'gray')
-#        plt.imsave(os.path.join(dirOut, imRout),realI, cmap = 'gray')
-
-        
+        # To save images, change images with values between 0 and 1 to 8 bit (0 to 255)
         img256 = ChangImgDtypeUint8(img)
         cv2.imwrite(os.path.join(dirOut, imBoutC),img256)  
         img_blur256 = ChangImgDtypeUint8(img_blur)
@@ -152,6 +125,6 @@ if __name__ == '__main__':
         
         plt.show()
         
-        pathOut = os.path.join(dirOut, figout)
-        fig.savefig(pathOut)
+        #pathOut = os.path.join(dirOut, figout)
+        #fig.savefig(pathOut)
         
