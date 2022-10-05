@@ -27,7 +27,7 @@ for i = 1:length(ImgNames)
 %         %imagesc(ImageLapB), colormap('gray')
 
     case('Diff of FFT Laplacian')
-        k = fspecial('laplacian');
+        k = fspecial('laplacian',0);
         ImageLap = imfilter(double(Image),k,'symmetric');
         ImageLapB = imfilter(double(ImageB),k,'symmetric');
         fftI=fft2(double(ImageLap),M,N);
