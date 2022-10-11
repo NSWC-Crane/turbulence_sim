@@ -28,7 +28,7 @@ L = 1000            # length of propagation (meters)
 
 wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
 
-Cn2 = 1e-13
+Cn2 = 1e-14
 k = 2 * np.pi / wvl
 
 # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)

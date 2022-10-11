@@ -121,13 +121,14 @@ def genTiltImg(img, p_obj):
         p_obj['S'] = S
         flag_noPSD = 1
     MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVx = MVx[int(round(p_obj['N'] / 2)):2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
     MVx = gaussian_filter(MVx, sigma=3, mode='reflect')
-    MVx = MVx[int(round(p_obj['N'] / 2)) :2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
+
     #MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
 
     MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    MVy = gaussian_filter(MVy, sigma=3, mode='reflect')
     MVy = MVy[0:p_obj['N'], int(round(p_obj['N'] / 2)): 2 * p_obj['N'] - int(round(p_obj['N'] / 2))]
+    MVy = gaussian_filter(MVy, sigma=3, mode='reflect')
     #MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
 
     img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
@@ -143,7 +144,7 @@ def genTiltImg(img, p_obj):
 def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     temp = np.arange(1,101)
-    patchN = temp[np.argmin((1.25*smax*np.ones(100)/temp - 2)**2)]
+    patchN = temp[np.argmin((smax*np.ones(100)/temp - 2)**2)]
     patch_size = int(round(p_obj['N'] / patchN))
     xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, patchN))
     xx, yy = np.meshgrid(xtemp, xtemp)
@@ -169,38 +170,38 @@ def genBlurImage(p_obj, img):
         roundYY = int(round(yy_flat[i]))
         #print('xx ', roundXX, ' yy ', roundYY)
 
-        min_x = max(0, roundXX-k_size)
-        max_x = min(p_obj['N'], roundXX+k_size+1)
-        min_y = max(0, roundYY-k_size)
-        max_y = min(p_obj['N'], roundYY+k_size+1)
+        # min_x = max(0, roundXX-k_size)
+        # max_x = min(p_obj['N'], roundXX+k_size+1)
+        # min_y = max(0, roundYY-k_size)
+        # max_y = min(p_obj['N'], roundYY+k_size+1)
+        #
+        # if((roundXX - k_size) < 0):
+        #     min_kx = k_size - roundXX
+        # else:
+        #     min_kx = 0
+        #
+        # if((roundXX + k_size) >= p_obj['N']):
+        #     max_kx = p_obj['N'] - roundXX + k_size
+        # else:
+        #     max_kx = k.shape[1]
+        #
+        # if((roundYY - k_size) < 0):
+        #     min_ky = k_size - roundYY
+        # else:
+        #     min_ky = 0
+        #
+        # if((roundYY + k_size) >= p_obj['N']):
+        #     max_ky = p_obj['N'] - roundYY + k_size
+        # else:
+        #     max_ky = k.shape[0]
 
-        if((roundXX - k_size) < 0):
-            min_kx = k_size - roundXX
-        else:
-            min_kx = 0
-
-        if((roundXX + k_size) >= p_obj['N']):
-            max_kx = p_obj['N'] - roundXX + k_size
-        else:
-            max_kx = k.shape[1]
-
-        if((roundYY - k_size) < 0):
-            min_ky = k_size - roundYY
-        else:
-            min_ky = 0
-
-        if((roundYY + k_size) >= p_obj['N']):
-            max_ky = p_obj['N'] - roundYY + k_size
-        else:
-            max_ky = k.shape[0]
-
-        # patch_mask[roundXX, roundYY] = 1
-        patch_mask[min_x:max_x, min_y:max_y] = k[min_kx:max_kx, min_ky:max_ky]
+        patch_mask[roundXX, roundYY] = 1
+        # patch_mask[min_x:max_x, min_y:max_y] = k[min_kx:max_kx, min_ky:max_ky]
 
 
 
         # patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1))), mode='same')
-        # patch_mask = scipy.signal.fftconvolve(patch_mask, k, mode='same')
+        patch_mask = scipy.signal.fftconvolve(patch_mask, k, mode='same')
         den += scipy.signal.fftconvolve(patch_mask, psf, mode='same')
 
         tmp_ip = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
