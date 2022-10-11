@@ -121,11 +121,15 @@ def genTiltImg(img, p_obj):
         p_obj['S'] = S
         flag_noPSD = 1
     MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVx = gaussian_filter(MVx, sigma=3, mode='reflect')
     MVx = MVx[int(round(p_obj['N'] / 2)) :2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
     #MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
+
     MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVy = gaussian_filter(MVy, sigma=3, mode='reflect')
     MVy = MVy[0:p_obj['N'], int(round(p_obj['N'] / 2)): 2 * p_obj['N'] - int(round(p_obj['N'] / 2))]
     #MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+
     img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
     #plt.quiver(MVx[::10,::10], MVy[::10,::10], scale=60)
     #plt.show()

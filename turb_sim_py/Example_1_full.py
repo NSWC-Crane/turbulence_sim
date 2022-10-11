@@ -28,7 +28,7 @@ L = 1000            # length of propagation (meters)
 
 wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
 
-Cn2 = 1e-14
+Cn2 = 1e-13
 k = 2 * np.pi / wvl
 
 # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
@@ -60,6 +60,8 @@ columns = 10
 # fig = plt.figure(figsize=(columns, rows))
 
 img = img[16:16+N, 16:16+N]
+
+cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
 
 # for i in range(1):
 while(1):
