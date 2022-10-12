@@ -132,7 +132,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 {
     uint64_t idx;
     //double c1 = 2 * std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
-    double c1 = 0.25*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
+    double c1 = 2.0*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
     uint64_t N2 = N * N;
@@ -163,6 +163,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
     mv_xc = c1 * get_real(mv_xc);
+    cv::filter2D(mv_xc, mv_xc, CV_64FC1, p.kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
     mv_xc -= cv::mean(mv_xc)[0];
 
     //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
@@ -183,6 +184,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     cv::Mat mv_yc = mv_y(cv::Rect(0, N_2, p.get_N(), p.get_N()));
     mv_yc = c1 * get_real(mv_yc);
+    cv::filter2D(mv_yc, mv_yc, CV_64FC1, p.kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
     mv_yc -= cv::mean(mv_yc)[0];
     //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
@@ -268,7 +270,9 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 
     cv::Mat exp_tmp = patch_indx.mul(patch_indy);
     //exp_tmp = exp_tmp.mul(cv::Mat::ones(patch_size * 2 + 1, patch_size * 2 + 1, CV_64FC1));
-    cv::flip(exp_tmp, exp_tmp, -1);
+    //cv::flip(exp_tmp, exp_tmp, -1);
+
+    cv::Mat k2 = (1 / 9.0) * cv::Mat::ones(3, 3, CV_64FC1);
 
     //    for i in range(int(patchN * *2)) :
     for (idx = 0; idx < (patch_N * patch_N); ++idx)
@@ -291,6 +295,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
         cv::resize(psf, psf, cv::Size(std::floor(NN / p.get_scaling() + 0.5), std::floor(NN / p.get_scaling() + 0.5)), 0.0, 0.0, cv::INTER_LINEAR);
         cv::flip(psf, psf, -1);
+        //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+        cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
 
         // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
         patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
@@ -300,15 +306,17 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         patch_mask.at<double>((uint64_t)(*xx.ptr<double>(idx) + 0.5), (uint64_t)(*yy.ptr<double>(idx) + 0.5)) = 1.0;
 
         // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
-        cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1));
-        
+        cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+
         // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
-        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1));
+        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+        cv::Mat tmp_conv2;
+        cv::filter2D(patch_mask, tmp_conv2, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
         den += tmp_conv;
 
         // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
         patch_mask = patch_mask.mul(src);
-        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1));
+        cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
         img_patches += tmp_conv;
 
     }

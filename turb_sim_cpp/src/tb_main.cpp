@@ -331,8 +331,9 @@ int main(int argc, char** argv)
 
         uint32_t N = 256;
         img = tmp_img(cv::Rect(16, 16, N, N));
+        //img = tmp_img.clone();
 
-        double pixel = 0.00125;
+        double pixel = 0.00246;
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
@@ -364,13 +365,12 @@ int main(int argc, char** argv)
 
             generate_tilt_image(img, P, rng, img_tilt);
 
-            generate_blur_image(img, P, rng, img_blur);
+            generate_blur_image(img_tilt, P, rng, img_blur);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
-
 
             cv::hconcat(img_tilt, img_blur, montage);
             cv::imshow(window_name, montage);
@@ -378,13 +378,11 @@ int main(int argc, char** argv)
         }
         bp = 2;
 
-
     }
     catch(std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
     }
-
 
     std::cout << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
