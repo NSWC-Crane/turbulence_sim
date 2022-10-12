@@ -14,6 +14,7 @@ class turbulence_param
 {
 public:
     std::vector<std::complex<double>> S_vec;
+    cv::Mat kernel;
 
     turbulence_param(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
     {
@@ -37,6 +38,8 @@ public:
         delta0 *= scaling;
 
         generate_psd();
+
+        create_gaussian_kernel(17, 3.0);
     }
     
     //-----------------------------------------------------------------------------
@@ -228,6 +231,33 @@ private:
         threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
 
     }   // end of generate_psd
+
+    //-----------------------------------------------------------------------------
+    void create_gaussian_kernel(int32_t size, double sigma)
+    {
+        // assumes a 0 mean Gaussian distribution
+        int32_t row, col;
+        double s = sigma * sigma;
+
+        kernel = cv::Mat::zeros(size, size, CV_64FC1);
+
+        double t = (1.0 / (2 * CV_PI * s));
+
+        for (row = 0; row < size; ++row)
+        {
+            for (col = 0; col < size; ++col)
+            {
+                kernel.at<double>(row, col) = t * std::exp((-((col - (size >> 1)) * (col - (size >> 1))) - ((row - (size >> 1)) * (row - (size >> 1)))) / (2 * s));
+            }
+        }
+
+        double matsum = (double)cv::sum(kernel)[0];
+
+        kernel = kernel * (1.0 / matsum);	// get the matrix to sum up to 1...
+
+    }	// end of create_gaussian_kernel
+
+
 
 
 };  // end of turbulence_param
