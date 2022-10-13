@@ -339,7 +339,7 @@ int main(int argc, char** argv)
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1e-14;
+        double Cn2 = 5e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));

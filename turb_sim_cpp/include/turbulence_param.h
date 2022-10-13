@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cmath>
 #include <vector>
+#include <algorithm>
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -15,6 +16,7 @@ class turbulence_param
 public:
     std::vector<std::complex<double>> S_vec;
     cv::Mat kernel;
+    uint64_t patch_num;
 
     turbulence_param(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
     {
@@ -24,6 +26,9 @@ public:
     //-----------------------------------------------------------------------------
     void init_params(void)
     {
+        uint32_t idx;
+        double tmp;
+
         D_r0 = D / r0;
         delta0 = (L * wavelength) / (2.0 * D);
         k = (2.0 * CV_PI) / wavelength;
@@ -40,7 +45,18 @@ public:
         generate_psd();
 
         create_gaussian_kernel(17, 3.0);
-    }
+
+        smax_curve.clear();
+        for (idx = 1; idx < 101; ++idx)
+        {
+            tmp = (s_max / (double)(idx)) - 1.5;
+            smax_curve.push_back(tmp * tmp);
+        }
+
+        // find the argmin of the smax_curve vector
+        patch_num = (uint64_t)std::distance(smax_curve.begin(), std::min_element(smax_curve.begin(), smax_curve.end())) + 1;
+
+    }   // end pf init_params
     
     //-----------------------------------------------------------------------------
     void update_params(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_)
@@ -139,6 +155,8 @@ private:
     double spacing;
     double ob_s;
     double scaling;
+
+    std::vector<double> smax_curve;
     
     //cv::Mat S;
 
