@@ -44,7 +44,7 @@ public:
 
         generate_psd();
 
-        create_gaussian_kernel(17, 3.0);
+        create_gaussian_kernel(15, 2.8);
 
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
@@ -69,7 +69,6 @@ public:
         obj_size = obj_size_;
 
         init_params();
-        
     }
 
     //-----------------------------------------------------------------------------
@@ -86,7 +85,6 @@ public:
         L = L_;
 
         init_params();
-        
     }
     
 
@@ -274,9 +272,6 @@ private:
         kernel = kernel * (1.0 / matsum);	// get the matrix to sum up to 1...
 
     }	// end of create_gaussian_kernel
-
-
-
 
 };  // end of turbulence_param
 
