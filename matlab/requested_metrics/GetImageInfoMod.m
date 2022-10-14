@@ -1,7 +1,10 @@
 function [dirModBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(rangeV, zoomV)
 
-dirBase = "C:\Data\JSSAP\sharpest\z" + num2str(zoomV);
-dirModBase = "C:\Data\JSSAP\modifiedBaselines";
+% data_root = "C:\Data\JSSAP\";
+data_root = "C:\Projects\data\turbulence\";
+
+dirBase = data_root + "sharpest\z" + num2str(zoomV);
+dirModBase = data_root + "modifiedBaselines";
 
 if rangeV < 1000
     dirSharp = dirBase + "\0" + num2str(rangeV);
