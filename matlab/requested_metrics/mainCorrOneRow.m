@@ -7,10 +7,10 @@
 clear
 clc
 
-rangeV = 600:100:1000;
-%rangeV = [800];
-zoom = [2000, 3000,  4000, 5000];
-%zoom = [4000];
+%rangeV = 600:100:1000;
+rangeV = [800];
+%zoom = [2000, 3000,  4000, 5000];
+zoom = [4000];
 
 dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_OneRow";
 
@@ -59,8 +59,6 @@ for rng = rangeV
                 % Collect ratios by row
                 cc = [cc; [row, i, r]];
                 rt = [rt r];
-                
-
 
             end
             x = 1:20;
@@ -77,11 +75,41 @@ for rng = rangeV
         f = gcf;
         exportgraphics(f,fileN,'Resolution',300)
 
-        close all;
-
-        %figure()
-        %scatter(cc(:,2),cc(:,3),[],cc(:,1))
-
-        
+        %close all;
+  
     end
 end
+
+figure
+hold on
+plot(ImgB(row,1:ctr), 'b');
+plot(ImgR(row,1:ctr), 'r');
+plot(ImgOtR(row,1:ctr), 'g');
+legend('ImgB','ImgR','ImgOtR')
+%title('data & data-warp1 & data-warp2')
+
+figure
+hold on
+plot(lapImgB, 'b');
+plot(lapImgR, 'r');
+plot(lapImgOtR, 'g');
+legend('lapImgB','lapImgR','lapImgOtR')
+
+figure
+hold on
+plot(abs(lb_fft), 'b');
+plot(abs(lr_fft), 'r');
+plot(abs(lotr_fft), 'g');
+legend('lb_fft','lr_fft','lotr_fft')
+
+figure
+hold on
+plot(abs(diff_fft_rb), 'b');
+plot(abs(diff_fft_otRb), 'r');
+legend('diff_fft_rb','diff_fft_rb')
+
+figure
+hold on
+plot(abs(cv_diff_rb), 'b');
+plot(abs(cv_diff_otRb), 'r');
+legend('cv_diff_rb','cv_diff_otRb')
