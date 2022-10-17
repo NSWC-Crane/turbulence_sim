@@ -48,12 +48,12 @@ for rng = rangeV
                 
                 ImgB_patch = ImgB_patch - mean(ImgB_patch(:));
                 ImgR_patch = ImgR_patch - mean(ImgR_patch(:));
+
+                %lapImgB = imgaussfilt(ImgB_patch, 0.5, 'FilterSize',9, 'Padding', 'symmetric');
+                %lapImgR = imgaussfilt(ImgR_patch, 0.5, 'FilterSize',9, 'Padding', 'symmetric');
                 
                 lapImgB = conv2(ImgB_patch, lKernel, 'same');
                 lapImgR = conv2(ImgR_patch, lKernel, 'same');
-
-                %lapImgB = imgaussfilt(lapImgB,1, 'FilterSize',9, 'Padding', 'symmetric');
-                %lapImgR = imgaussfilt(lapImgR,1, 'FilterSize',9, 'Padding', 'symmetric');
                 
                 b_fft = fftshift(fft(ImgB_patch)/numel(ImgB_patch));
                 r_fft = fftshift(fft(ImgR_patch)/numel(ImgR_patch));
@@ -79,9 +79,9 @@ for rng = rangeV
                     
                     ImgOtR_patch = ImgOtR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                     ImgOtR_patch = ImgOtR_patch - mean(ImgOtR_patch(:));
-                                       
+                    
+                    %lapImgOtR = imgaussfilt(ImgOtR_patch, 0.5, 'FilterSize',9, 'Padding', 'symmetric');
                     lapImgOtR = conv2(ImgOtR_patch, lKernel, 'same');
-                    %lapImgOtR = imgaussfilt(lapImgOtR,1, 'FilterSize',9, 'Padding', 'symmetric');
                     
                     % Look at withouth Laplacian (otr_fft) and with
                     % Laplacian (lotr_fft)
@@ -134,8 +134,6 @@ for rng = rangeV
 %     exportgraphics(f,fileN,'Resolution',300)
     hold off;
 end
-
-%6 zooms
 
 % figure
 % for i = 1:
