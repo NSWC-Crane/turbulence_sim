@@ -16,7 +16,6 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_Patches";
 ccZ = [];
 for rng = rangeV
-    r_matr = [];
     figure()
     x= 0:19;
     for zm = zoom
@@ -41,7 +40,6 @@ for rng = rangeV
         
         index = 1;
         
-        patchNum = 1;
         for prow = intv:szPatch+intv:numPatches * (szPatch+intv)
             for pcol = intv:szPatch+intv:numPatches * (szPatch+intv)
                        
@@ -53,6 +51,9 @@ for rng = rangeV
                 
                 lapImgB = conv2(ImgB_patch, lKernel, 'same');
                 lapImgR = conv2(ImgR_patch, lKernel, 'same');
+
+                %lapImgB = imgaussfilt(lapImgB,1, 'FilterSize',9, 'Padding', 'symmetric');
+                %lapImgR = imgaussfilt(lapImgR,1, 'FilterSize',9, 'Padding', 'symmetric');
                 
                 b_fft = fftshift(fft(ImgB_patch)/numel(ImgB_patch));
                 r_fft = fftshift(fft(ImgR_patch)/numel(ImgR_patch));
@@ -80,7 +81,10 @@ for rng = rangeV
                     ImgOtR_patch = ImgOtR_patch - mean(ImgOtR_patch(:));
                                        
                     lapImgOtR = conv2(ImgOtR_patch, lKernel, 'same');
+                    %lapImgOtR = imgaussfilt(lapImgOtR,1, 'FilterSize',9, 'Padding', 'symmetric');
                     
+                    % Look at withouth Laplacian (otr_fft) and with
+                    % Laplacian (lotr_fft)
                     otr_fft = fftshift(fft(ImgOtR_patch)/numel(ImgOtR_patch));
                     lotr_fft = fftshift(fft(lapImgOtR)/numel(lapImgOtR));
                     
@@ -125,9 +129,9 @@ for rng = rangeV
     xlim([0,19])
     legend("2000","2500","3000","3500","4000","5000")
     title("Range " + num2str(rng) + " Patch Size " + num2str(szPatch))
-    fileN = fullfile(dirOut,"r" + num2str(rng)  + ".png");
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
+%     fileN = fullfile(dirOut,"r" + num2str(rng)  + ".png");
+%     f = gcf;
+%     exportgraphics(f,fileN,'Resolution',300)
     hold off;
 end
 
