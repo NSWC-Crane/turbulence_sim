@@ -34,12 +34,18 @@ dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_PatchesOddImg";
  
 ccZ = [];
             
-[m,n] = size(ImgB);
+[img_h, img_w] = size(ImgB);
 
-% Setup patches
-numPatches = uint8(m/szPatch) - 1;
+% Setup patches - Assume square images so we'll just use the image height (img_h)
+numPatches = floor(img_h/szPatch);
+remaining_pixels = img_h - (szPatch * numPatches);
 
-intv = uint8((m-(numPatches * szPatch))/(numPatches + 1));
+if (remaining_pixels == 0)
+    remaining_pixels = szPatch;
+    numPatches = numPatches - 1;
+end
+
+intv = floor(remaining_pixels/(numPatches + 1));
 
 % Collect ratio without Laplacian
 cc = [];
@@ -49,8 +55,8 @@ cc_l = [];
 index = 1;
 
 % row,col start at intv,intv
-for prow = intv:szPatch+intv:numPatches * (szPatch+intv)
-    for pcol = intv:szPatch+intv:numPatches * (szPatch+intv)
+for prow = intv:szPatch+intv:img_h-1
+    for pcol = intv:szPatch+intv:img_w-1
                
         ImgB_patch = ImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
         ImgR_patch = ImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
