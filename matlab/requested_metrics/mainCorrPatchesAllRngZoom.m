@@ -4,10 +4,10 @@
 clearvars
 clc
 
-rangeV = 600:100:1000;
-%rangeV = [700];
-zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [3000];
+% rangeV = 600:100:1000;
+rangeV = [600];
+% zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+zoom = [4000];
 
 szPatch = 64;
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
@@ -71,8 +71,8 @@ for rng = rangeV
                 r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
                 diff_fft_rb = r_fft - b_fft;
     
-                lb_fft = fftshift(fft(lapImgB)/numel(lapImgB));
-                lr_fft = fftshift(fft(lapImgR)/numel(lapImgR));
+                lb_fft = fftshift(fft2(lapImgB)/numel(lapImgB));
+                lr_fft = fftshift(fft2(lapImgR)/numel(lapImgR));
                 diff_fft_lrb = lr_fft - lb_fft;
                 
                 % Autocorrelation/convolution
@@ -134,7 +134,7 @@ for rng = rangeV
         ccZ = [ccZ; rng zm avg_r];
         ccZl = [ccZ; rng zm avg_rl];
 
-        plot(x, avg_r)
+        plot(x, avg_rl)
         hold on
 
         zmleg = [zmleg; num2str(zm)];

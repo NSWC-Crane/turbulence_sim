@@ -5,9 +5,9 @@ clearvars
 clc
 
 %rangeV = 600:100:1000;
-rangeV = [900];
+rangeV = [600];
 %zoom = [2000, 3000,  4000, 5000];
-zoom = [5000];
+zoom = [4000];
 
 szPatch = 64;
 % WHICH LAPLACIAN KERNEL TO USE?
@@ -16,8 +16,8 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
 % lKernel = lKernel/sum(lKernel(:));
 
-% data_root = "C:\Data\JSSAP\";
-data_root = "C:\Projects\data\turbulence\";
+data_root = "C:\Data\JSSAP\";
+% data_root = "C:\Projects\data\turbulence\";
 
 dirOut = data_root + "ModifiedBaselines\CorrPlots_OneRow";
 
@@ -126,7 +126,7 @@ for rng = rangeV
                 x = 0:19;
                 figure(1)
                 hold on
-                plot(x, rt_l)
+                plot(x, rt)
                 
 %                 figure(2)
 %                 hold on
