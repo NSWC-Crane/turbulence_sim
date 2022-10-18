@@ -12,7 +12,11 @@ zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 szPatch = 64;
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
-dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_Patches";
+data_root = "C:\Data\JSSAP\";
+% data_root = "C:\Projects\data\turbulence\";
+
+dirOut = data_root + "modifiedBaselines\CorrPlots_Patches";
+
 ccZ = [];
 ccZl = [];
 for rng = rangeV
@@ -20,7 +24,7 @@ for rng = rangeV
     x= 0:19;
     zmleg = [];
     for zm = zoom
-        [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(rng, zm);
+        [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(data_root, rng, zm);
 
         %Read In baseline and i00 real image
         ImgB = double(imread(fullfile(dirBase, basefileN)));
@@ -63,8 +67,8 @@ for rng = rangeV
                 lapImgB = conv2(ImgB_patch, lKernel, 'same');
                 lapImgR = conv2(ImgR_patch, lKernel, 'same');
                 
-                b_fft = fftshift(fft(ImgB_patch)/numel(ImgB_patch));
-                r_fft = fftshift(fft(ImgR_patch)/numel(ImgR_patch));
+                b_fft = fftshift(fft2(ImgB_patch)/numel(ImgB_patch));
+                r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
                 diff_fft_rb = r_fft - b_fft;
     
                 lb_fft = fftshift(fft(lapImgB)/numel(lapImgB));
@@ -93,8 +97,8 @@ for rng = rangeV
                     
                     % Look at withouth Laplacian (otr_fft) and with
                     % Laplacian (lotr_fft)
-                    otr_fft = fftshift(fft(ImgOtR_patch)/numel(ImgOtR_patch));
-                    lotr_fft = fftshift(fft(lapImgOtR)/numel(lapImgOtR));
+                    otr_fft = fftshift(fft2(ImgOtR_patch)/numel(ImgOtR_patch));
+                    lotr_fft = fftshift(fft2(lapImgOtR)/numel(lapImgOtR));
                     
                     diff_fft_otRb = otr_fft - b_fft;
                     diff_fft_lotRb = lotr_fft - lb_fft;
