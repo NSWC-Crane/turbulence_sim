@@ -16,8 +16,8 @@ zm1 = 5000;
 rng2 = 700;  
 zm2 = 2500;
 
-% data_root = "C:\Data\JSSAP\";
-data_root = "C:\Projects\data\turbulence\";
+data_root = "C:\Data\JSSAP\";
+% data_root = "C:\Projects\data\turbulence\";
 
 % Import first image
 [dirModBase, dirReal1, basefileN, ImgNames1] = GetImageInfoMod(data_root, rng1, zm1);
