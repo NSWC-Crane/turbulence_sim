@@ -16,13 +16,16 @@ zm1 = 5000;
 rng2 = 700;  
 zm2 = 2500;
 
+% data_root = "C:\Data\JSSAP\";
+data_root = "C:\Projects\data\turbulence\";
+
 % Import first image
-[dirModBase, dirReal1, basefileN, ImgNames1] = GetImageInfoMod(rng1, zm1);
+[dirModBase, dirReal1, basefileN, ImgNames1] = GetImageInfoMod(data_root, rng1, zm1);
 ImgB = double(imread(fullfile(dirModBase, basefileN)));
 ImgR = double(imread(fullfile(dirReal1, ImgNames1{1})));
 ImgR = ImgR(:,:,2);  % only green channel
 % Read in directories/filenames for second image
-[~, dirReal2, ~, ImgNames2] = GetImageInfoMod(rng2, zm2);
+[~, dirReal2, ~, ImgNames2] = GetImageInfoMod(data_root, rng2, zm2);
 % ImgOtR = imread(fullfile(dirReal2, ImgNames2{1}));
 % ImgOtR = ImgOtR(:,:,2);  % only green channel
 
@@ -30,7 +33,7 @@ szPatch = 64;
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 %lKernel = [1, -2, 1];
 
-dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_PatchesOddImg";
+dirOut = data_root + "modifiedBaselines\CorrPlots_PatchesOddImg";
  
 ccZ = [];
             
@@ -67,12 +70,12 @@ for prow = intv:szPatch+intv:img_h-1
         lapImgB = conv2(ImgB_patch, lKernel, 'same');
         lapImgR = conv2(ImgR_patch, lKernel, 'same');
         
-        b_fft = fftshift(fft(ImgB_patch)/numel(ImgB_patch));
-        r_fft = fftshift(fft(ImgR_patch)/numel(ImgR_patch));
+        b_fft = fftshift(fft2(ImgB_patch)/numel(ImgB_patch));
+        r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
         diff_fft_rb = r_fft - b_fft;
 
-        lb_fft = fftshift(fft(lapImgB)/numel(lapImgB));
-        lr_fft = fftshift(fft(lapImgR)/numel(lapImgR));
+        lb_fft = fftshift(fft2(lapImgB)/numel(lapImgB));
+        lr_fft = fftshift(fft2(lapImgR)/numel(lapImgR));
         diff_fft_lrb = lr_fft - lb_fft;
         
         % Autocorrelation/convolution
@@ -98,8 +101,8 @@ for prow = intv:szPatch+intv:img_h-1
             
             lapImgOtR = conv2(ImgOtR_patch, lKernel, 'same');
             
-            otr_fft = fftshift(fft(ImgOtR_patch)/numel(ImgOtR_patch));
-            lotr_fft = fftshift(fft(lapImgOtR)/numel(lapImgOtR));
+            otr_fft = fftshift(fft2(ImgOtR_patch)/numel(ImgOtR_patch));
+            lotr_fft = fftshift(fft2(lapImgOtR)/numel(lapImgOtR));
             
             diff_fft_otRb = otr_fft - b_fft;
             diff_fft_lotRb = lotr_fft - lb_fft;

@@ -5,7 +5,7 @@ clearvars
 clc
 
 %rangeV = 600:100:1000;
-rangeV = [1000];
+rangeV = [900];
 %zoom = [2000, 3000,  4000, 5000];
 zoom = [5000];
 
@@ -16,26 +16,34 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
 % lKernel = lKernel/sum(lKernel(:));
 
-dirOut = "C:\Data\JSSAP\modifiedBaselines\CorrPlots_OneRow";
-% dirOut = "C:\Projects\data\turbulence\ModifiedBaselines\CorrPlots_OneRow";
+% data_root = "C:\Data\JSSAP\";
+data_root = "C:\Projects\data\turbulence\";
 
+dirOut = data_root + "ModifiedBaselines\CorrPlots_OneRow";
 
 for rng = rangeV
     r_matr = [];
     for zm = zoom
-        [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(rng, zm);
+        [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(data_root, rng, zm);
 
         %Read In baseline and i00 real image
         ImgB = double(imread(fullfile(dirBase, basefileN)));
         ImgR = double(imread(fullfile(dirSharp, ImgNames{1})));
         ImgR = ImgR(:,:,2);  % only green channel
         
-        [m,n] = size(ImgB);
+        [img_h, img_w] = size(ImgB);
 
         % Setup patches
-        numPatches = uint8(m/szPatch) - 1;
-        
-        intv = uint8((m-(numPatches * szPatch))/(numPatches + 1));
+        numPatches = floor(img_h/szPatch);
+        remaining_pixels = img_h - (szPatch * numPatches);
+
+        if (remaining_pixels == 0)
+            remaining_pixels = szPatch;
+            numPatches = numPatches - 1;
+        end
+
+        intv = floor(remaining_pixels/(numPatches + 1));
+
         % row,col start at intv,intv
         cc = [];
         cc_l = [];
@@ -59,12 +67,12 @@ for rng = rangeV
                 lapImgB = conv2(ImgB_patch, lKernel, 'same');
                 lapImgR = conv2(ImgR_patch, lKernel, 'same');
                 
-                b_fft = fftshift(fft(ImgB_patch)/numel(ImgB_patch));
-                r_fft = fftshift(fft(ImgR_patch)/numel(ImgR_patch));
+                b_fft = fftshift(fft2(ImgB_patch)/numel(ImgB_patch));
+                r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
                 diff_fft_rb = r_fft - b_fft;
     
-                lb_fft = fftshift(fft(lapImgB)/numel(lapImgB));
-                lr_fft = fftshift(fft(lapImgR)/numel(lapImgR));
+                lb_fft = fftshift(fft2(lapImgB)/numel(lapImgB));
+                lr_fft = fftshift(fft2(lapImgR)/numel(lapImgR));
                 diff_fft_lrb = lr_fft - lb_fft;
                 
                 % Autocorrelation/convolution?
@@ -90,8 +98,8 @@ for rng = rangeV
                     
                     lapImgOtR = conv2(ImgOtR_patch, lKernel, 'same');
                     
-                    otr_fft = fftshift(fft(ImgOtR_patch)/numel(ImgOtR_patch));
-                    lotr_fft = fftshift(fft(lapImgOtR)/numel(lapImgOtR));
+                    otr_fft = fftshift(fft2(ImgOtR_patch)/numel(ImgOtR_patch));
+                    lotr_fft = fftshift(fft2(lapImgOtR)/numel(lapImgOtR));
                     
                     diff_fft_otRb = otr_fft - b_fft;
                     diff_fft_lotRb = lotr_fft - lb_fft;
@@ -136,6 +144,7 @@ for rng = rangeV
         figure(1)
         plot(x, avg_rl, '--r')
         grid on
+        plot(x, avg_r, '--b')
         %legend("1", "21", "41","61", "81", "101","121","141","161","181","201","221","241", 'location','southeast')
         xlim([0,19])
         title("Range " + num2str(rng) + " Zoom " + num2str(zm) + " Patch Size " + num2str(szPatch))
