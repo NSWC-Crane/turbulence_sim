@@ -11,10 +11,24 @@ clc
 % Compare image Range 650 Zomm 3500 (r0 0.1277) to see if similar
 % 200x200!!! - Can't use
 % Compare image Range 600 Zoom 4000 (r0 0.1079) to see if similar
-rng1 = 900;
+
+% % tst 150 pixels
+% rng1 = 900;
+% zm1 = 4000;
+% rng2 = 900;  
+% zm2 = 4000;
+
+% Set 1
+rng1 = 650;
 zm1 = 5000;
-rng2 = 700;  
-zm2 = 2500;
+rng2 = 600;  
+zm2 = 4000;
+
+% % Set 2
+% rng1 = 900;
+% zm1 = 5000;
+% rng2 = 700;  
+% zm2 = 2500;
 
 data_root = "C:\Data\JSSAP\";
 % data_root = "C:\Projects\data\turbulence\";
@@ -58,8 +72,8 @@ cc_l = [];
 index = 1;
 
 % row,col start at intv,intv
-for prow = intv:szPatch+intv:img_h-1
-    for pcol = intv:szPatch+intv:img_w-1
+for prow = intv:szPatch+intv:img_h-szPatch
+    for pcol = intv:szPatch+intv:img_w-szPatch
                
         ImgB_patch = ImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
         ImgR_patch = ImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
