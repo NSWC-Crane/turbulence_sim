@@ -5,9 +5,9 @@ clearvars
 clc
 
 rangeV = 600:100:1000;
-%rangeV = [700];
+%rangeV = [600];
 zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [3000];
+%zoom = [2000, 2500];
 
 % Size of sections of image to measure similarity
 szPatch = 64;
@@ -30,8 +30,6 @@ dirOut = data_root + "modifiedBaselines\CorrPlots_Patches";
 ccZ = [];
 % Collect all information for With Laplacian case
 ccZl = [];
-% Identifier for each patch in image
-index = 1;
 
 % Blur
 sigma = 0;
@@ -60,6 +58,13 @@ for rng = rangeV
         end
         
         intv = floor(remaining_pixels/(numPatches + 1));
+
+        % Collect ratio without Laplacian
+        cc = [];
+        % Collect ratio with Laplacian
+        cc_l = [];
+        % Identifier for each patch in image
+        index = 1;
                       
         for prow = intv:szPatch+intv:img_h-szPatch
             for pcol = intv:szPatch+intv:img_w-szPatch
