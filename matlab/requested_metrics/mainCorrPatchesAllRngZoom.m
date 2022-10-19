@@ -1,17 +1,20 @@
-% Do Correlation metrics on patches of 32x32
-% Collect metric
+% Do Correlation metrics on patches
+% Collect metrics and plot
 
 clearvars
 clc
 
-% rangeV = 600:100:1000;
-rangeV = [600];
-% zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [4000];
+rangeV = 600:100:1000;
+%rangeV = [700];
+zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+%zoom = [3000];
 
+% Size of sections of image to measure similarity
 szPatch = 64;
+% Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
+% Setup data directories
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
     data_root = "D:\data\turbulence\";
@@ -23,8 +26,13 @@ end
 
 dirOut = data_root + "modifiedBaselines\CorrPlots_Patches";
 
+% Collect all information for No Laplacian case
 ccZ = [];
+% Collect all information for With Laplacian case
 ccZl = [];
+
+% Blur
+sigma = 0.5;
 for rng = rangeV
     figure()
     x= 0:19;
