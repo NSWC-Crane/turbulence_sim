@@ -12,8 +12,14 @@ zoom = [4000];
 szPatch = 64;
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
-data_root = "C:\Data\JSSAP\";
-% data_root = "C:\Projects\data\turbulence\";
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
 
 dirOut = data_root + "modifiedBaselines\CorrPlots_Patches";
 
