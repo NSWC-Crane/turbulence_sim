@@ -164,7 +164,7 @@ for rn = rangeV
         xlim([0,19])
         legend(zmleg)
         if sigma > 0
-            title("Non-Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch) + " Blur s" +num2str(sigma))
+            title("Non-Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch) + " Blur s " +num2str(sigma))
             fileN = fullfile(dirOut,"B1NLr" + num2str(rn)  + ".png");
         else
             title("Non-Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch))
@@ -190,7 +190,7 @@ for rn = rangeV
         xlim([0,19])
         legend(zmleg)
         if sigma > 0
-            title("Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch) + " Blur s" +num2str(sigma))
+            title("Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch) + " Blur s " +num2str(sigma))
             fileN = fullfile(dirOut,"B1Lr" + num2str(rn)  + ".png");
         else
             title("Laplacian: Range " + num2str(rn) + " Patch Size " + num2str(szPatch))
