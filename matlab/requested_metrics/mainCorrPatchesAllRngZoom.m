@@ -96,10 +96,10 @@ for rng = rangeV
                     % similarity test
                     ImgOtR = double(imread(fullfile(dirSharp, ImgNames{i})));
                     ImgOtR = ImgOtR(:,:,2);  % only green channel
-                    % Create patch
+                    % Create patch for other real image
                     ImgOtR_patch = ImgOtR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                     ImgOtR_patch = ImgOtR_patch - mean(ImgOtR_patch(:));
-                    
+                    % Create Laplacian image of other real patch
                     lapImgOtR = conv2(ImgOtR_patch, lKernel, 'same');
                     
                     % Look at non-Laplacian (otr_fft) 
