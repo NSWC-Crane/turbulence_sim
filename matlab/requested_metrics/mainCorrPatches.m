@@ -2,12 +2,13 @@
 % Collect metric
 
 clearvars
-clc
+% clc
+plot_num = 1;
 
-%rangeV = 600:100:1000;
-rangeV = [600];
-%zoom = [2000, 3000,  4000, 5000];
-zoom = [4000];
+% rangeV = 600:100:1000;
+rangeV = [1000];
+zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+% zoom = [3500];
 
 szPatch = 64;
 % WHICH LAPLACIAN KERNEL TO USE?
@@ -16,8 +17,14 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
 % lKernel = lKernel/sum(lKernel(:));
 
-data_root = "C:\Data\JSSAP\";
-% data_root = "C:\Projects\data\turbulence\";
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
 
 dirOut = data_root + "ModifiedBaselines\CorrPlots_OneRow";
 
@@ -28,6 +35,8 @@ for rng = rangeV
 
         %Read In baseline and i00 real image
         ImgB = double(imread(fullfile(dirBase, basefileN)));
+        ImgB = imgaussfilt(ImgB,0.6, 'FilterSize',15, 'Padding', 'symmetric');
+
         ImgR = double(imread(fullfile(dirSharp, ImgNames{1})));
         ImgR = ImgR(:,:,2);  % only green channel
         
@@ -49,14 +58,14 @@ for rng = rangeV
         cc_l = [];
         index = 1;
         
-        figure(1)
-        colormap(colorcube(22))
-        clf;
+%         figure(1)
+%         colormap(colorcube(22))
+%         clf;
         
 
         patchNum = 1;
-        for prow = intv:szPatch+intv:numPatches * (szPatch+intv)
-            for pcol = intv:szPatch+intv:numPatches * (szPatch+intv)
+        for prow = intv:szPatch+intv:img_h-szPatch
+            for pcol = intv:szPatch+intv:img_w-szPatch
                        
                 ImgB_patch = ImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                 ImgR_patch = ImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
@@ -69,7 +78,8 @@ for rng = rangeV
                 
                 b_fft = fftshift(fft2(ImgB_patch)/numel(ImgB_patch));
                 r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
-                diff_fft_rb = r_fft - b_fft;
+%                 diff_fft_rb = r_fft - b_fft;
+                diff_fft_rb = r_fft;
     
                 lb_fft = fftshift(fft2(lapImgB)/numel(lapImgB));
                 lr_fft = fftshift(fft2(lapImgR)/numel(lapImgR));
@@ -88,7 +98,7 @@ for rng = rangeV
                 for i = 1:length(ImgNames)
                     ImgOtR = double(imread(fullfile(dirSharp, ImgNames{i})));
                     ImgOtR = ImgOtR(:,:,2);  % only green channel
-                    
+%                     ImgOtR = imgaussfilt(ImgB,0.25*i, 'FilterSize',15, 'Padding', 'symmetric');
 
                     ImgOtR_patch = ImgOtR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                     ImgOtR_patch = ImgOtR_patch - mean(ImgOtR_patch(:));
@@ -101,7 +111,8 @@ for rng = rangeV
                     otr_fft = fftshift(fft2(ImgOtR_patch)/numel(ImgOtR_patch));
                     lotr_fft = fftshift(fft2(lapImgOtR)/numel(lapImgOtR));
                     
-                    diff_fft_otRb = otr_fft - b_fft;
+%                     diff_fft_otRb = otr_fft - b_fft;
+                    diff_fft_otRb = otr_fft;
                     diff_fft_lotRb = lotr_fft - lb_fft;
                     
                     % Cross convolution?
@@ -124,9 +135,9 @@ for rng = rangeV
     
                 end
                 x = 0:19;
-                figure(1)
-                hold on
-                plot(x, rt)
+%                 figure(1)
+%                 hold on
+%                 plot(x, rt)
                 
 %                 figure(2)
 %                 hold on
@@ -141,10 +152,11 @@ for rng = rangeV
         avg_r = mean(cc,1);
         avg_rl = mean(cc_l,1);
         
-        figure(1)
+        figure(plot_num)
+        hold on
         plot(x, avg_rl, '--r')
-        grid on
         plot(x, avg_r, '--b')
+        grid on
         %legend("1", "21", "41","61", "81", "101","121","141","161","181","201","221","241", 'location','southeast')
         xlim([0,19])
         title("Range " + num2str(rng) + " Zoom " + num2str(zm) + " Patch Size " + num2str(szPatch))
@@ -162,7 +174,7 @@ for rng = rangeV
 %         hold off
         
         %close all;
-  
+        plot_num = plot_num + 1;
     end
 end
 

@@ -3,11 +3,12 @@
 
 clearvars
 clc
+plot_num = 100;
 
 %rangeV = 600:100:1000;
-rangeV = [1000];
-%zoom = [2000, 3000,  4000, 5000];
-zoom = [5000];
+rangeV = [600];
+% zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+zoom = [2000, 2500, 3000];
 
 szPatch = 64;
 % WHICH LAPLACIAN KERNEL TO USE?
@@ -15,9 +16,14 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 %lKernel = [1, -2, 1];
 
 % lKernel = lKernel/sum(lKernel(:));
-
-% data_root = "C:\Data\JSSAP\";
-data_root = "C:\Projects\data\turbulence\";
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
 
 dirOut = data_root + "ModifiedBaselines\CorrPlots_OneRow";
 
@@ -49,14 +55,14 @@ for rng = rangeV
         cc_l = [];
         index = 1;
         
-        figure(2)
-        colormap(colorcube(22))
-        clf;
+%         figure(2)
+%         colormap(colorcube(22))
+%         clf;
         
 
         patchNum = 1;
-        for prow = intv:szPatch+intv:numPatches * (szPatch+intv)
-            for pcol = intv:szPatch+intv:numPatches * (szPatch+intv)
+        for prow = intv:szPatch+intv:img_h-szPatch
+            for pcol = intv:szPatch+intv:img_w-szPatch
                        
 %                 ImgB_patch = ImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                 ImgR_patch = ImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
@@ -128,8 +134,8 @@ for rng = rangeV
     
                 end
                 x = 0:19;
-                figure(2)
-                hold on
+%                 figure(2)
+%                 hold on
 %                 plot(x, rt)
                 
 %                 figure(2)
@@ -145,10 +151,11 @@ for rng = rangeV
         avg_r = mean(cc,1);
         avg_rl = mean(cc_l,1);
         
-        figure(2)
+        figure(plot_num)
+        hold on
         plot(x, avg_rl, '--r')
-        grid on
         plot(x, avg_r, '--b')
+        grid on
         %legend("1", "21", "41","61", "81", "101","121","141","161","181","201","221","241", 'location','southeast')
         xlim([0,19])
         title("Range " + num2str(rng) + " Zoom " + num2str(zm) + " Patch Size " + num2str(szPatch))
@@ -166,7 +173,7 @@ for rng = rangeV
 %         hold off
         
         %close all;
-  
+        plot_num = plot_num + 1;
     end
 end
 

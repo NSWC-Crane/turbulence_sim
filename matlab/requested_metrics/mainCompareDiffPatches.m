@@ -30,8 +30,14 @@ zm2 = 4000;
 % rng2 = 700;  
 % zm2 = 2500;
 
-data_root = "C:\Data\JSSAP\";
-% data_root = "C:\Projects\data\turbulence\";
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
 
 % Import first image
 [dirModBase, dirReal1, basefileN, ImgNames1] = GetImageInfoMod(data_root, rng1, zm1);
