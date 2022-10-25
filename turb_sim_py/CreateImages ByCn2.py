@@ -37,7 +37,8 @@ def ChangImgDtypeUint8(img):
 
 D = 0.095
 wvl = 0.525e-6 
-cn2 = [1e-16,5e-16,1e-15,5e-15,1e-14,5e-14,1e-13,5e-13]
+cn2 = [5e-16,1e-15,3e-15,7e-15,1e-14,3e-14,7e-14,1e-13,5e-13]
+numSims = 20
 
 if __name__ == '__main__':
     # Define directories
@@ -87,17 +88,17 @@ if __name__ == '__main__':
                 param_obj = util.p_obj(N, D, rng, r0, wvl, obj_size)
                 S = util.gen_PSD(param_obj)     # finding the PSD, see the def for details
                 param_obj['S'] = S  
-    
-                img_tilt, _ = util.genTiltImg(imgB, param_obj)    # generating the tilt-only image
-                img_blurtilt = util.genBlurImage(param_obj, img_tilt)  
+                for k in range(numSims):
+                    img_tilt, _ = util.genTiltImg(imgB, param_obj)    # generating the tilt-only image
+                    img_blurtilt = util.genBlurImage(param_obj, img_tilt)  
                 
-                # Save simulated image in directory dirOut
-                cn2str = str(cn2[i]).replace('.','p').replace('-','')
-                imSimOut = "r" + str(rng) + "_z" + str(zoom) + "_c" + cn2str + ".png"
+                    # Save simulated image in directory dirOut
+                    cn2str = str(cn2[i]).replace('.','p').replace('-','')
+                    imSimOut = "r" + str(rng) + "_z" + str(zoom) + "_c" + cn2str + "_N" + str(k) + ".png"
 
-                # Change images to 256 to use cv2 to imwrite
-                img_blurtilt256 = ChangImgDtypeUint8(img_blurtilt)
-                cv2.imwrite(os.path.join(dirOut, imSimOut),img_blurtilt256) 
+                    # Change images to 256 to use cv2 to imwrite
+                    img_blurtilt256 = ChangImgDtypeUint8(img_blurtilt)
+                    cv2.imwrite(os.path.join(dirOut, imSimOut),img_blurtilt256) 
     
     # Save information on range, cn2, r0 for MATLAB work
     # Set up dataframe cols:  rng cn2 r0
