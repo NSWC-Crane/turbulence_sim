@@ -49,7 +49,7 @@ public:
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
-            tmp = (s_max / (double)(idx)) - 1.5;
+            tmp = (s_max / (double)(idx)) - 2.0;
             smax_curve.push_back(tmp * tmp);
         }
 

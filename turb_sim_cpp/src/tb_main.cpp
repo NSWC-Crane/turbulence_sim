@@ -317,8 +317,11 @@ int main(int argc, char** argv)
         
 
         bp = 1;
+//        std::string filename = "../../data/checker_board_32x32.png";
+        std::string filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
         cv::Mat img;
-        cv::Mat tmp_img = cv::imread("../../data/checker_board_32x32.png", cv::IMREAD_ANYCOLOR);
+        cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
+
         if (tmp_img.channels() >= 3)
         {
             tmp_img.convertTo(tmp_img, CV_64FC3, 1.0/255.0);
@@ -329,17 +332,17 @@ int main(int argc, char** argv)
             tmp_img.convertTo(tmp_img, CV_64FC1, 1.0/255.0);
         }
 
-        uint32_t N = 256;
-        img = tmp_img(cv::Rect(16, 16, N, N));
-        //img = tmp_img.clone();
+        uint32_t N = tmp_img.rows;
+        //img = tmp_img(cv::Rect(16, 16, N, N));
+        img = tmp_img.clone();
 
-        double pixel = 0.00246;
+        double pixel = 0.004217;
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 5e-14;
+        double Cn2 = 1e-16;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));

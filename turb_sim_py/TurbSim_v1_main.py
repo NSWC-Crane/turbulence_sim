@@ -143,8 +143,8 @@ def genTiltImg(img, p_obj):
 
 def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
-    temp = np.arange(1,101)
-    patchN = temp[np.argmin((smax*np.ones(100)/temp - 2)**2)]
+    temp_line = np.arange(1,101)
+    patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 1.5)**2)]
     patch_size = int(round(p_obj['N'] / patchN))
     xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, patchN))
     xx, yy = np.meshgrid(xtemp, xtemp)
