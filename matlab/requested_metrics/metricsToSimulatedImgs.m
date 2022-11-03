@@ -3,15 +3,20 @@
 % Similarity metrics between one of the 20 sharpest images and all
 % simulated images created with varying cn2/r0 values
 
+% Changes:
+% 1.  Calculates Laplacian before creating patches
+% 2.  Adds option to subtract mean of image
+
 clearvars
 clc
 
-onePatch = true;
+onePatch = false;
+subtractMean = false;
 
-rangeV = 600:50:1000;
-%rangeV = [600];
-zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [ 2000, 3000, 4000];
+%rangeV = 600:50:1000;
+rangeV = [600];
+%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+zoom = [ 2500]; %, 3000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -24,7 +29,7 @@ end
 
 % Define directories
 % Location of simulated images by Cn2 value
-dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2";
+dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2Test";
 % Location to save plots
 dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots2";
 
@@ -51,9 +56,20 @@ for rng = rangeV
         % Simulated images are compared to baseline and real image by
         % zoom/range values.
         [dirModBase, dirReal1, basefileN, ImgNames1] = GetImageInfoMod(data_root, rng, zm);
+        % Read in images: Baseline, Real
         ImgB = double(imread(fullfile(dirModBase, basefileN)));  % Baseline image
-        ImgR = double(imread(fullfile(dirReal1, ImgNames1{1}))); % Real image for comparison
-        ImgR = ImgR(:,:,2);  % only green channel
+        ImgR = double(imread(fullfile(dirReal1, ImgNames1{1}))); 
+        ImgR = ImgR(:,:,2);  % Real image for comparison - only green channel
+        
+        %Subtract mean of images if option is set
+        if subtractMean == true
+            ImgB = ImgB - mean(ImgB(:));
+            ImgR = ImgR - mean(ImgR(:));
+        end
+
+        % Find Laplacian of Images
+        lapImgB = conv2(ImgB, lKernel, 'same'); % Laplacian of Baseline Image
+        lapImgR = conv2(ImgR, lKernel, 'same'); % Laplacian of Real Img
 
         % Get the corresponding simulated images in 
         % the directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2.
@@ -97,7 +113,14 @@ for rng = rangeV
             cstr = strsplit(namelist{i},'_c');
             cstr = strsplit(cstr{2},'.');
             cstr = strsplit(cstr{1},'_');
-            ImgSim = double(imread(fullfile(dirSims, namelist{i})));
+            ImgSim = double(imread(fullfile(dirSims, namelist{i}))); % Sim Image
+            %Subtract mean of images if option is set
+            if subtractMean == true
+                ImgSim = ImgSim - mean(ImgSim(:));
+            end
+            % Find Laplacian of image
+            lapImgSim = conv2(ImgSim, lKernel, 'same');  % Laplacian of Sim Image
+
             % Collect ratio without Laplacian
             cc = [];
             % Collect ratio with Laplacian
@@ -112,30 +135,28 @@ for rng = rangeV
                 for pcol = intv:szPatch+intv:img_w-szPatch
                     % EQN 1: Setup
                     % Baseline image (𝛻^2 (〖𝐼𝑚𝑔〗_𝑏−𝜇_𝑏 ))  
-                        % Get patch and subtract mean ℱ
+                    % Define patch of Baseline Image
                     ImgB_patch = ImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
-                    ImgB_patch = ImgB_patch - mean(ImgB_patch(:));
-                        % Take Laplacian of baseline patch
-                    lapImgB = conv2(ImgB_patch, lKernel, 'same');
-                        %  FFT of baseline and then Laplacian
+                    % Define patch of Laplacian of Baseline Image
+                    lapImgB_patch = lapImgB(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                    %  FFT of patches: baseline and Laplacian
                     b_fft = fftshift(fft2(ImgB_patch)/numel(ImgB_patch));
-                    lb_fft = fftshift(fft2(lapImgB)/numel(lapImgB));
+                    lb_fft = fftshift(fft2(lapImgB_patch)/numel(lapImgB_patch));
                     
                     % Real Image ℱ(𝛻^2 (〖𝐼𝑚𝑔〗_0−𝜇_0 ))
-                        % Get patch and subtract mean 
+                    % Define patch of Real Image
                     ImgR_patch = ImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
-                    ImgR_patch = ImgR_patch - mean(ImgR_patch(:));
-                        % Take Laplacian of real image patch
-                    lapImgR = conv2(ImgR_patch, lKernel, 'same');
-                        %  FFT of baseline and then Laplacian
+                    lapImgR_patch = lapImgR(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                    %  FFT of real patches:  real and Laplacian
                     r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
-                    lr_fft = fftshift(fft2(lapImgR)/numel(lapImgR));
+                    lr_fft = fftshift(fft2(lapImgR_patch)/numel(lapImgR_patch));
                     
-                    % Difference between FFT of real image and baseline image
+                    % Difference between FFT of real image and baseline
+                    % image patches
                     diff_fft_rb = r_fft - b_fft;
     
                     % Difference between FFT of Laplacian of real image and 
-                    %                                   FFT of baseline image
+                    %                       FFT of baseline image patches
                     %  EQN 1 Final:  〖𝐼𝑚𝑔〗_0𝑏=ℱ(𝛻^2 (〖𝐼𝑚𝑔〗_0−𝜇_0 ))−ℱ(𝛻^2 (〖𝐼𝑚𝑔〗_𝑏−𝜇_𝑏 ))?
                     diff_fft_lrb = lr_fft - lb_fft;
                     
@@ -147,26 +168,24 @@ for rng = rangeV
                     cv_diff_lrb = conv2(diff_fft_lrb, conj(diff_fft_lrb(end:-1:1, end:-1:1)), 'same');
                     sl_01 = sum(abs(cv_diff_lrb(:)));            
                     
-                    % Patch of simulate image i 
+                    % Patch of simulated image i 
                     % EQN 2:  Setup
                     ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
-                    ImgSim_patch = ImgSim_patch - mean(ImgSim_patch(:));
-                    % Laplacian of simulate image i patch
-                    lapImgSim = conv2(ImgSim_patch, lKernel, 'same');
-                    % FFT of sim image and lap of sim image
+                    lapImgSim_patch = lapImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                    % FFT of sim image and lap of sim image patches
                     sim_fft = fftshift(fft2(ImgSim_patch)/numel(ImgSim_patch));
-                    lsim_fft = fftshift(fft2(lapImgSim)/numel(lapImgSim));
+                    lsim_fft = fftshift(fft2(lapImgSim_patch)/numel(lapImgSim_patch));
                     % Difference between FFTs of sim and base
                     diff_fft_simRb = sim_fft - b_fft;
                     % EQN 2:  Final 〖𝐼𝑚𝑔〗_1𝑏=ℱ(𝛻^2 (〖𝐼𝑚𝑔〗_1−𝜇_1 ))−ℱ(𝛻^2 (〖𝐼𝑚𝑔〗_𝑏−𝜇_𝑏 ))
                     % Difference between FFTs of Laplacians of sim and base
                     diff_fft_lsimRb = lsim_fft - lb_fft;
                     
-                    % Cross correlation - Non-Laplacian case
-                    % EQN 4:  𝒦_01=𝐸[〖𝐼𝑚𝑔〗_0𝑏∙(〖𝐼𝑚𝑔〗_1𝑏 ) ̅ ]
+                    % Cross correlation - Non-Laplacian case                    
                     cv_diff_simRb = conv2(diff_fft_rb, conj(diff_fft_simRb(end:-1:1, end:-1:1)), 'same');
-                    s_02 = sum(abs(cv_diff_simRb(:)));                
+                    s_02 = sum(abs(cv_diff_simRb(:)));
                     % Cross correlation - Laplacian case
+                    % EQN 4:  𝒦_01=𝐸[〖𝐼𝑚𝑔〗_0𝑏∙(〖𝐼𝑚𝑔〗_1𝑏 ) ̅ ]
                     cv_diff_lsimRb = conv2(diff_fft_lrb, conj(diff_fft_lsimRb(end:-1:1, end:-1:1)), 'same');
                     sl_02 = sum(abs(cv_diff_lsimRb(:)));
                     % Ratios Non-Laplacian
