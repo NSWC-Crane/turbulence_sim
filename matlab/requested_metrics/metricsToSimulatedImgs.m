@@ -6,6 +6,8 @@
 clearvars
 clc
 
+onePatch = true;
+
 rangeV = 600:50:1000;
 %rangeV = [600];
 zoom = [2000, 2500, 3000, 3500, 4000, 5000];
@@ -26,8 +28,6 @@ dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2";
 % Location to save plots
 dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots2";
 
-% Size of subsections of image for metrics
-szPatch = 64;
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
@@ -73,16 +73,23 @@ for rng = rangeV
 
         % Setup patches - Assume square images so we'll just use the image height (img_h)
         [img_h, img_w] = size(ImgB);
+        % Size of subsections of image for metrics
+        if onePatch == true
+            numPixNot = 10;
+            szPatch = floor(img_h-numPixNot);
+        else
+            szPatch = 64;
+        end
+
         numPatches = floor(img_h/szPatch);
-        remaining_pixels = img_h - (szPatch * numPatches);
-        
+        remaining_pixels = img_h - (szPatch * numPatches);            
         if (remaining_pixels == 0)
             remaining_pixels = szPatch;
             numPatches = numPatches - 1;
         end
         
         intv = floor(remaining_pixels/(numPatches + 1));
-
+      
         % Compare to simulated images at same zoom/range
         for i = 1:length(namelist)
             % Read in a simulated image in namelist
@@ -204,7 +211,7 @@ Tr0.strcn2 = string(Tr0.cn2);
 Tr0.strcn2 = strrep(Tr0.strcn2,'-','');
 
 % Get mean value of similarity metric of all simulated images of same
-% zoom/range and add to table uniqT
+% zoom/range/cn2 and add to table uniqT
 for q = 1:height(uniqT)
     indG = find(TmL.range == uniqT.range(q) & TmL.zoom == uniqT.zoom(q) & TmL.cn2str == uniqT.cn2str(q));
     uniqT.sMetric(q) = mean(TmL.simMetric(indG));
@@ -257,9 +264,9 @@ for rngP = rangeV
     height=400;
     set(gcf,'position',[x0,y0,width,height])
 
-    fileN = fullfile(dirOut,"Lr" + num2str(rngP)  + ".png");
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
+%     fileN = fullfile(dirOut,"Lr" + num2str(rngP)  + ".png");
+%     f = gcf;
+%     exportgraphics(f,fileN,'Resolution',300)
 
 end
 
@@ -295,9 +302,9 @@ for rngP = rangeV
     height=400;
     set(gcf,'position',[x0,y0,width,height])
 
-    fileN = fullfile(dirOut,"LogLr" + num2str(rngP)  + ".png");
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
+%     fileN = fullfile(dirOut,"LogLr" + num2str(rngP)  + ".png");
+%     f = gcf;
+%     exportgraphics(f,fileN,'Resolution',300)
 
 end
 
