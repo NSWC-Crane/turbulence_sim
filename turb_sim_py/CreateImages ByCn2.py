@@ -37,10 +37,11 @@ def ChangImgDtypeUint8(img):
 
 D = 0.095
 wvl = 0.525e-6 
-#cn2 = [5e-16,1e-15,4e-15,7e-15,1e-14,2e-14,3e-14,4e-14,5e-14,6e-14,7e-14,8e-14,9e-14,
-#       1e-13,4e-13,7e-13,1e-12]
+cn2_1 = [5e-16,1e-15,4e-15,7e-15,1e-14,2e-14,3e-14,4e-14,5e-14,6e-14,7e-14,8e-14,9e-14,
+       1e-13,4e-13,7e-13,1e-12]
 # Add another set
-cn2 = [2e-13,3e-13,5e-13,6e-13,8e-13,9e-13,2e-12,3e-12,4e-12,5e-12,6e-12,7e-12,8e-12,9e-12,1e-11]
+cn2_2 = [2e-13,3e-13,5e-13,6e-13,8e-13,9e-13,2e-12,3e-12,4e-12,5e-12,6e-12,7e-12,8e-12,9e-12,1e-11]
+cn2_3 = [2e-15,3e-15,5e-15,6e-15,8e-15,9e-15,6e-16,7e-16,8e-16,9e-16,4e-16]
 numSims = 20  # Number of simulated images of same zoom/range/cn2 - will average metrics in MATLAB.
 
 if __name__ == '__main__':
@@ -83,7 +84,7 @@ if __name__ == '__main__':
             [M,N] = imgB.shape
             obj_size =  dfAtm[(dfAtm.range == rng) & (dfAtm.zoom == zoom)].reset_index().obj_size[0]
  
-            r0s = [CalculateR0(cn2[i],rng,wvl) for i in range(len(cn2))]
+            r0s = [CalculateR0(cn2_3[i],rng,wvl) for i in range(len(cn2_3))]
             
             # Create simulated image for each cn2/r0 listed
             for i,r0 in enumerate(r0s):
@@ -96,7 +97,7 @@ if __name__ == '__main__':
                     img_blurtilt = util.genBlurImage(param_obj, img_tilt)  
                 
                     # Save simulated image in directory dirOut
-                    cn2str = str(cn2[i]).replace('.','p').replace('-','')
+                    cn2str = str(cn2_3[i]).replace('.','p').replace('-','')
                     imSimOut = "r" + str(rng) + "_z" + str(zoom) + "_c" + cn2str + "_N" + str(k) + ".png"
 
                     # Change images to 256 to use cv2 to imwrite
@@ -105,6 +106,12 @@ if __name__ == '__main__':
     
     # Save information on range, cn2, r0 for MATLAB work
     # Set up dataframe cols:  rng cn2 r0
+#    cn2 = [5e-16,1e-15,4e-15,7e-15,1e-14,2e-14,3e-14,4e-14,5e-14,6e-14,7e-14,8e-14,9e-14,
+#       1e-13,4e-13,7e-13,1e-12, 2e-13,3e-13,5e-13,6e-13,8e-13,9e-13,2e-12,3e-12,4e-12,5e-12,
+#       6e-12,7e-12,8e-12,9e-12,1e-11]
+#    
+    cn2 = cn2_1 + cn2_2 + cn2_3
+
     dfwrite = pd.DataFrame()
     rangeV = [600+50*i for i in range(9)] 
     numc = len(cn2)
