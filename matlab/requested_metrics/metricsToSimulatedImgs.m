@@ -217,15 +217,6 @@ end
 % writematrix(ccZl, data_root + "modifiedBaselines\SimImgs_VaryingCn2\ccZl.csv")
 % writematrix(ccZ, data_root + "modifiedBaselines\SimImgs_VaryingCn2\ccZ.csv")
 
-% % Pairs with good metrics - determined when compared only 1 simulated image
-% P = [600, 2500; 600, 3000; 600, 3500;600, 4000;
-%      700, 2000; 700, 2500; 700, 3000; 700, 3500; 700, 4000;
-%      800, 2000; 800, 3000; 800, 3500; 800, 4000;
-%      900, 4000; 1000, 5000
-%      ];
-% 
-% [numrows, numcols] = size(P);
-%  
 % Get r0 for real image in fileA
 fileA = data_root + "combined_sharpest_images_withAtmos.xlsx";
 T_atmos = readtable(fileA);
@@ -252,18 +243,6 @@ for rngP = rangeV
         plot(uniqT.r0(indP), uniqT.sMetric(indP), '-o',...
             'LineWidth',2,...
             'MarkerSize',3)
-%         % Determine if this zoom/range combination had good metrics and
-%         % mark the plot
-%         idf = find((P(:,1) == rngP) & (P(:,2)) == zmP);
-%         if isempty(idf)
-%             str = '\leftarrow B';
-%         else
-%             str = '\leftarrow G';
-%         end
-%         xf = uniqT.r0(indP(16));
-%         yf = uniqT.sMetric(indP(16));
-%         text(xf, yf, str)
-
         hold on
     end
     grid on
@@ -302,17 +281,6 @@ for rngP = rangeV
         semilogx(uniqT.r0(indP), uniqT.sMetric(indP), '-o',...
             'LineWidth',2,...
             'MarkerSize',4)
-%         % Determine if this zoom/range combination had good metrics and
-%         % mark the plot
-%         idf = find((P(:,1) == rngP) & (P(:,2)) == zmP);
-%         if isempty(idf)
-%             str = '\leftarrow B';
-%         else
-%             str = '\leftarrow G';
-%         end
-%         xf = uniqT.r0(indP(15));
-%         yf = uniqT.sMetric(indP(15));
-%         text(xf, yf, str)
         hold on
     end
     grid on
