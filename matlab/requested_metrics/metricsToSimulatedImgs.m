@@ -11,12 +11,12 @@ clearvars
 clc
 
 onePatch = false;
-subtractMean = false;
+subtractMean = true;
 
 %rangeV = 600:50:1000;
 rangeV = [600];
 %zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [ 2500]; %, 3000];
+zoom = [2000, 2500]; %, 3000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -31,7 +31,7 @@ end
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2Test";
 % Location to save plots
-dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots2";
+dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\Plots";
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
@@ -239,9 +239,9 @@ for q = 1:height(uniqT)
     uniqT.cn2(q) = Tr0.cn2(indR);
 end
 
-% % Save ccZl and ccZ
-% writematrix(ccZl, data_root + "modifiedBaselines\SimImgs_VaryingCn2\ccZl.csv")
-% writematrix(ccZ, data_root + "modifiedBaselines\SimImgs_VaryingCn2\ccZ.csv")
+% % Save Tm and TmL
+% writetable(Tm, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\Tm.csv");
+% writetable(TmL, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\TmL.csv");
 
 % Get r0 for real image in fileA
 fileA = data_root + "combined_sharpest_images_withAtmos.xlsx";
@@ -250,6 +250,7 @@ T_atmos = readtable(fileA);
 % Plot by range with different colors for zoom
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
+% writetable(uniqT, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\uniqT.csv");
 
 % Create all plots
 for rngP = rangeV
@@ -272,6 +273,13 @@ for rngP = rangeV
         hold on
     end
     grid on
+    if subtractMean == true
+        fileN = fullfile(dirOut,"SubMean_Lr" + num2str(rngP)  + ".png");
+        title("Laplacian Metric: Range: " + num2str(rngP) + " - Subtracted Mean")
+    else
+        fileN = fullfile(dirOut,"NoSubMean_Lr" + num2str(rngP)  + ".png");
+        title("Laplacian Metric: Range: " + num2str(rngP) + " - Did not subtract mean")
+    end
     title("Laplacian Metric: Range " + num2str(rngP))
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
@@ -282,10 +290,14 @@ for rngP = rangeV
     width=900;
     height=400;
     set(gcf,'position',[x0,y0,width,height])
-
-%     fileN = fullfile(dirOut,"Lr" + num2str(rngP)  + ".png");
-%     f = gcf;
-%     exportgraphics(f,fileN,'Resolution',300)
+    
+%     if subtractMean == true
+%         fileN = fullfile(dirOut,"SubMean_Lr" + num2str(rngP)  + ".png");
+%     else
+%         fileN = fullfile(dirOut,"NoSubMean_Lr" + num2str(rngP)  + ".png");
+%     end
+    f = gcf;
+    exportgraphics(f,fileN,'Resolution',300)
 
 end
 
@@ -310,7 +322,14 @@ for rngP = rangeV
         hold on
     end
     grid on
-    title("Laplacian Metric: Range: " + num2str(rngP))
+    if subtractMean == true
+        fileN = fullfile(dirOut,"SubMean_LogLr" + num2str(rngP)  + ".png");
+        title("Laplacian Metric: Range: " + num2str(rngP) + " - Subtracted Mean")
+    else
+        fileN = fullfile(dirOut,"NoSubMean_LogLr" + num2str(rngP)  + ".png");
+        title("Laplacian Metric: Range: " + num2str(rngP) + " - Did not subtract mean")
+    end
+    
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
     xlabel("Fried's Parameter r_0")
@@ -321,9 +340,9 @@ for rngP = rangeV
     height=400;
     set(gcf,'position',[x0,y0,width,height])
 
-%     fileN = fullfile(dirOut,"LogLr" + num2str(rngP)  + ".png");
-%     f = gcf;
-%     exportgraphics(f,fileN,'Resolution',300)
+    
+    f = gcf;
+    exportgraphics(f,fileN,'Resolution',300)
 
 end
 
