@@ -1,7 +1,7 @@
-% For each range, zoom value perform similarity metrics on files in the
+% For each range/zoom value, this script calculates similarity metrics on files in the
 % directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2
-% Similarity metrics between one of the 20 sharpest images and all
-% simulated images created with varying cn2/r0 values
+% The similarity metrics are between one of the 20 sharpest images and all
+% of the simulated images created with varying cn2/r0 values
 
 % Changes:
 % 1.  Calculates Laplacian before creating patches
@@ -10,13 +10,13 @@
 clearvars
 clc
 
-onePatch = false;
-subtractMean = true;
+onePatch = true;
+subtractMean = false;
 
 %rangeV = 600:50:1000;
 rangeV = [600];
-%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [2000, 2500]; %, 3000];
+zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+%zoom = [2000, 2500, 3000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -65,6 +65,11 @@ for rng = rangeV
         if subtractMean == true
             ImgB = ImgB - mean(ImgB(:));
             ImgR = ImgR - mean(ImgR(:));
+            strTitle = " - Subtracted Mean";
+            strOut = "SubMean";
+        else
+            strTitle = " - No Mean Subtraction";
+            strOut = "NoSubMean";
         end
 
         % Find Laplacian of Images
@@ -93,8 +98,12 @@ for rng = rangeV
         if onePatch == true
             numPixNot = 10;
             szPatch = floor(img_h-numPixNot);
+            strPtch = "_OnePtch";
+            titlePtch = " (One Patch)";
         else
             szPatch = 64;
+            strPtch = "";
+            titlePtch = "";
         end
 
         numPatches = floor(img_h/szPatch);
@@ -252,7 +261,7 @@ T_atmos = readtable(fileA);
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
 % writetable(uniqT, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\uniqT.csv");
 
-% Create all plots
+% Create straight and semilogx plots
 for rngP = rangeV
     figure()
     legendL = [];
@@ -273,14 +282,8 @@ for rngP = rangeV
         hold on
     end
     grid on
-    if subtractMean == true
-        fileN = fullfile(dirOut,"SubMean_Lr" + num2str(rngP)  + ".png");
-        title("Laplacian Metric: Range: " + num2str(rngP) + " - Subtracted Mean")
-    else
-        fileN = fullfile(dirOut,"NoSubMean_Lr" + num2str(rngP)  + ".png");
-        title("Laplacian Metric: Range: " + num2str(rngP) + " - Did not subtract mean")
-    end
-    title("Laplacian Metric: Range " + num2str(rngP))
+    fileN = fullfile(dirOut,strOut + "_Lr" + num2str(rngP) + strPtch + ".png");
+    title("Laplacian Metric: Range: " + num2str(rngP) + strTitle + titlePtch)
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
     xlabel("Fried's Parameter r_0")
@@ -290,12 +293,6 @@ for rngP = rangeV
     width=900;
     height=400;
     set(gcf,'position',[x0,y0,width,height])
-    
-%     if subtractMean == true
-%         fileN = fullfile(dirOut,"SubMean_Lr" + num2str(rngP)  + ".png");
-%     else
-%         fileN = fullfile(dirOut,"NoSubMean_Lr" + num2str(rngP)  + ".png");
-%     end
     f = gcf;
     exportgraphics(f,fileN,'Resolution',300)
 
@@ -322,14 +319,8 @@ for rngP = rangeV
         hold on
     end
     grid on
-    if subtractMean == true
-        fileN = fullfile(dirOut,"SubMean_LogLr" + num2str(rngP)  + ".png");
-        title("Laplacian Metric: Range: " + num2str(rngP) + " - Subtracted Mean")
-    else
-        fileN = fullfile(dirOut,"NoSubMean_LogLr" + num2str(rngP)  + ".png");
-        title("Laplacian Metric: Range: " + num2str(rngP) + " - Did not subtract mean")
-    end
-    
+    fileN = fullfile(dirOut,strOut + "_LogLr" + num2str(rngP) + strPtch + ".png");
+    title("Laplacian Metric: Range: " + num2str(rngP) + strTitle + titlePtch) 
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
     xlabel("Fried's Parameter r_0")
@@ -339,8 +330,6 @@ for rngP = rangeV
     width=900;
     height=400;
     set(gcf,'position',[x0,y0,width,height])
-
-    
     f = gcf;
     exportgraphics(f,fileN,'Resolution',300)
 
