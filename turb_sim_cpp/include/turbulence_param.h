@@ -44,7 +44,7 @@ public:
 
         generate_psd();
 
-        create_gaussian_kernel(15, 2.8);
+        create_gaussian_kernel(15, 2.0);
 
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)

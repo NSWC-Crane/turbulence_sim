@@ -116,6 +116,68 @@
 //
 //}   // end of generate_psd
 
+
+//-----------------------------------------------------------------------------
+void centroid_psf(cv::Mat &psf, double threshold = 0.95)
+{
+    int32_t radius = 2;
+    int32_t cx, cy;
+    int32_t x, y, w, h;
+    double temp_sum = 0.0;
+    cv::Mat mx, my;
+    cv::Mat tmp_psf;
+    cv::Rect psf_roi;
+    std::vector<std::vector<cv::Point> > psf_contours;
+    std::vector<cv::Vec4i> psf_hr;
+
+    double psf_sum = cv::sum(psf)[0];
+    psf *= 1.0 / psf_sum;
+
+    //x = np.linspace(0, psf.shape[0], psf.shape[0])
+    //y = np.linspace(0, psf.shape[1], psf.shape[1])
+    //col, row = np.meshgrid(x, y)
+    meshgrid<double>(0, psf.cols - 1, psf.cols, 0, psf.rows - 1, psf.rows, mx, my);
+
+    try 
+    {
+        //cen_row = np.uint8(np.sum(row * psf))
+        //cen_col = np.uint8(np.sum(col * psf))
+        cx = (uint8_t)cv::sum(mx.mul(psf))[0];
+        cy = (uint8_t)cv::sum(my.mul(psf))[0];
+        //cv::Mat psf_t;
+        //cv::threshold(psf, psf_t, 0.001, 255, cv::THRESH_BINARY);
+        //psf_t.convertTo(psf_t, CV_8UC1);
+        //cv::findContours(psf_t, psf_contours, psf_hr, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
+
+
+
+
+
+        while (temp_sum < threshold)
+        {
+            ++radius;
+
+            x = std::max(0, cx - radius);
+            y = std::max(0, cy - radius);
+            w = (cx + radius + 1) < psf.cols ? (2*radius + 1) : w + 1;
+            h = (cy + radius + 1) < psf.rows ? (2*radius + 1) : h + 1;
+
+            //    return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
+            psf_roi = cv::Rect(x, y, w, h);
+            tmp_psf = psf(psf_roi);
+            //    temp_sum = np.sum(return_psf)
+            temp_sum = cv::sum(tmp_psf)[0];
+            //    #print(radius, temp_sum)
+        }
+
+        psf = tmp_psf.clone();
+    }
+    catch (std::exception e)
+    {
+        std::cout << "error: " << e.what() << std::endl;
+    }
+}   // end of centroid_psf
+
 //-----------------------------------------------------------------------------
 //This function takes the p_obj(with the PSD!) and applies it to the image.If no PSD is found, one will be
 //generated.However, it is** significantly** faster to generate the PSD once and then use it to draw the values from.
@@ -217,7 +279,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 
     std::vector<double> coeff;
 
-    uint32_t NN = 32;    // For extreme scenarios, this may need to be increased
+    uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
 
     //    smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     //double smax = (p.get_delta0() / p.get_D()) * p.get_N();
@@ -290,6 +352,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // psf = psf / np.sum(psf.ravel())
         psf_sum = cv::sum(psf)[0];
         psf *= 1.0 / psf_sum;
+        //centroid_psf(psf, 0.95);
         
         // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))

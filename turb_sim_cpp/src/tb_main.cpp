@@ -336,13 +336,13 @@ int main(int argc, char** argv)
         //img = tmp_img(cv::Rect(16, 16, N, N));
         img = tmp_img.clone();
 
-        double pixel = 0.004217;
+        double pixel = 0.00246;    // 0.004217;
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1e-16;
+        double Cn2 = 1e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
@@ -377,7 +377,7 @@ int main(int argc, char** argv)
 
             cv::hconcat(img_tilt, img_blur, montage);
             cv::imshow(window_name, montage);
-            key = cv::waitKey(10);
+            key = cv::waitKey(0);
         }
         bp = 2;
 
