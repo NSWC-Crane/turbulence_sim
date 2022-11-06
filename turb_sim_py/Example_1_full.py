@@ -14,7 +14,7 @@ import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 import TurbSim_v1_main as util
-
+import time
 
 def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
@@ -29,7 +29,7 @@ L = 1000            # length of propagation (meters)
 
 wvl = 0.525e-6      # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
 
-Cn2 = 5e-14
+Cn2 = 1e-14
 k = 2 * np.pi / wvl
 
 # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
@@ -66,6 +66,7 @@ cv2.namedWindow("Image", cv2.WINDOW_NORMAL)
 
 # for i in range(1):
 while(1):
+    tic = time.perf_counter()
     img_tilt, _ = util.genTiltImg(img, param_obj)       # generating the tilt-only image
 
     # fig.add_subplot(1, 2,  1)
@@ -75,10 +76,13 @@ while(1):
     img_blur = util.genBlurImage(param_obj, img_tilt)
     # img_blur = util.genBlurImage(param_obj, img)
 
+    toc = time.perf_counter()
     # fig.add_subplot(1, 2, 2)
     # plt.imshow(img_blur, cmap='gray', vmin=0, vmax=1)
     # plt.title('img_tilt & img_blur')
     # plt.show()
+
+    print(f"time (s):  {toc - tic:0.4f} ")
 
     montage = np.concatenate((img_tilt, img_blur), axis=1)
     cv2.imshow('Image', montage)
