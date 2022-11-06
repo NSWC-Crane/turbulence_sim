@@ -236,17 +236,17 @@ cv::Mat generate_zernike_poly(int64_t N, cv::Mat& x_grid, cv::Mat& y_grid)
 // This implementation uses Noll's indices. 1 -> (0,0), 2 -> (1,1), 3 -> (1, -1), 4 -> (2,0), 5 -> (2, -2), etc.
 //def zernikeGen(N, coeff, **kwargs)
 // 
-void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern_out)
+void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern_out, cv::Mat &x_grid, cv::Mat &y_grid)
 {
     uint64_t idx;
-    cv::Mat x_grid, y_grid;
+    //cv::Mat x_grid, y_grid;
 
     //num_coeff = coeff.size
     uint64_t num_coeff = coeff.size();
 
     // Setting up 2D grid
     //x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
-    meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
+    //meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
 
     //#mask = np.sqrt(x_grid * *2 + y_grid * *2) <= 1
     //#x_grid = x_grid * mask
@@ -280,7 +280,7 @@ void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern
 void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, cv::Mat& psf, double z_i = 1.2, double pad_size = 0.0)
 {
     
-    cv::Mat x_grid, y_grid;
+    cv::Mat x_grid, x_grid2, y_grid, y_grid2;
     cv::Mat x_samp_grid, y_samp_grid;
     cv::Mat mask;
     std::complex<double> j(0, 1);
@@ -296,9 +296,9 @@ void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, c
     meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
 
     //    mask = np.sqrt(x_grid * *2 + y_grid * *2) <= 1
-    x_grid = x_grid.mul(x_grid);
-    y_grid = y_grid.mul(y_grid);
-    mask = x_grid + y_grid;
+    x_grid2 = x_grid.mul(x_grid);
+    y_grid2 = y_grid.mul(y_grid);
+    mask = x_grid2 + y_grid2;
 
     cv::sqrt(mask, mask);
     //mask = (mask <= 1);
@@ -309,7 +309,7 @@ void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, c
     //    phase = np.sum(zernike_stack, axis = 2)
     std::vector<cv::Mat> zernike_stack;
     cv::Mat phase;
-    generate_zernike_phase(N, coeff, phase);
+    generate_zernike_phase(N, coeff, phase, x_grid, y_grid);
         
     //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
     cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
