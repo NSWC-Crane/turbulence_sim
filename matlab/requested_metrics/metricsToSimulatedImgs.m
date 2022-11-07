@@ -14,13 +14,13 @@ clc
 
 % OPTIONS
 subtractBL = false; % If true, subtracts baseline image from real and simulated Images.
-onePatch = true;  % Create only one large patch if true
+onePatch = false;  % Create only one large patch if true
 subtractMean = false; % Subtracts DC component of image before calculating Laplacian if true
 simReal = false; % Compares to the Simulated Image closest to measured Cn2 for 
 %      real image at range/zoom rather than to the real image, if true.
 
-%rangeV = 600:50:1000;
-rangeV = [600];
+rangeV = 600:50:1000;
+%rangeV = [600];
 zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 %zoom = [2000, 2500, 3000];
 
@@ -35,11 +35,11 @@ end
 
 % Define directories
 % Location of simulated images by Cn2 value
-dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2Test";
+dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2";
 % Location of simulated images that simulated measured Cn2 values
 dirSimReals = data_root + "modifiedBaselines\SimImgs_NewCode";
 % Location to save plots
-dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\Plots";
+dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots3";
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
