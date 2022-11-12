@@ -44,12 +44,12 @@ public:
 
         generate_psd();
 
-        create_gaussian_kernel(15, 2.0);
+        create_gaussian_kernel(5, 2.0);
 
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
-            tmp = (s_max / (double)(idx)) - 2.0;
+            tmp = (s_max / (double)(idx)) - 1.7;
             smax_curve.push_back(tmp * tmp);
         }
 
@@ -119,10 +119,6 @@ public:
         wavelength = w_; 
         init_params();
     }
-
-    //-----------------------------------------------------------------------------
-    //cv::Mat get_S(void) { return S; }
-    //void set_S(cv::Mat S_) { S = S_.clone(); }
 
     //-----------------------------------------------------------------------------
     inline std::vector<std::complex<double>> get_S_vec(void) { return S_vec; }
@@ -253,17 +249,17 @@ private:
     {
         // assumes a 0 mean Gaussian distribution
         int32_t row, col;
-        double s = sigma * sigma;
+        double s = 2 * sigma * sigma;
 
         kernel = cv::Mat::zeros(size, size, CV_64FC1);
 
-        double t = (1.0 / (2 * CV_PI * s));
+        double t = (1.0 / (CV_PI * s));
 
         for (row = 0; row < size; ++row)
         {
             for (col = 0; col < size; ++col)
             {
-                kernel.at<double>(row, col) = t * std::exp((-((col - (size >> 1)) * (col - (size >> 1))) - ((row - (size >> 1)) * (row - (size >> 1)))) / (2 * s));
+                kernel.at<double>(row, col) = t * std::exp((-((col - (size >> 1)) * (col - (size >> 1))) - ((row - (size >> 1)) * (row - (size >> 1)))) / (s));
             }
         }
 
