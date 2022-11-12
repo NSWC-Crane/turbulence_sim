@@ -23,7 +23,7 @@ import scipy.integrate as integrate
 from integrals_spatial_corr import save_In, In_m, I0, I2
 from math import gamma
 from motion_compensate import motion_compensate
-
+import time
 
 def p_obj(N, D, L, r0, wvl, obj_size):
     """
@@ -144,9 +144,9 @@ def genTiltImg(img, p_obj):
 def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     temp_line = np.arange(1,101)
-    patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 1.5)**2)]
-    patch_size = int(round(p_obj['N'] / patchN))
-    xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, patchN))
+    patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 2)**2)]
+    patch_size = int(round(0.8*p_obj['N'] / patchN))
+    xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, int(patchN)))
     xx, yy = np.meshgrid(xtemp, xtemp)
     xx_flat, yy_flat = xx.flatten(), yy.flatten()
     NN = 28         # default=32 --> For extreme scenarios, this may need to be increased
@@ -157,16 +157,24 @@ def genBlurImage(p_obj, img):
     k = np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1)))
     # k_sum = np.sum(k)
     # k = k/k_sum
-    # k_size = int(k.shape[0]/2)
+    k_size = int(k.shape[0]/2)
 
     for i in range(int(patchN**2)):
+        tic = time.perf_counter()
+
         aa = genZernikeCoeff(36, p_obj['Dr0'])
+
         temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
         psf = np.abs(temp) ** 2
         # psf = np.abs(temp)
         psf = psf / np.sum(psf)
-        # psf, _, _ = centroidPsf(psf, 0.95)          #: Depending on the size of your PSFs, you may want to use this
+        psf, _, _ = centroidPsf(psf, 0.95)          #: Depending on the size of your PSFs, you may want to use this
+
         psf = resize(psf, (round(NN/p_obj['scaling']), round(NN/p_obj['scaling'])))
+
+        toc = time.perf_counter()
+        print(f"psf time (s):  {toc - tic:0.8f} ")
+
         patch_mask = np.zeros((p_obj['N'], p_obj['N']))
         #print('xx ', xx_flat[i], ' yy ', yy_flat[i])
         roundXX = int(round(xx_flat[i]))

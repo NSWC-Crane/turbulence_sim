@@ -82,7 +82,7 @@ while(1):
     # plt.title('img_tilt & img_blur')
     # plt.show()
 
-    print(f"time (s):  {toc - tic:0.4f} ")
+    print(f"time (s):  {toc - tic:0.6f} ")
 
     montage = np.concatenate((img_tilt, img_blur), axis=1)
     cv2.imshow('Image', montage)
