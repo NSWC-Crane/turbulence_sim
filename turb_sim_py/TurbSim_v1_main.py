@@ -145,19 +145,28 @@ def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     temp_line = np.arange(1,101)
     patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 2)**2)]
-    patch_size = int(round(0.8*p_obj['N'] / patchN))
+    patch_size = int(round(0.6*p_obj['N'] / patchN))
     xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, int(patchN)))
     xx, yy = np.meshgrid(xtemp, xtemp)
     xx_flat, yy_flat = xx.flatten(), yy.flatten()
     NN = 28         # default=32 --> For extreme scenarios, this may need to be increased
     img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN**2)))
+    img_patches2 = np.zeros((p_obj['N'], p_obj['N'], int(patchN**2)))
     den = np.zeros((p_obj['N'], p_obj['N']))
+    den2 = np.zeros((p_obj['N'], p_obj['N']))
     patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size+0.001, num=2*patch_size+1), np.linspace(-patch_size, patch_size+0.001, num=2*patch_size+1))
 
     k = np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1)))
     # k_sum = np.sum(k)
     # k = k/k_sum
     k_size = int(k.shape[0]/2)
+
+    den_list = []
+    den_list2 = []
+    psf_list = []
+    pm_list = []
+    ip_list = []
+    ip_list2 = []
 
     for i in range(int(patchN**2)):
         tic = time.perf_counter()
@@ -171,7 +180,7 @@ def genBlurImage(p_obj, img):
         psf, _, _ = centroidPsf(psf, 0.95)          #: Depending on the size of your PSFs, you may want to use this
 
         psf = resize(psf, (round(NN/p_obj['scaling']), round(NN/p_obj['scaling'])))
-
+        psf_list.append(psf)
         toc = time.perf_counter()
         print(f"psf time (s):  {toc - tic:0.8f} ")
 
@@ -211,13 +220,28 @@ def genBlurImage(p_obj, img):
 
         # patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1))), mode='same')
         patch_mask = scipy.signal.fftconvolve(patch_mask, k, mode='same')
-        den += scipy.signal.fftconvolve(patch_mask, psf, mode='same')
+        pm_list.append(patch_mask)
+
+        tmp_den = scipy.signal.fftconvolve(patch_mask, psf, mode='same')
+        den_list.append(tmp_den)
+        den += tmp_den
+        den_list2.append((patch_mask))
+        den2 += patch_mask
 
         tmp_ip = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
+        ip_list.append(tmp_ip)
         img_patches[:, :, i] = tmp_ip
+
+        tmp_ip = scipy.signal.fftconvolve(img, psf, mode='same') * den_list[i]
+        img_patches2[:, :, i] = tmp_ip
+        ip_list2.append(tmp_ip)
+
         # img_patches[:,:,i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
 
     out_img = np.sum(img_patches, axis=2) / (den + 0.000001)
+
+    out_img2 = np.sum(img_patches2, axis=2) / (den + 0.000001)
+
     return out_img
 
 
