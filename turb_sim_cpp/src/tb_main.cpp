@@ -333,7 +333,7 @@ int main(int argc, char** argv)
         }
 
 //        uint32_t N = tmp_img.rows;
-        uint32_t N = 64;
+        uint32_t N = 128;
         img = tmp_img(cv::Rect(8, 8, N, N));
         //img = tmp_img.clone();
 
@@ -343,7 +343,7 @@ int main(int argc, char** argv)
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1e-15;
+        double Cn2 = 1e-13;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
@@ -386,6 +386,8 @@ int main(int argc, char** argv)
     catch(std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
+        std::cout << "Filename: " << __FILE__ << std::endl;
+        std::cout << "Line #: " << __LINE__ << std::endl;
     }
 
     std::cout << "End of Program.  Press Enter to close..." << std::endl;

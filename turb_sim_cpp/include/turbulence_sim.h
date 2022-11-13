@@ -18,12 +18,42 @@
 #include "zernike_functions.h"
 
 //-----------------------------------------------------------------------------
+template <typename T>
+inline void index_generate(double start, double stop, int num, std::vector<T> &xx, std::vector<T> &yy)
+{
+    uint32_t idx;
+
+    xx.clear();
+    xx.reserve(num*num);
+
+    yy.clear();
+    yy.reserve(num * num);
+
+    double x_step, y_step;
+    double step = (stop - start) / (double)(num-1);
+
+    for (idx = 0; idx < num; ++idx)
+    {
+        x_step = start;
+        y_step = start + (idx * step);
+        while(x_step <= stop)
+        {
+            xx.push_back(std::floor(x_step + 0.5));
+            yy.push_back(std::floor(y_step + 0.5));
+            x_step += step;
+        }
+    }
+
+}
+
+//-----------------------------------------------------------------------------
 void centroid_psf(cv::Mat &psf, double threshold = 0.95)
 {
     int32_t radius = 4;
     int32_t cx, cy;
-    int32_t x, y;
-    int32_t w = (2 * radius + 1), h = (2 * radius + 1);
+    int32_t min_x, max_x;
+    int32_t min_y, max_y;
+    //int32_t w = (2 * radius + 1), h = (2 * radius + 1);
 
     double temp_sum = 0.0;
     cv::Mat mx, my;
@@ -46,14 +76,16 @@ void centroid_psf(cv::Mat &psf, double threshold = 0.95)
         {
             ++radius;
 
-            x = std::max(0, cx - radius);
-            y = std::max(0, cy - radius);
-            w = (cx + radius + 1) <= psf.cols ? (2*radius) : psf.cols - x;
-            h = (cy + radius + 1) <= psf.rows ? (2*radius) : psf.rows - y;
+            min_x = std::max(0, cx - radius);
+            max_x = std::min(psf.cols, cx + radius + 1);
+            min_y = std::max(0, cy - radius);
+            max_y = std::min(psf.rows, cy + radius + 1);
+            //w = (cx + radius + 1) <= psf.cols ? (2*radius) : psf.cols - x;
+            //h = (cy + radius + 1) <= psf.rows ? (2*radius) : psf.rows - y;
 
             //    return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
-            psf_roi = cv::Rect(x, y, w, h);
-            tmp_psf = psf(psf_roi);
+            //psf_roi = cv::Rect(x, y, w, h);
+            tmp_psf = psf(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
             //    temp_sum = np.sum(return_psf)
             temp_sum = cv::sum(tmp_psf)[0];
             //    #print(radius, temp_sum)
@@ -64,6 +96,8 @@ void centroid_psf(cv::Mat &psf, double threshold = 0.95)
     catch (std::exception e)
     {
         std::cout << "error: " << e.what() << std::endl;
+        std::cout << "Filename: " << __FILE__ << std::endl;
+        std::cout << "Line #: " << __LINE__ << std::endl;
     }
 }   // end of centroid_psf
 
@@ -87,7 +121,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
     uint64_t N2 = N * N;
-
+    double std = 0.65;
     std::complex<double> tmp;
 
     cv::Mat mv_x;
@@ -99,7 +133,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     cv::MatIterator_<cv::Vec2d> S_itr;
 
     //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, 1.0);
+    rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, std);
     rnd_itr = rnd_x.begin<double>();
     S_itr = S.begin<cv::Vec2d>();
     for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
@@ -119,7 +153,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 
     //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, 1.0);
+    rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, std);
     
     rnd_itr = rnd_y.begin<double>();
     S_itr = S.begin<cv::Vec2d>();
@@ -168,6 +202,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     cv::Mat img_patches = cv::Mat::zeros(N, N, CV_64FC1);
     cv::Mat tmp_conv;
 
+    //cv::Mat xx, yy;
+    std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
 
     uint32_t NN = 26;    // default=32, For extreme scenarios, this may need to be increased
@@ -176,17 +212,19 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     double patch_size = std::floor(0.7*(N / p.patch_num) + 0.5);
      
     //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
-    cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)p.patch_num), p.patch_num) + N/(double)(2* p.patch_num);
-    x_tmp = round(x_tmp);
+    //cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)p.patch_num), p.patch_num) + N/(double)(2* p.patch_num);
+    //x_tmp = round(x_tmp);
 
-    //    xx, yy = np.meshgrid(xtemp, xtemp)
-    cv::Mat xx, yy;
-    meshgrid(x_tmp, x_tmp, xx, yy);
+    ////    xx, yy = np.meshgrid(xtemp, xtemp)
+    //meshgrid(x_tmp, x_tmp, xx, yy);
+    //
+    ////    xx_flat, yy_flat = xx.flatten(), yy.flatten()
+    //xx = xx.reshape(1, xx.total());
+    //yy = yy.reshape(1, yy.total());
     
-    //    xx_flat, yy_flat = xx.flatten(), yy.flatten()
-    xx = xx.reshape(1, xx.total());
-    yy = yy.reshape(1, yy.total());
-    
+    //
+    index_generate(N / (double)(2 * p.patch_num), N / (double)(2 * p.patch_num) + (double)(N - N / (double)p.patch_num), p.patch_num, xx, yy);
+
     //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
     //    den = np.zeros((p_obj['N'], p_obj['N']))
     dst = cv::Mat::zeros(N, N, CV_64FC1);
@@ -221,7 +259,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // psf = psf / np.sum(psf.ravel())
         psf_sum = cv::sum(psf)[0];
         psf *= 0.5 / psf_sum;
-        centroid_psf(psf, 0.97);
+        centroid_psf(psf, 0.5*0.97);
         
         // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
@@ -237,17 +275,29 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         //patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx)), (uint64_t)(*xx.ptr<double>(idx))) = 1.0;
         //cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
         
-        min_x = std::max(0LL, (int64_t)(*xx.ptr<double>(idx)) - (exp_tmp.cols >> 1) - 1);
-        max_x = std::min((int64_t)N, (int64_t)(*xx.ptr<double>(idx)) + (exp_tmp.cols >> 1) + 1);
+        //min_x = std::max(0LL, (int64_t)(*xx.ptr<double>(idx)) - (exp_tmp.cols >> 1));
+        //max_x = std::min((int64_t)N, (int64_t)(*xx.ptr<double>(idx)) + (exp_tmp.cols >> 1) + 1);
        
-        min_y = std::max(0LL, (int64_t)(*yy.ptr<double>(idx)) - (exp_tmp.rows >> 1) - 1);
-        max_y = std::min((int64_t)N, (int64_t)(*yy.ptr<double>(idx)) + (exp_tmp.rows >> 1) + 1);
+        //min_y = std::max(0LL, (int64_t)(*yy.ptr<double>(idx)) - (exp_tmp.rows >> 1));
+        //max_y = std::min((int64_t)N, (int64_t)(*yy.ptr<double>(idx)) + (exp_tmp.rows >> 1) + 1);
 
-        min_kx = std::max(0LL, (exp_tmp.cols >> 1) - (int64_t)(*xx.ptr<double>(idx)));
-        max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(*xx.ptr<double>(idx))) + 1));
+        //min_kx = std::max(0LL, (exp_tmp.cols >> 1) - (int64_t)(*xx.ptr<double>(idx)));
+        //max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(*xx.ptr<double>(idx)))));
 
-        min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(*yy.ptr<double>(idx)));
-        max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(*yy.ptr<double>(idx))) + 1));
+        //min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(*yy.ptr<double>(idx)));
+        //max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(*yy.ptr<double>(idx)))));
+
+        min_x = std::max(0LL, (int64_t)(xx[idx]) - (exp_tmp.cols >> 1));
+        max_x = std::min((int64_t)N, (int64_t)(xx[idx]) + (exp_tmp.cols >> 1) + 1);
+
+        min_y = std::max(0LL, (int64_t)(yy[idx]) - (exp_tmp.rows >> 1));
+        max_y = std::min((int64_t)N, (int64_t)(yy[idx]) + (exp_tmp.rows >> 1) + 1);
+
+        min_kx = std::max(0LL, (exp_tmp.cols >> 1) - (int64_t)(xx[idx]));
+        max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(xx[idx]))));
+
+        min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(yy[idx]));
+        max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(yy[idx]))));
 
         exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
