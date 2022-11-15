@@ -29,7 +29,7 @@ dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2\";
 
 % User selects real file to use by defining index
 % realFiles(2) is the second file on the list.
-index = 1;
+index = 3;
 
 % Generate the simimulated image set based on zoom and range of the selected 
 % real file (only use one of each Cn2 - use N0.png)
@@ -104,20 +104,21 @@ for  k = 1:length(simNamelist)
     % 2. Separate real and imaginary results (2 SSIMs) (SSIM_FFT_sepComplex)
     % 3. Use the magnitude of the FFT and the SSIM formula (SSIM_FFT_magn)
     ssimFC = SSIM_FFT_fullComplex(ImageR, ImageSim);
-    % [ssimReal, ssimImg] = SSIM_FFT_sepComplex(ImageR, ImageSim);
+    [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(ImageR, ImageSim);
+    [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(ImageR, ImageSim);
     ssimMagn = SSIM_FFT_magn(ImageR, ImageSim);
 
-    Tc(k,:) = {fileS, cn2, ssimFC, ssimMagn};
+    Tc(k,:) = {fileS, cn2, ssimFC, ssimMagn, ssimPhase, ssimReal, ssimImg};
     
 end
 
-varnames = {'filename', 'Cn2', 'ssimFC', 'ssimMagn'}; 
+varnames = {'filename', 'Cn2', 'ssimFC', 'ssimMagn', 'ssimPhase','ssimReal', 'ssimImg'}; 
 Tc = renamevars(Tc, Tc.Properties.VariableNames, varnames);
 Tc.filename = string(Tc.filename);
 Tc = sortrows(Tc, "Cn2");
 
 % Plot metric as a function of Cn2
-figure()
+ffg = figure();
 plot(Tc.Cn2, abs(Tc.ssimFC),'-og',...
             'LineWidth',2,...
             'MarkerSize',3)
@@ -126,13 +127,36 @@ grid on
 plot(Tc.Cn2, Tc.ssimMagn,'-ob',...
             'LineWidth',2,...
             'MarkerSize',3)
+hold on
+plot(Tc.Cn2, Tc.ssimPhase,'-oc',...
+            'LineWidth',2,...
+            'MarkerSize',3)
+hold on
+plot(Tc.Cn2, Tc.ssimReal,'-or',...
+            'LineWidth',2,...
+            'MarkerSize',3)
+hold on
+plot(Tc.Cn2, Tc.ssimImg,'-om',...
+            'LineWidth',2,...
+            'MarkerSize',3)
 xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
 ylabel('metric')
+legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img')
+width=800;
+height=500;
+% fileN = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.png";
+% fileNf = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.fig";
+set(gcf,'position',[10,10,width,height])
+% f = gcf;
+% exportgraphics(f,fileN,'Resolution',300)
+% 
+% savefig(ffg,fileNf)
+% close(ffg)
 hold off
 
 %%%
 
-figure()
+ffh = figure();
 semilogx(Tc.Cn2, abs(Tc.ssimFC),'-og',...
             'LineWidth',2,...
             'MarkerSize',3)
@@ -141,6 +165,28 @@ grid on
 semilogx(Tc.Cn2, Tc.ssimMagn,'-ob',...
             'LineWidth',2,...
             'MarkerSize',3)
+hold on
+semilogx(Tc.Cn2, Tc.ssimPhase,'-oc',...
+            'LineWidth',2,...
+            'MarkerSize',3)
+hold on
+semilogx(Tc.Cn2, Tc.ssimReal,'-or',...
+            'LineWidth',2,...
+            'MarkerSize',3)
+hold on
+semilogx(Tc.Cn2, Tc.ssimImg,'-om',...
+            'LineWidth',2,...
+            'MarkerSize',3)
 xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
 ylabel('metric')
+legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img')
+width=800;
+height=500;
+% fileN = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plotLog3.png";
+% fileNf = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plotLog3.fig";
+set(gcf,'position',[10,10,width,height])
+% f = gcf;
+% exportgraphics(f,fileN,'Resolution',300)
+% savefig(ffh,fileNf)
+% close(ffh)
 hold off
