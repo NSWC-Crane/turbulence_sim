@@ -20,6 +20,6 @@ function [m] = turbulence_metric_noBL(img_0, img_1)
     sum_K_01 = sum(abs(K_01(:)));
     
     % step 5: calculate the final metric
-    m = 1 - abs(1 - (sum_K_00/sum_K_01));
+    m = 1 - abs(1 - (sum_K_01/sum_K_00));
     
 end
