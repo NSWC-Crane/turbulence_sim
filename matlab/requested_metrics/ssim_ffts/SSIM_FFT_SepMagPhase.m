@@ -1,4 +1,6 @@
-function [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(Image1, Image2)
+function [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(Image1, Image2, dynamicRange)
+% Image1 is the reference image
+% Image2 is the simulated image
 
 % Evaluate magnitude and phase
 
@@ -11,8 +13,8 @@ magfftImg2 = abs(fftImg2);
 phfftImg1 = angle(fftImg1);
 phfftImg2 = angle(fftImg2);
 
-imagesc(Image1)
-imagesc(ifft2(magfftImg1))
+% imagesc(Image1)
+% imagesc(ifft2(magfftImg1))
 
 % SSIM equation
 % Check influence of dynamic range!!!
@@ -35,19 +37,19 @@ ccovP12 = cov(phfftImg1, phfftImg2);
 covP12 = ccovP12(1,2); 
 
 % % Define constants c1 and c2 using dynamic range - 255 is too high
-% dynRange = 255;
-% c1 = (0.01*dynRange)^2;
-% c2 = (0.03*dynRange)^2;
+dynRange = dynamicRange;
+c1 = (0.01*dynRange)^2;
+c2 = (0.03*dynRange)^2;
 
 % Calculate equation - magnitude
 % Looked at parts of equation to evaluate influence of c1 and c2 (minimize influence)
-n1 = 2*meanM1*meanM2;
-n2 = 2*covM12;
-d1 = meanM1^2 + meanM2^2;
-d2 = varM1 + varM2;
-% Choose c1 and c2 to minimize influence
-c1 = 1e-6;
-c2 = 1e-6;
+% n1 = 2*meanM1*meanM2;
+% n2 = 2*covM12;
+% d1 = meanM1^2 + meanM2^2;
+% d2 = varM1 + varM2;
+% % Choose c1 and c2 to minimize influence
+% c1 = 1e-6;
+% c2 = 1e-6;
 numeratorM = (2*meanM1*meanM2 + c1) *(2*covM12 + c2);
 denomM = (meanM1^2 + meanM2^2 + c1)*(varM1 + varM2 + c2);
 ssimMag = numeratorM/denomM;

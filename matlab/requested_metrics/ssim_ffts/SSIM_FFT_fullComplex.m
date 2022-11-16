@@ -1,4 +1,6 @@
-function [ssimFC] = SSIM_FFT_fullComplex(Image1, Image2)
+function [ssimFC] = SSIM_FFT_fullComplex(Image1, Image2, dynamicRange)
+% Image1 is the reference image
+% Image2 is the simulated image
 
 % Find FFT2 of both images
 fftImg1 = fftshift(fft2(Image1)/numel(Image1));
@@ -20,21 +22,37 @@ ccov12 = cov(fftImg1, fftImg2);
 cov12 = ccov12(1,2); 
 
 % % Define constants c1 and c2 using dynamic range - 255 is too high
-% dynRange = 255;
-% c1 = (0.01*dynRange)^2;
-% c2 = (0.03*dynRange)^2;
+dynRange = dynamicRange;
+c1 = (0.01*dynRange)^2;
+c2 = (0.03*dynRange)^2;
 
 % Calculate equation
-% Looked at parts of equation to evaluate influence of c1 and c2 (minimize influence)
-n1 = 2*mean1*mean2;
-n2 = 2*cov12;
-d1 = mean1^2 + mean2^2;
-d2 = var1 + var2;
-% Choose c1 and c2 to minimize influence
-c1 = 1e-9;
-c2 = 1e-6;
+% % Looked at parts of equation to evaluate influence of c1 and c2 (minimize influence)
+% n1 = 2*mean1*mean2;
+% n2 = 2*cov12;
+% d1 = mean1^2 + mean2^2;
+% d2 = var1 + var2;
+% % Choose c1 and c2 to minimize influence
+% c1 = 1e-8;
+% c2 = 1e-5;
 numerator = (2*mean1*mean2 + c1) *(2*cov12 + c2);
 denom = (mean1^2 + mean2^2 + c1)*(var1 + var2 + c2);
 ssimFC = numerator/denom;
+
+mean_imag_fftImg1 = mean(imag(fftImg1),'all');
+max_imag_fftImg1 = max(imag(fftImg1),[],'all');
+min_imag_fftImg1 = min(imag(fftImg1),[],'all');
+mean_real_fftImg1 = mean(real(fftImg1),'all');
+max_real_fftImg1 = max(real(fftImg1),[],'all');
+min_real_fftImg1 = min(real(fftImg1),[],'all');
+
+mean_imag_fftImg2 = mean(imag(fftImg2),'all');
+max_imag_fftImg2 = max(imag(fftImg2),[],'all');
+min_imag_fftImg2 = min(imag(fftImg2),[],'all');
+mean_real_fftImg2 = mean(real(fftImg2),'all');
+max_real_fftImg2 = max(real(fftImg2),[],'all');
+min_real_fftImg2 = min(real(fftImg2),[],'all');
+
+
 
 end

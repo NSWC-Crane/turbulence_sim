@@ -1,6 +1,8 @@
-function [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(Image1, Image2)
+function [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(Image1, Image2, dynamicRange)
+% Image1 is the reference image
+% Image2 is the simulated image
 
-% Evaluate real and imaginary
+% Evaluate real and imaginary components
 
 % Find FFT2 of both images
 fftImg1 = fftshift(fft2(Image1)/numel(Image1));
@@ -35,19 +37,19 @@ ccovI12 = cov(imgfftImg1, imgfftImg2);
 covI12 = ccovI12(1,2); 
 
 % % Define constants c1 and c2 using dynamic range - 255 is too high
-% dynRange = 255;
-% c1 = (0.01*dynRange)^2;
-% c2 = (0.03*dynRange)^2;
+dynRange = dynamicRange;
+c1 = (0.01*dynRange)^2;
+c2 = (0.03*dynRange)^2;
 
 % Calculate equation - magnitude
 % Looked at parts of equation to evaluate influence of c1 and c2 (minimize influence)
-n1 = 2*meanR1*meanR2;
-n2 = 2*covR12;
-d1 = meanR1^2 + meanR2^2;
-d2 = varR1 + varR2;
-% Choose c1 and c2 to minimize influence
-c1 = 1e-8;
-c2 = 1e-6;
+% n1 = 2*meanR1*meanR2;
+% n2 = 2*covR12;
+% d1 = meanR1^2 + meanR2^2;
+% d2 = varR1 + varR2;
+% % Choose c1 and c2 to minimize influence
+% c1 = 1e-8;
+% c2 = 1e-6;
 numeratorR = (2*meanR1*meanR2 + c1) *(2*covR12 + c2);
 denomR = (meanR1^2 + meanR2^2 + c1)*(varR1 + varR2 + c2);
 ssimReal = numeratorR/denomR;
