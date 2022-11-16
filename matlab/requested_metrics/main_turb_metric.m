@@ -14,6 +14,8 @@ clc
 
 % % OPTIONS
 onePatch = false;  % Create only one large patch if true
+savePlots = false;
+allreals = false; % Metrics will be calculated using 1 real image and all simulated images.
 
 %rangeV = 600:50:1000;
 rangeV = [700];
@@ -60,6 +62,9 @@ for rng = rangeV
         display("Range " + num2str(rng) + " Zoom " + num2str(zm))
         
         [~, dirReal1, ~, ImgNames1] = GetImageInfoMod(data_root, rng, zm);
+        if allreals == false
+            ImgNames1 = ImgNames1{1};
+        end
         
         % Setup vector of real images vImgR
         for i = 1:length(ImgNames1) 
@@ -210,9 +215,7 @@ for rngP = rangeV
             'MarkerSize',3)
         hold on
     end
-    grid on
-    fileN = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".png");
-    fileNf = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".fig");
+    grid on 
     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch)
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
@@ -222,12 +225,15 @@ for rngP = rangeV
     y0=10;
     width=900;
     height=400;
-    
-    set(gcf,'position',[x0,y0,width,height])
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
-    savefig(ffg,fileNf)
-    close(ffg)
+    set(gcf,'position',[x0,y0,width,height]) 
+    if savePlots == true
+        f = gcf;
+        fileN = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".png");
+        fileNf = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        savefig(ffg,fileNf)
+        close(ffg)
+    end
 end
 
 % Plot against log(r0) Semi Log Plot
@@ -250,8 +256,6 @@ for rngP = rangeV
         hold on
     end
     grid on
-    fileN = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".png");
-    fileNf = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".fig");
     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch) 
     legend(legendL, 'location', 'northeastoutside')
     xlim([min(uniqT.r0(indP)),max(uniqT.r0(indP))])
@@ -262,8 +266,12 @@ for rngP = rangeV
     width=900;
     height=400;
     set(gcf,'position',[x0,y0,width,height])
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
-    savefig(ffg,fileNf)
-    close(ffg)
+    if savePlots == true
+        f = gcf;
+        fileN = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".png");
+        fileNf = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        savefig(ffg,fileNf)
+        close(ffg)
+    end
 end
