@@ -1,8 +1,10 @@
 % SSIM of spatial frequency with complex numbers
 % Read in images, take laplacian (optional), call SSIM function.
 
-%% QUESTIONS: Why is ssimFC only real, no imaginary parts?
-% CHECK c1 and c2 again
+% The mean value of the imaginary part of the fft of the images is in range
+% of e-19.
+% Adjusted dynamicRange so that C1 and C2 don't cause the metric to approach
+% 1 in all cases.
 
 clearvars
 clc
@@ -26,10 +28,11 @@ realFiles = [data_root + "sharpest\z3000\0700\image_z02997_f47045_e05982_i00.png
              ];
 realcn2 = [5e-15; 1.89e-15; 9.1e-15; 5.44e-15; 1.09e-14];
 dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2\";
+dynamicRange = 0.75;
 
 % User selects real file to use by defining index
 % realFiles(2) is the second file on the list.
-index = 3;
+index = 2;
 
 % Generate the simimulated image set based on zoom and range of the selected 
 % real file (only use one of each Cn2 - use N0.png)
@@ -103,10 +106,10 @@ for  k = 1:length(simNamelist)
     % 1. Fully complex (SSIM_FFT_fullComplex)
     % 2. Separate real and imaginary results (2 SSIMs) (SSIM_FFT_sepComplex)
     % 3. Use the magnitude of the FFT and the SSIM formula (SSIM_FFT_magn)
-    ssimFC = SSIM_FFT_fullComplex(ImageR, ImageSim);
-    [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(ImageR, ImageSim);
-    [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(ImageR, ImageSim);
-    ssimMagn = SSIM_FFT_magn(ImageR, ImageSim);
+    ssimFC = SSIM_FFT_fullComplex(ImageR, ImageSim, dynamicRange);
+    [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(ImageR, ImageSim, dynamicRange);
+    [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(ImageR, ImageSim, dynamicRange);
+    ssimMagn = SSIM_FFT_magn(ImageR, ImageSim, dynamicRange);
 
     Tc(k,:) = {fileS, cn2, ssimFC, ssimMagn, ssimPhase, ssimReal, ssimImg};
     
@@ -117,70 +120,73 @@ Tc = renamevars(Tc, Tc.Properties.VariableNames, varnames);
 Tc.filename = string(Tc.filename);
 Tc = sortrows(Tc, "Cn2");
 
-% Plot metric as a function of Cn2
-ffg = figure();
-plot(Tc.Cn2, abs(Tc.ssimFC),'-og',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-hold on
-grid on
-plot(Tc.Cn2, Tc.ssimMagn,'-ob',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-hold on
-plot(Tc.Cn2, Tc.ssimPhase,'-oc',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-hold on
-plot(Tc.Cn2, Tc.ssimReal,'-or',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-hold on
-plot(Tc.Cn2, Tc.ssimImg,'-om',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
-ylabel('metric')
-legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img')
-width=800;
-height=500;
-% fileN = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.png";
-% fileNf = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.fig";
-set(gcf,'position',[10,10,width,height])
-% f = gcf;
-% exportgraphics(f,fileN,'Resolution',300)
-% 
-% savefig(ffg,fileNf)
-% close(ffg)
-hold off
+% % Plot metrics as a function of Cn2
+% ffg = figure();
+% plot(Tc.Cn2, abs(Tc.ssimFC),'-og',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+% hold on
+% grid on
+% plot(Tc.Cn2, Tc.ssimMagn,'-ob',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+% hold on
+% plot(Tc.Cn2, Tc.ssimPhase,'-oc',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+% hold on
+% plot(Tc.Cn2, Tc.ssimReal,'-or',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+% hold on
+% plot(Tc.Cn2, Tc.ssimImg,'-om',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+% xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
+% xlim([min(Tc.Cn2), max(Tc.Cn2)])
+% ylabel('SSIM Index')
+% legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img','location', 'northeastoutside')
+% width=900;
+% height=500;
+% % fileN = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.png";
+% % fileNf = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plot3.fig";
+% set(gcf,'position',[10,10,width,height])
+% % f = gcf;
+% % exportgraphics(f,fileN,'Resolution',300)
+% % 
+% % savefig(ffg,fileNf)
+% % close(ffg)
+% hold off
 
-%%%
-
+% Semilogx plot
 ffh = figure();
-semilogx(Tc.Cn2, abs(Tc.ssimFC),'-og',...
+semilogx(Tc.Cn2, abs(Tc.ssimFC),'-og',...  % Fully complex
             'LineWidth',2,...
             'MarkerSize',3)
 hold on
 grid on
-semilogx(Tc.Cn2, Tc.ssimMagn,'-ob',...
+semilogx(Tc.Cn2, Tc.ssimMagn,'-ob',...    % Magnitude
             'LineWidth',2,...
             'MarkerSize',3)
+% hold on
+% semilogx(Tc.Cn2, Tc.ssimPhase,'-oc',...  % Phase
+%             'LineWidth',2,...
+%             'MarkerSize',3)
 hold on
-semilogx(Tc.Cn2, Tc.ssimPhase,'-oc',...
+semilogx(Tc.Cn2, Tc.ssimReal,'-or',...    % Real component
             'LineWidth',2,...
             'MarkerSize',3)
-hold on
-semilogx(Tc.Cn2, Tc.ssimReal,'-or',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-hold on
-semilogx(Tc.Cn2, Tc.ssimImg,'-om',...
-            'LineWidth',2,...
-            'MarkerSize',3)
+% hold on
+% semilogx(Tc.Cn2, Tc.ssimImg,'-om',...  % Imaginary component
+%             'LineWidth',2,...
+%             'MarkerSize',3)
 xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
-ylabel('metric')
-legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img')
-width=800;
+xlim([min(Tc.Cn2), max(Tc.Cn2)])
+ylabel('SSIM Index')
+%legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img','location', 'northeastoutside')
+legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Separate Real', 'location', 'northeastoutside')
+title("Range " + rng + " Zoom " + zm  + " with Measured Cn2 of " + num2str(realcn2(index)))
+width=900;
 height=500;
 % fileN = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plotLog3.png";
 % fileNf = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\plotLog3.fig";
