@@ -1,13 +1,14 @@
 % For each range/zoom value, this script calculates similarity metrics on files in the
-% directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2
-% The similarity metrics are between all of the 20 sharpest images and all
-% of the simulated images created with varying cn2/r0 values
+% directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2.
+% The similarity metrics are calculated with all of the 20 sharpest images 
+% and all of the simulated images created with varying cn2/r0 values
 
 % Note:
 % 1. Calculates Laplacian before creating patches
 % 2. Does not use baseline image
 % 3. Does not subtract mean of image
-% 4. Averages metrics using all simulated images and all 20 sharpest real.
+% 4. Averages metrics using all simulated images and all 20 sharpest real, 
+%    if allreals is set to true.
 
 clearvars
 clc
@@ -15,13 +16,12 @@ clc
 % % OPTIONS
 onePatch = false;  % Create only one large patch if true
 savePlots = false;
-allreals = false; % Metrics will be calculated using 1 real image and all simulated images.
+allreals = false; % If true, metrics will be calculated using all real images and all simulated images.
 
 %rangeV = 600:50:1000;
-rangeV = [700];
-%rangeV = [600, 650, 700, 750, 800, 850, 900];
+rangeV = [750];
 %zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [3000];
+zoom = [2500, 3000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -35,27 +35,21 @@ end
 % Define directories
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2";
-% Location of simulated images that simulated measured Cn2 values
-dirSimReals = data_root + "modifiedBaselines\SimImgs_NewCode";
 % Location to save plots
 dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots4";
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
-% Collect all information for With Laplacian case
+% Collect all information in table
 TmL = table;
 indT = 1;
 
-% Pull names of all files in directory dirSims
-% Filter on range/zoom to get the simulated images created using Python
-% file called "CreateImagesByCn2.py"
-% Get the real image using range/zoom values in the sharpest directory
-% Run metrics
-
-% Pull simulated real image from C:\Data\JSSAP\modifiedBaselines\SimImgs_NewCode
-% Filenames like Mz2000r600_GreenC_SimImg.png
-% Pull by range/zoom
+% 1.  Find all real image names in the sharpest directory using range/zoom values 
+% 2.  Find names of all simulated files in directory dirSims by filtering
+%     on range/zoom to get the simulated images created using the Python file
+%     called "CreateImagesByCn2.py"
+% 3.  Run metrics
 
 for rng = rangeV
     for zm = zoom
@@ -63,7 +57,7 @@ for rng = rangeV
         
         [~, dirReal1, ~, ImgNames1] = GetImageInfoMod(data_root, rng, zm);
         if allreals == false
-            ImgNames1 = ImgNames1{1};
+            ImgNames1 = ImgNames1(1);
         end
         
         % Setup vector of real images vImgR
@@ -76,9 +70,9 @@ for rng = rangeV
             vlapImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
         end
 
-        % Get the corresponding simulated images in 
-        % the directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2.
-        %  Same range/zoom, varying Cn2 values
+        % Get the corresponding simulated images in the directory called
+        %  C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2 using the 
+        %  range/zoom combination with all Cn2 values
         simFiles = dir(fullfile(dirSims, '*.png'));
         SimImgNames = {simFiles(~[simFiles.isdir]).name};
         simNamelist = []; % list of all simulated image files at this zoom/range
@@ -92,7 +86,8 @@ for rng = rangeV
                 ind = ind +1;
             end
         end
-
+        
+        % Performing metrics
         % Setup patches - Assume square images so we'll just use the image height (img_h)
         [img_h, img_w] = size(vImgR{1,1});
         % Size of subsections of image for metrics
@@ -116,7 +111,7 @@ for rng = rangeV
         
         intv = floor(remaining_pixels/(numPatches + 1));
               
-        % Compare to simulated images at same zoom/range
+        % Compare to simulated images to real images at same zoom/range
         for j = 1:length(vImgR)
             for i = 1:length(simNamelist)
                 % Read in a simulated image in namelist
@@ -184,7 +179,7 @@ for q = 1:height(uniqT)
     uniqT.cn2(q) = Tr0.cn2(indR);
 end
 
-% % Save TmL
+% % Save TmL table
 % writetable(TmL, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\TmL.csv");
 
 % Get r0 for real image in fileA - to use in plots
@@ -195,12 +190,12 @@ T_atmos = readtable(fileA);
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
 
-% Create straight and semilogx plots
+% Plots
 for rngP = rangeV
     ffg = figure();
     legendL = [];
     for zmP = zoom
-        % Get real image's measured cn2 and r0
+        % Get the real image's measured cn2 value and calculated r0
         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
         r0_c = T_atmos{ida,"r0"};
         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
@@ -236,7 +231,7 @@ for rngP = rangeV
     end
 end
 
-% Plot against log(r0) Semi Log Plot
+% Semilogx Plots
 for rngP = rangeV
     ffg = figure();
     legendL = [];
