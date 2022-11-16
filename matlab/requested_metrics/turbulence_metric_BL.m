@@ -1,6 +1,8 @@
 % function assumes that the Lapplacian has already been taken of both
 % img_0, img_1 and img_b
 function [m] = turbulence_metric_BL(img_0, img_1, img_b)
+    % img_0 is the reference image
+    % img_1 is the simulated image
 
     m = 0;
     

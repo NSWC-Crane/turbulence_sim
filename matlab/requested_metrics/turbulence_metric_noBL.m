@@ -1,6 +1,8 @@
 % function assumes that the Lapplacian has already been taken of both img_0
 % and img_1
 function [m] = turbulence_metric_noBL(img_0, img_1)
+    % img_0 is the reference image
+    % img_1 is the simulated image
 
     m = 0;
     
