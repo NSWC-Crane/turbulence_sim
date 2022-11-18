@@ -55,15 +55,15 @@ denomM = (meanM1^2 + meanM2^2 + c1)*(varM1 + varM2 + c2);
 ssimMag = numeratorM/denomM;
 
 % Calculate equation - phase
-np1 = 2*meanP1*meanP2;
-np2 = 2*covP12;
-dp1 = meanP1^2 + meanP2^2;
-dp2 = varP1 + varP2;
+% np1 = 2*meanP1*meanP2;
+% np2 = 2*covP12;
+% dp1 = meanP1^2 + meanP2^2;
+% dp2 = varP1 + varP2;
 % Choose c1 and c2 to minimize influence
 cp1 = 1e-10;
 cp2 = 1e-4;
-numeratorP = (2*meanP1*meanP2 + cp1) *(2*covP12 + cp2);
-denomP = (meanP1^2 + meanP2^2 + cp1)*(varP1 + varP2 + cp2);
+numeratorP = (2*meanP1*meanP2 + c1) *(2*covP12 + c2);
+denomP = (meanP1^2 + meanP2^2 + c1)*(varP1 + varP2 + c2);
 ssimPhase = numeratorP/denomP;
 
 end
