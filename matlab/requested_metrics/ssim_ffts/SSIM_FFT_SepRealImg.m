@@ -55,15 +55,15 @@ denomR = (meanR1^2 + meanR2^2 + c1)*(varR1 + varR2 + c2);
 ssimReal = numeratorR/denomR;
 
 % Calculate equation - phase
-ni1 = 2*meanI1*meanI2;
-ni2 = 2*covI12;
-di1 = meanI1^2 + meanI2^2;
-di2 = varI1 + varI2;
+% ni1 = 2*meanI1*meanI2;
+% ni2 = 2*covI12;
+% di1 = meanI1^2 + meanI2^2;
+% di2 = varI1 + varI2;
 % Choose c1 and c2 to minimize influence
-ci1 = 1e-39;
-ci2 = 1e-6;
-numeratorI = (2*meanI1*meanI2 + ci1) *(2*covI12 + ci2);
-denomI = (meanI1^2 + meanI2^2 + ci1)*(varI1 + varI2 + ci2);
+%ci1 = 1e-39;
+%ci2 = 1e-6;
+numeratorI = (2*meanI1*meanI2 + c1) *(2*covI12 + c2);
+denomI = (meanI1^2 + meanI2^2 + c1)*(varI1 + varI2 + c2);
 ssimImg = numeratorI/denomI;
 
 end
