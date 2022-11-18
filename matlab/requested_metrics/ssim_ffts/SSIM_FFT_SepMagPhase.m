@@ -25,14 +25,29 @@ phfftImg2 = angle(fftImg2);
 % c2 = (0.03*dynRange)^2
 % SSIM = (2*mean1*mean2+c1)*(2*ccov12+c2)/((mean1^2+mean2^2+c1)*(var1+var2+c2))
 
+% % Find mean, variance, and covariance of the magnitudes of the FFTs of each image
+% [varM1, meanM1] = var(magfftImg1,[],'all');
+% [varM2, meanM2] = var(magfftImg2,[],'all');
+% ccovM12 = cov(magfftImg1, magfftImg2);
+% covM12 = ccovM12(1,2); 
 % Find mean, variance, and covariance of the magnitudes of the FFTs of each image
-[varM1, meanM1] = var(magfftImg1,[],'all');
-[varM2, meanM2] = var(magfftImg2,[],'all');
+varM1 = var(magfftImg1,[],'all');
+meanM1 = sum(magfftImg1, 'all')/numel(magfftImg1);
+varM2 = var(magfftImg2,[],'all');
+meanM2 = sum(magfftImg2, 'all')/numel(magfftImg2);
 ccovM12 = cov(magfftImg1, magfftImg2);
 covM12 = ccovM12(1,2); 
+
+% % Find mean, variance, and covariance of the phases of the FFTs of each image
+% [varP1, meanP1] = var(phfftImg1,[],'all');
+% [varP2, meanP2] = var(phfftImg2,[],'all');
+% ccovP12 = cov(phfftImg1, phfftImg2);
+% covP12 = ccovP12(1,2); 
 % Find mean, variance, and covariance of the phases of the FFTs of each image
-[varP1, meanP1] = var(phfftImg1,[],'all');
-[varP2, meanP2] = var(phfftImg2,[],'all');
+varP1 = var(phfftImg1,[],'all');
+meanP1 = sum(phfftImg1, 'all')/numel(phfftImg1);
+varP2 = var(phfftImg2,[],'all');
+meanP2 = sum(phfftImg2, 'all')/numel(phfftImg2);
 ccovP12 = cov(phfftImg1, phfftImg2);
 covP12 = ccovP12(1,2); 
 
