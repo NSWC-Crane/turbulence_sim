@@ -28,7 +28,7 @@ realFiles = [data_root + "sharpest\z3000\0700\image_z02997_f47045_e05982_i00.png
              ];
 realcn2 = [5e-15; 1.89e-15; 9.1e-15; 5.44e-15; 1.09e-14];
 dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2\";
-dirOut = "C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\";
+dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\ssim_plots\";
 dynamicRange = 0.75;
 
 for index = 1:length(realFiles)
