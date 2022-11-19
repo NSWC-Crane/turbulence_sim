@@ -80,6 +80,8 @@ for index = 1:length(realFiles)
         ImageR = conv2(ImageR, lKernel, 'same'); 
     end
     
+    ImageR = ImageR(2:end-1, 2:end-1);
+    
     % Loop through simulated image list simNamelist
     % Collect filename, Cn2, metrics
     Tc = table;
@@ -93,6 +95,8 @@ for index = 1:length(realFiles)
             ImageSim = conv2(ImageSim, lKernel, 'same'); 
         end
         
+        ImageSim = ImageSim(2:end-1, 2:end-1);
+
         % Pull out Cn2 value from filename
         cn2 = split(simNamelist{k}, 'c');
         cn2 = char(cn2(2));
@@ -109,12 +113,14 @@ for index = 1:length(realFiles)
         [ssimReal, ssimImg] = SSIM_FFT_SepRealImg(ImageR, ImageSim, dynamicRange);
         [ssimMag, ssimPhase] = SSIM_FFT_SepMagPhase(ImageR, ImageSim, dynamicRange);
         ssimMagn = SSIM_FFT_magn(ImageR, ImageSim, dynamicRange);
+        
+        turb_metric = turbulence_metric_noBL(ImageR, ImageSim);
     
-        Tc(k,:) = {fileS, cn2, ssimFC, ssimMagn, ssimPhase, ssimReal, ssimImg};
+        Tc(k,:) = {fileS, cn2, ssimFC, ssimMagn, ssimPhase, ssimReal, ssimImg, turb_metric};
         
     end
     
-    varnames = {'filename', 'Cn2', 'ssimFC', 'ssimMagn', 'ssimPhase','ssimReal', 'ssimImg'}; 
+    varnames = {'filename', 'Cn2', 'ssimFC', 'ssimMagn', 'ssimPhase','ssimReal', 'ssimImg', 'turb_metric'}; 
     Tc = renamevars(Tc, Tc.Properties.VariableNames, varnames);
     Tc.filename = string(Tc.filename);
     Tc = sortrows(Tc, "Cn2");
@@ -173,6 +179,18 @@ for index = 1:length(realFiles)
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
+    hold on
+    s6 = semilogx(Tc.Cn2, Tc.turb_metric,'-o', 'Color', [0.4940 0.1840 0.5560],...  % Imaginary component
+                'LineWidth',2,...
+                'MarkerSize',3);
+    [~, indI] = max(Tc.turb_metric);
+    s6a = stem(Tc.Cn2(indI), 1, 'filled', 'Color', [0.4940 0.1840 0.5560]);
+    str = "turb_metric: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
+    annotation('textbox',[.74 .5 .3 upY], ...
+        'String',str,'EdgeColor','none')
+    upY = upY-0.05;
+    
+    
     
     stem(realcn2(index), 1, 'k', 'filled');
     
@@ -181,7 +199,7 @@ for index = 1:length(realFiles)
     xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
     xlim([min(Tc.Cn2), max(Tc.Cn2)])
     ylabel('SSIM Index')
-    legend([s1,s2,s3,s4,s5], {'SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only', 'SSIM Separate Real', 'SSIM Separate Img'}, 'location', 'southeastoutside')
+    legend([s1,s2,s3,s4,s5,s6], {'SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only', 'SSIM Separate Real', 'SSIM Separate Img', 'turbMetric'}, 'location', 'southeastoutside')
     %legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Separate Real', 'location', 'southeastoutside')
     title("Range " + rng + " Zoom " + zm  + " with Measured Cn2 of " + num2str(realcn2(index)))
     width=900;
