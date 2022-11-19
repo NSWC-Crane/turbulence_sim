@@ -94,7 +94,7 @@ for index = 1:length(realFiles)
         end
         
         % Pull out Cn2 value from filename
-        cn2 = split(fileS, 'c');
+        cn2 = split(simNamelist{k}, 'c');
         cn2 = char(cn2(2));
         cn2 = string(cn2(1:4));
         cn2N = insertAfter(cn2, "e","-");
@@ -122,56 +122,66 @@ for index = 1:length(realFiles)
     % Semilogx plot
     upY = 0.4;
     ffh = figure();
-    semilogx(Tc.Cn2, abs(Tc.ssimFC),'-og',...  % Fully complex
+    hold on
+    s1 = semilogx(Tc.Cn2, abs(Tc.ssimFC),'-og',...  % Fully complex
                 'LineWidth',2,...
-                'MarkerSize',3)
+                'MarkerSize',3);
     [~, indI] = max(Tc.ssimFC);
+    s1a = stem(Tc.Cn2(indI), 1, 'g', 'filled');
     str = "ssimFC: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
     hold on
     grid on
-    semilogx(Tc.Cn2, Tc.ssimMagn,'-ob',...    % Magnitude
+    s2 = semilogx(Tc.Cn2, Tc.ssimMagn,'-ob',...    % Magnitude
                 'LineWidth',2,...
-                'MarkerSize',3)
+                'MarkerSize',3);
     [~, indI] = max(Tc.ssimMagn);
+    s2a = stem(Tc.Cn2(indI), 1, 'b', 'filled');
     str = "ssimMagn: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
     hold on
-    semilogx(Tc.Cn2, Tc.ssimPhase,'-oc',...  % Phase
+    s3 = semilogx(Tc.Cn2, Tc.ssimPhase,'-oc',...  % Phase
                 'LineWidth',2,...
-                'MarkerSize',3)
+                'MarkerSize',3);
     [~, indI] = max(Tc.ssimPhase);
+    s3a = stem(Tc.Cn2(indI), 1, 'c', 'filled');
     str = "ssimPhase: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
     hold on
-    semilogx(Tc.Cn2, Tc.ssimReal,'-or',...    % Real component
+    s4 = semilogx(Tc.Cn2, Tc.ssimReal,'-or',...    % Real component
                 'LineWidth',2,...
-                'MarkerSize',3)
+                'MarkerSize',3);
     [~, indI] = max(Tc.ssimReal);
+    s4a = stem(Tc.Cn2(indI), 1, 'r', 'filled');
     str = "ssimReal: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
     hold on
-    semilogx(Tc.Cn2, Tc.ssimImg,'-om',...  % Imaginary component
+    s5 = semilogx(Tc.Cn2, Tc.ssimImg,'-om',...  % Imaginary component
                 'LineWidth',2,...
-                'MarkerSize',3)
+                'MarkerSize',3);
     [~, indI] = max(Tc.ssimImg);
+    s5a = stem(Tc.Cn2(indI), 1, 'm', 'filled');
     str = "ssimImg: Max metric at Cn2 " + num2str(Tc.Cn2(indI));
     annotation('textbox',[.74 .5 .3 upY], ...
         'String',str,'EdgeColor','none')
     upY = upY-0.05;
     
+    stem(realcn2(index), 1, 'k', 'filled');
+    
+    set(gca,'xscal','log')
+
     xlabel("Cn2 (Real is " + num2str(realcn2(index)) + ")")
     xlim([min(Tc.Cn2), max(Tc.Cn2)])
     ylabel('SSIM Index')
-    legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only','SSIM Separate Real', 'SSIM Separate Img','location', 'southeastoutside')
+    legend([s1,s2,s3,s4,s5], {'SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Phase Only', 'SSIM Separate Real', 'SSIM Separate Img'}, 'location', 'southeastoutside')
     %legend('SSIM Fully Complex', 'SSIM Magnitude Only', 'SSIM Separate Real', 'location', 'southeastoutside')
     title("Range " + rng + " Zoom " + zm  + " with Measured Cn2 of " + num2str(realcn2(index)))
     width=900;

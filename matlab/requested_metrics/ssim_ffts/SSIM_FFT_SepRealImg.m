@@ -25,16 +25,32 @@ imgfftImg2 = imag(fftImg2);
 % c2 = (0.03*dynRange)^2
 % SSIM = (2*mean1*mean2+c1)*(2*ccov12+c2)/((mean1^2+mean2^2+c1)*(var1+var2+c2))
 
-% Find mean, variance, and covariance of the magnitudes of the FFTs of each image
-[varR1, meanR1] = var(realfftImg1,[],'all');
-[varR2, meanR2] = var(realfftImg2,[],'all');
+% Find mean, variance, and covariance of the real components of the FFTs of each image
+% [varR1, meanR1] = var(realfftImg1,[],'all');
+% [varR2, meanR2] = var(realfftImg2,[],'all');
+% ccovR12 = cov(realfftImg1, realfftImg2);
+% covR12 = ccovR12(1,2); 
+% Find mean, variance, and covariance of the real components of the FFTs of each image
+varR1 = var(realfftImg1,[],'all');
+meanR1 = sum(realfftImg1, 'all')/numel(realfftImg1);
+varR2 = var(realfftImg2,[],'all');
+meanR2 = sum(realfftImg2, 'all')/numel(realfftImg2);
 ccovR12 = cov(realfftImg1, realfftImg2);
 covR12 = ccovR12(1,2); 
-% Find mean, variance, and covariance of the phases of the FFTs of each image
-[varI1, meanI1] = var(imgfftImg1,[],'all');
-[varI2, meanI2] = var(imgfftImg2,[],'all');
+
+
+% % Find mean, variance, and covariance of the imaginary components of the FFTs of each image
+% [varI1, meanI1] = var(imgfftImg1,[],'all');
+% [varI2, meanI2] = var(imgfftImg2,[],'all');
+% ccovI12 = cov(imgfftImg1, imgfftImg2);
+% covI12 = ccovI12(1,2); 
+% Find mean, variance, and covariance of the imaginary components of the FFTs of each image
+varI1 = var(imgfftImg1,[],'all');
+meanI1 = sum(imgfftImg1, 'all')/numel(imgfftImg1);
+varI2 = var(imgfftImg2,[],'all');
+meanI2 = sum(imgfftImg2, 'all')/numel(imgfftImg2);
 ccovI12 = cov(imgfftImg1, imgfftImg2);
-covI12 = ccovI12(1,2); 
+covI12 = ccovI12(1,2);
 
 % % Define constants c1 and c2 using dynamic range - 255 is too high
 dynRange = dynamicRange;

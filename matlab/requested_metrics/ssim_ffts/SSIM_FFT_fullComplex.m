@@ -16,8 +16,12 @@ fftImg2 = fftshift(fft2(Image2)/numel(Image2));
 % SSIM = (2*mean1*mean2+c1)*(2*ccov12+c2)/((mean1^2+mean2^2+c1)*(var1+var2+c2))
 
 % Find mean, variance, and covariance of the FFTs of each image
-[var1, mean1] = var(fftImg1,[],'all');
-[var2, mean2] = var(fftImg2,[],'all');
+%[var1, mean1] = var(fftImg1,[],'all');
+var1 = var(fftImg1,[],'all');
+mean1 = sum(fftImg1, 'all')/numel(fftImg1);
+%[var2, mean2] = var(fftImg2,[],'all');
+var2 = var(fftImg2,[],'all');
+mean2 = sum(fftImg2, 'all')/numel(fftImg2);
 ccov12 = cov(fftImg1, fftImg2);
 cov12 = ccov12(1,2); 
 
@@ -37,7 +41,7 @@ c2 = (0.03*dynRange)^2;
 % c2 = 1e-5;
 numerator = (2*mean1*mean2 + c1) *(2*cov12 + c2);
 denom = (mean1^2 + mean2^2 + c1)*(var1 + var2 + c2);
-ssimFC = numerator/denom;
+ssimFC = abs(numerator/denom);
 
 mean_imag_fftImg1 = mean(imag(fftImg1),'all');
 max_imag_fftImg1 = max(imag(fftImg1),[],'all');

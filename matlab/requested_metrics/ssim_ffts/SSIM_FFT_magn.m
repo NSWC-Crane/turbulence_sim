@@ -18,9 +18,17 @@ magfftImg2 = abs(fftImg2);
 % c2 = (0.03*dynRange)^2
 % SSIM = (2*mean1*mean2+c1)*(2*ccov12+c2)/((mean1^2+mean2^2+c1)*(var1+var2+c2))
 
-% Find mean, variance, and covariance of the magnitudes of the FFTs of each image
-[var1, mean1] = var(magfftImg1,[],'all');
-[var2, mean2] = var(magfftImg2,[],'all');
+% % Find mean, variance, and covariance of the magnitudes of the FFTs of each image
+% [var1, mean1] = var(magfftImg1,[],'all');
+% [var2, mean2] = var(magfftImg2,[],'all');
+% ccov12 = cov(magfftImg1, magfftImg2);
+% cov12 = ccov12(1,2); 
+
+% Find mean, variance, and covariance of the FFTs of each image
+var1 = var(magfftImg1,[],'all');
+mean1 = sum(magfftImg1, 'all')/numel(magfftImg1);
+var2 = var(magfftImg2,[],'all');
+mean2 = sum(magfftImg2, 'all')/numel(magfftImg2);
 ccov12 = cov(magfftImg1, magfftImg2);
 cov12 = ccov12(1,2); 
 
