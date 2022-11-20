@@ -142,7 +142,7 @@ add_executable(${exe_name} ${SOURCES})
 
 if(WIN32)
 
-    target_link_libraries(${exe_name} ${project_libs} gsl gslcblas)
+    target_link_libraries(${exe_name} ${project_libs})
    
     message("MSVC Version: " ${MSVC_VERSION})
     # uncomment for MSVC and cmake greater than 3.6.0
