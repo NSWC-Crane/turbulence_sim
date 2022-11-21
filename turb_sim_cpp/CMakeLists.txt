@@ -77,6 +77,12 @@ else()
         set(COMMON_ROOT "~/Projects/Common")
     endif()
 
+    include(cmake_utils/find_GSL.cmake)
+    if(GSL_FOUND)
+        set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
+        set(project_libs ${project_libs} ${GSL_LIBRARIES})
+    endif()
+
 endif()
 
 
