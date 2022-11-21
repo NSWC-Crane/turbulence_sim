@@ -278,16 +278,16 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         //min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(*yy.ptr<double>(idx)));
         //max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(*yy.ptr<double>(idx)))));
 
-        min_x = std::max(0LL, (int64_t)(xx[idx]) - (exp_tmp.cols >> 1));
+        min_x = std::max((int64_t)0, (int64_t)(xx[idx]) - (exp_tmp.cols >> 1));
         max_x = std::min((int64_t)N, (int64_t)(xx[idx]) + (exp_tmp.cols >> 1) + 1);
 
-        min_y = std::max(0LL, (int64_t)(yy[idx]) - (exp_tmp.rows >> 1));
+        min_y = std::max((int64_t)0, (int64_t)(yy[idx]) - (exp_tmp.rows >> 1));
         max_y = std::min((int64_t)N, (int64_t)(yy[idx]) + (exp_tmp.rows >> 1) + 1);
 
-        min_kx = std::max(0LL, (exp_tmp.cols >> 1) - (int64_t)(xx[idx]));
+        min_kx = std::max((int64_t)0, (exp_tmp.cols >> 1) - (int64_t)(xx[idx]));
         max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(xx[idx]))));
 
-        min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(yy[idx]));
+        min_ky = std::max((int64_t)0, (exp_tmp.rows >> 1) - (int64_t)(yy[idx]));
         max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(yy[idx]))));
 
         exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
