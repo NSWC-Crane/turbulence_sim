@@ -143,10 +143,10 @@ int main(int argc, char** argv)
             tmp_img.convertTo(tmp_img, CV_64FC1, 1.0/255.0);
         }
 
-//        uint32_t N = tmp_img.rows;
-        uint32_t N = 128;
-        img = tmp_img(cv::Rect(8, 8, N, N));
+        //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
+        uint32_t N = 64;
+        img = tmp_img(cv::Rect(8, 8, N, N));
 
         double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
@@ -174,7 +174,6 @@ int main(int argc, char** argv)
         cv::resizeWindow(window_name, 4*N, 2*N);
 
         while(key != 'q')
-        //for (idx = 0; idx < 10; ++idx)
         {
             start_time = std::chrono::system_clock::now();
 
