@@ -48,24 +48,7 @@ if(WIN32)
         set(COMMON_ROOT "C:/Projects/Common")
         set(VCPKG_ROOT "C:/Projects/vcpkg-master")
     endif()
-    
-    #set(GSL_DIR "D:/Projects/vcpkg/installed/x64-windows/")
-    
-    include(cmake_utils/find_GSL.cmake)
-    if(GSL_FOUND)
-        set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
-        set(project_libs ${project_libs} ${GSL_LIBRARIES})
-    endif()
-    
-    
-    
-    #set(CMAKE_TOOLCHAIN_FILE "D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    #    CACHE STRING "Vcpkg toolchain file")
-    
-    #find_package(GSL REQUIRED
-        #HINTS "D:/Projects/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    #    )
-    
+
 else()
 
     if(${PLATFORM} STREQUAL "MainGear")
@@ -77,18 +60,8 @@ else()
         set(COMMON_ROOT "~/Projects/Common")
     endif()
 
-    include(cmake_utils/find_GSL.cmake)
-    if(GSL_FOUND)
-        set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
-        set(project_libs ${project_libs} ${GSL_LIBRARIES})
-    endif()
-
 endif()
 
-
-
-
-#include(${COMMON_ROOT}/cmake_utils/use_cpp_11.cmake)
 include(${COMMON_ROOT}/cmake_utils/use_sse_avx.cmake)
 
 # look for any *.c and *.cpp files
@@ -97,10 +70,16 @@ file(GLOB SOURCES "src/*.c*"
     )
 
 set(project_includes
-    ${project_includes}
     "include"
     "${COMMON_ROOT}/include"
     )
+    
+include(cmake_utils/find_GSL.cmake)
+if(GSL_FOUND)
+    set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
+    set(project_libs ${project_libs} ${GSL_LIBRARIES})
+endif()    
+ 
 
 # find OpenCV
 message(STATUS "--------------------------------------------------------------------------------")
@@ -161,7 +140,7 @@ if(WIN32)
 elseif(UNIX)
 #    target_link_libraries(${exe_name} ${project_libs} ${CMAKE_DL_LIBS})    
     target_link_libraries(${exe_name} ${project_libs})    
-    target_link_libraries(${exe_name} PRIVATE GSL::gsl GSL::gslcblas)
+    #target_link_libraries(${exe_name} PRIVATE GSL::gsl GSL::gslcblas)
 
 endif()
 
