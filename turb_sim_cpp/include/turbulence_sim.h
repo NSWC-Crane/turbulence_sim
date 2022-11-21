@@ -1,5 +1,5 @@
-#ifndef _TEST_H_TURB_SIM_
-#define _TEST_H_TURB_SIM_
+#ifndef _TURBULENCE_SIMULATION_H_
+#define _TURBULENCE_SIMULATION_H_
 
 #include <cstdint>
 #include <cmath>
@@ -19,18 +19,18 @@
 
 //-----------------------------------------------------------------------------
 template <typename T>
-inline void index_generate(double start, double stop, int num, std::vector<T> &xx, std::vector<T> &yy)
+inline void index_generate(double start, double stop, uint32_t num, std::vector<T> &xx, std::vector<T> &yy)
 {
     uint32_t idx;
 
     xx.clear();
-    xx.reserve(num*num);
+    xx.reserve(num * num);
 
     yy.clear();
     yy.reserve(num * num);
 
     double x_step, y_step;
-    double step = (stop - start) / (double)(num-1);
+    double step = (stop - start) / (double)(num - 1);
 
     for (idx = 0; idx < num; ++idx)
     {
@@ -44,7 +44,7 @@ inline void index_generate(double start, double stop, int num, std::vector<T> &x
         }
     }
 
-}
+}   // end of index_generate
 
 //-----------------------------------------------------------------------------
 void centroid_psf(cv::Mat &psf, double threshold = 0.95)
@@ -53,7 +53,6 @@ void centroid_psf(cv::Mat &psf, double threshold = 0.95)
     int32_t cx, cy;
     int32_t min_x, max_x;
     int32_t min_y, max_y;
-    //int32_t w = (2 * radius + 1), h = (2 * radius + 1);
 
     double temp_sum = 0.0;
     cv::Mat mx, my;
@@ -80,15 +79,10 @@ void centroid_psf(cv::Mat &psf, double threshold = 0.95)
             max_x = std::min(psf.cols, cx + radius + 1);
             min_y = std::max(0, cy - radius);
             max_y = std::min(psf.rows, cy + radius + 1);
-            //w = (cx + radius + 1) <= psf.cols ? (2*radius) : psf.cols - x;
-            //h = (cy + radius + 1) <= psf.rows ? (2*radius) : psf.rows - y;
 
-            //    return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
-            //psf_roi = cv::Rect(x, y, w, h);
+            // return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
             tmp_psf = psf(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
-            //    temp_sum = np.sum(return_psf)
             temp_sum = cv::sum(tmp_psf)[0];
-            //    #print(radius, temp_sum)
         }
 
         psf = tmp_psf.clone();
@@ -113,15 +107,14 @@ void centroid_psf(cv::Mat &psf, double threshold = 0.95)
 // adapted from here:
 // https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
+void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst, double std = 0.7)
 {
     uint64_t idx;
-    //double c1 = 2 * std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
     double c1 = 2.0*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
     uint64_t N2 = N * N;
-    double std = 0.65;
+    
     std::complex<double> tmp;
 
     cv::Mat mv_x;
@@ -143,7 +136,6 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     }
 
     cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-
 
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
@@ -206,10 +198,10 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
 
-    uint32_t NN = 26;    // default=32, For extreme scenarios, this may need to be increased
+    uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
        
     //    patch_size = round(p_obj['N'] / patchN)
-    double patch_size = std::floor(0.7*(N / p.patch_num) + 0.5);
+    double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
      
     //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
     //cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)p.patch_num), p.patch_num) + N/(double)(2* p.patch_num);
@@ -243,7 +235,6 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 
     cv::Mat exp_tmp = patch_indx.mul(patch_indy);
 
-    //    for i in range(int(patchN * *2)) :
     for (idx = 0; idx < (p.patch_num * p.patch_num); ++idx)
     {
         // aa = genZernikeCoeff(36, p_obj['Dr0'])
@@ -252,14 +243,14 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
         generate_psf(NN, p, coeff, temp_psf, z_i, pad_size);
         
-        // psf = np.abs(temp) * *2
+        //psf = np.abs(temp) * *2
         psf = abs_cmplx(temp_psf);
         psf = psf.mul(psf);
         
         // psf = psf / np.sum(psf.ravel())
         psf_sum = cv::sum(psf)[0];
-        psf *= 0.5 / psf_sum;
-        centroid_psf(psf, 0.5*0.97);
+        psf *= 1.0 / psf_sum;
+        centroid_psf(psf, 0.9);
         
         // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
@@ -327,6 +318,4 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 }   // end of generate_blur_image
 
 
-
-#endif  // _TEST_H_TURB_SIM_
-
+#endif  // _TURBULENCE_SIMULATION_H_
