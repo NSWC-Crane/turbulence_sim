@@ -36,7 +36,7 @@ k = 2 * np.pi / wvl
 # All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
 r0 = np.exp(-0.6 * np.log(0.158625 * k * k * Cn2 * L))
 
-pixel = 0.00246
+pixel = 0.004217
 obj_size = N * pixel   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
                     # will be done automatically.
 

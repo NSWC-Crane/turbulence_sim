@@ -116,19 +116,20 @@ def genTiltImg(img, p_obj):
     :return: The output, tilted image
     """
     flag_noPSD = 0
+    std = 0.6
     if (p_obj.get('S') == None).any():
         S = gen_PSD(p_obj)
         p_obj['S'] = S
         flag_noPSD = 1
-    MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVx = np.real(np.fft.ifft2(p_obj['S'] * std * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     MVx = MVx[int(round(p_obj['N'] / 2)):2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
-    MVx = gaussian_filter(MVx, sigma=2, mode='reflect')
+    MVx = gaussian_filter(MVx, sigma=1.5, mode='reflect')
 
     #MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
 
-    MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVy = np.real(np.fft.ifft2(p_obj['S'] * std * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     MVy = MVy[0:p_obj['N'], int(round(p_obj['N'] / 2)): 2 * p_obj['N'] - int(round(p_obj['N'] / 2))]
-    MVy = gaussian_filter(MVy, sigma=2, mode='reflect')
+    MVy = gaussian_filter(MVy, sigma=1.5, mode='reflect')
     #MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
 
     img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
@@ -145,7 +146,7 @@ def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
     temp_line = np.arange(1,101)
     patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 2)**2)]
-    patch_size = int(round(0.6*p_obj['N'] / patchN))
+    patch_size = int(round(1.0*p_obj['N'] / patchN))
     xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, int(patchN)))
     xx, yy = np.meshgrid(xtemp, xtemp)
     xx_flat, yy_flat = xx.flatten(), yy.flatten()
@@ -177,7 +178,7 @@ def genBlurImage(p_obj, img):
         psf = np.abs(temp) ** 2
         # psf = np.abs(temp)
         psf = psf / np.sum(psf)
-        psf, _, _ = centroidPsf(psf, 0.95)          #: Depending on the size of your PSFs, you may want to use this
+        psf, _, _ = centroidPsf(psf, 0.9)          #: 0.95 default, Depending on the size of your PSFs, you may want to use this
 
         psf = resize(psf, (round(NN/p_obj['scaling']), round(NN/p_obj['scaling'])))
         psf_list.append(psf)
