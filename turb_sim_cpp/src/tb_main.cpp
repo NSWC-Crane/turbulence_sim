@@ -200,9 +200,9 @@ int main(int argc, char** argv)
         std::cout << "Line #: " << __LINE__ << std::endl;
     }
 
+    cv::destroyAllWindows();
     std::cout << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
-    cv::destroyAllWindows();
 
 }   // end of main
 

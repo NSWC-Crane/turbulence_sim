@@ -29,6 +29,10 @@ if("${PLATFORM}" STREQUAL "")
 endif()
 message("Platform: " ${PLATFORM})
 
+# find the root of the main project
+string(FIND ${PROJECT_SOURCE_DIR} "/" INDEX REVERSE)
+string(SUBSTRING ${PROJECT_SOURCE_DIR} 0 ${INDEX} PR_ROOT)
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -37,16 +41,16 @@ if(WIN32)
 
 	if(${PLATFORM} STREQUAL "Laptop")
 		set(COMMON_ROOT "D:/Common")
-        set(VCPKG_ROOT "D:/Projects/vcpkg")
+        #set(VCPKG_ROOT "D:/Projects/vcpkg")
 	elseif(${PLATFORM} STREQUAL "LaptopN")
 		set(COMMON_ROOT "C:/Projects/Common")
-        set(VCPKG_ROOT "C:/Projects/vcpkg-master")
+        #set(VCPKG_ROOT "C:/Projects/vcpkg-master")
     elseif(${PLATFORM} STREQUAL "LaptopLenovo")
         set(COMMON_ROOT "C:/Common")
-        set(VCPKG_ROOT "C:/Projects/vcpkg-master")
+        #set(VCPKG_ROOT "C:/Projects/vcpkg-master")
     else()
         set(COMMON_ROOT "C:/Projects/Common")
-        set(VCPKG_ROOT "C:/Projects/vcpkg-master")
+        #set(VCPKG_ROOT "C:/Projects/vcpkg-master")
     endif()
 
 else()
@@ -66,15 +70,15 @@ include(${COMMON_ROOT}/cmake_utils/use_sse_avx.cmake)
 
 # look for any *.c and *.cpp files
 file(GLOB SOURCES "src/*.c*"
-    "${COMMON_ROOT}/src/*.cpp"
     )
 
 set(project_includes
     "include"
+    "${PR_ROOT}/common/include"
     "${COMMON_ROOT}/include"
     )
     
-include(cmake_utils/find_GSL.cmake)
+include("${PR_ROOT}/common/cmake_utils/find_GSL.cmake")
 if(GSL_FOUND)
     set(project_includes ${project_includes} ${GSL_INCLUDE_DIRS})
     set(project_libs ${project_libs} ${GSL_LIBRARIES})
@@ -95,30 +99,30 @@ endif()
 message(STATUS "--------------------------------------------------------------------------------")
 
 message(" ")
-message("--------------------------------------------------------------------------------")
-message("Source Files: ")
+message(STATUS "--------------------------------------------------------------------------------")
+message(STATUS "Source Files: ")
 foreach(S ${SOURCES})
-    message("  " ${S})
+    message(STATUS "  " ${S})
 endforeach()
-message("--------------------------------------------------------------------------------")
+message(STATUS "--------------------------------------------------------------------------------")
 
 message(" ")
 
-message("--------------------------------------------------------------------------------")
-message("Project Includes: ")
+message(STATUS "--------------------------------------------------------------------------------")
+message(STATUS "Project Includes: ")
 foreach(S ${project_includes})
-    message("  " ${S})
+    message(STATUS "  " ${S})
 endforeach()
-message("--------------------------------------------------------------------------------")
+message(STATUS "--------------------------------------------------------------------------------")
 
 message(" ")
 
-message("--------------------------------------------------------------------------------")
-message("Project Libraries: ")
+message(STATUS "--------------------------------------------------------------------------------")
+message(STATUS "Project Libraries: ")
 foreach(S ${project_libs})
-    message("  " ${S})
+    message(STATUS "  " ${S})
 endforeach()
-message("--------------------------------------------------------------------------------")
+message(STATUS "--------------------------------------------------------------------------------")
 
 message(" ")
 
@@ -129,7 +133,7 @@ if(WIN32)
 
     target_link_libraries(${exe_name} ${project_libs})
    
-    message("MSVC Version: " ${MSVC_VERSION})
+    message(STATUS "MSVC Version: " ${MSVC_VERSION})
     # uncomment for MSVC and cmake greater than 3.6.0
     set(default_build_type "Release")
     if(MSVC AND (${CMAKE_VERSION} VERSION_GREATER "3.6.0"))
