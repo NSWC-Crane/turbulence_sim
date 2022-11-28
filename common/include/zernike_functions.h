@@ -4,11 +4,14 @@
 #include <cstdint>
 #include <cmath>
 #include <vector>
+#include <iostream>
 
+// OpenCV includes
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+// Custom includes
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
 #include "opencv_helper.h"

@@ -19,7 +19,7 @@
 cmake_minimum_required(VERSION 3.6)
 
 PROJECT(tubulence_sim_library VERSION 1.0 DESCRIPTION "Shared library for generating turbelence in images")
-set(exe_name "turb_sim")
+set(LIB_NAME "turb_sim")
 
 set(PLATFORM "$ENV{PLATFORM}" CACHE INTERNAL "Copied from environment variable")
 if("${PLATFORM}" STREQUAL "")
@@ -126,7 +126,7 @@ message(STATUS "----------------------------------------------------------------
 message(" ")
 
 #----------------------------------------------------------------------------
-message("Building Library...")
+message(STATUS "Building Library...")
 
 add_definitions(-DBUILD_LIB)
 
@@ -141,7 +141,7 @@ if(WIN32)
     target_link_libraries(${LIB_NAME} ${project_libs})
 
     if(MSVC AND (${CMAKE_VERSION} VERSION_GREATER "3.6.0"))
-        message("MSVC Version: " ${MSVC_VERSION})
+        message(STATUS "MSVC Version: " ${MSVC_VERSION})
         target_compile_options(${LIB_NAME} PUBLIC "/MP" "/bigobj")
         set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${LIB_NAME})
     endif() 

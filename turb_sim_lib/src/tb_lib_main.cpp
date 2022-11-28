@@ -28,6 +28,8 @@
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
 
+#include "turb_sim_lib.h"
+
 // ----------------------------------------------------------------------------------------
 turbulence_param tp;
 cv::RNG rng;
