@@ -22,13 +22,13 @@ clc
 
 % % OPTIONS
 onePatch = false;  % Create only one large patch if true
-savePlots = false;
-allreals = false; % If true, metrics will be calculated using all real images and all simulated images.
+savePlots = true;
+allreals = true; % If true, metrics will be calculated using all real images and all simulated images.
 
 %rangeV = 600:50:1000;
-rangeV = [700];
-%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [2500, 3000];
+rangeV = [650];
+zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+%zoom = [2500];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -295,60 +295,61 @@ for rngP = rangeV
     end
 end
 
-% Plot standard deviation of patches used to calculate metric of each image
-% Sort TmL by Cn2 value and range/zoom - Each Patch
-TmL = sortrows(TmL,["range","zoom","r0"]);
-figure()
-x = 1:height(TmL);
-plot(x,TmL.simMetric, '-o',...
-            'LineWidth',1,...
-            'MarkerSize',2)
-hold on
-plot(x,TmL.stdPatches, '-o',...
-            'LineWidth',1,...
-            'MarkerSize',2)
-grid on
-xlabel("Image number")
-ylabel ("Mean metric and Std")
-legend('Mean','Standard Deviation')
-title("Mean and Std of Patches for Each Image")
-fileS = fullfile(dirOut,"Std_Patches.png");
-x0=10;
-y0=10;
-width=800;
-ht=400;
-set(gcf,'position',[x0,y0,width,ht])
-if savePlots == true
-    f = gcf;
-    exportgraphics(f,fileS,'Resolution',300)
-end
-
-% Plot standard deviation of all simulated images used to calculate metric
-% for each range/zoom/cn2 value.
-% Metric over 20 simulated images
-% Sorted uniqT earlier:  uniqT = sortrows(uniqT,["range","zoom","r0"]);
-figure()
-x = 1:height(uniqT);
-plot(x, uniqT.sMetric, '-o',...
-            'LineWidth',1,...
-            'MarkerSize',2)
-hold on
-plot(x, uniqT.std, '-o',...
-            'LineWidth',1,...
-            'MarkerSize',2)
-grid on
-xlabel("Image number")
-ylabel ("Mean and Std of Metric")
-legend('Mean','Standard Deviation')
-title("Mean and Std of 20 Simulated Images at Same Range/Zoom")
-fileS = fullfile(dirOut,"Std_SimImages.png");
-x0=10;
-y0=10;
-width=800;
-ht=400;
-set(gcf,'position',[x0,y0,width,ht])
-if savePlots == true
-    f = gcf;
-    exportgraphics(f,fileS,'Resolution',300)
-end
-
+%% Plots for Standard Deviation Information
+% % Plot standard deviation of patches used to calculate metric of each image
+% % Sort TmL by Cn2 value and range/zoom - Each Patch
+% TmL = sortrows(TmL,["range","zoom","r0"]);
+% figure()
+% x = 1:height(TmL);
+% plot(x,TmL.simMetric, '-o',...
+%             'LineWidth',1,...
+%             'MarkerSize',2)
+% hold on
+% plot(x,TmL.stdPatches, '-o',...
+%             'LineWidth',1,...
+%             'MarkerSize',2)
+% grid on
+% xlabel("Image Number")
+% ylabel ("Mean Metric and Std")
+% legend('Mean','Standard Deviation','location', 'east')
+% title("Mean and Std of Patches for Each Image")
+% fileS = fullfile(dirOut,"Std_Patches.png");
+% x0=10;
+% y0=10;
+% width=800;
+% ht=400;
+% set(gcf,'position',[x0,y0,width,ht])
+% if savePlots == true
+%     f = gcf;
+%     exportgraphics(f,fileS,'Resolution',300)
+% end
+% 
+% % Plot standard deviation of all simulated images used to calculate metric
+% % for each range/zoom/cn2 value.
+% % Metric over 20 simulated images
+% % Sorted uniqT earlier:  uniqT = sortrows(uniqT,["range","zoom","r0"]);
+% figure()
+% x = 1:height(uniqT);
+% plot(x, uniqT.sMetric, '-o',...
+%             'LineWidth',1,...
+%             'MarkerSize',2)
+% hold on
+% plot(x, uniqT.std, '-o',...
+%             'LineWidth',1,...
+%             'MarkerSize',2)
+% grid on
+% xlabel("Set Number")
+% ylabel ("Mean and Std of Metric")
+% legend('Mean','Standard Deviation','location', 'east')
+% title("Mean and Std of 20 Simulated Image Sets")
+% fileS = fullfile(dirOut,"Std_SimImages.png");
+% x0=10;
+% y0=10;
+% width=800;
+% ht=400;
+% set(gcf,'position',[x0,y0,width,ht])
+% if savePlots == true
+%     f = gcf;
+%     exportgraphics(f,fileS,'Resolution',300)
+% end
+% 

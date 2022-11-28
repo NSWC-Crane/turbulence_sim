@@ -178,8 +178,8 @@ for index = 1:length(realFiles)
     height=500;
     fileN = dirOut + num2str(index) + "_plotLog.png";
     set(gcf,'position',[10,10,width,height])
-    f = gcf;
-    exportgraphics(f,fileN,'Resolution',300)
+%     f = gcf;
+%     exportgraphics(f,fileN,'Resolution',300)
     %savefig(ffh,fileNf)
     % close(ffh)
     hold off
