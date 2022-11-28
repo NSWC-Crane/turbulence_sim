@@ -129,18 +129,21 @@ int main(int argc, char** argv)
 
         bp = 1;
 //        std::string filename = "../../data/checker_board_32x32.png";
-        std::string filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+        //std::string filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+        std::string filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
         cv::Mat img;
         cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
 
         if (tmp_img.channels() >= 3)
         {
-            tmp_img.convertTo(tmp_img, CV_64FC3, 1.0/255.0);
+            //tmp_img.convertTo(tmp_img, CV_64FC3, 1.0 / 255.0);
+            tmp_img.convertTo(tmp_img, CV_64FC3);
             tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
-            tmp_img.convertTo(tmp_img, CV_64FC1, 1.0/255.0);
+            //tmp_img.convertTo(tmp_img, CV_64FC1, 1.0 / 255.0);
+            tmp_img.convertTo(tmp_img, CV_64FC1);
         }
 
         //uint32_t N = tmp_img.rows;
@@ -176,6 +179,8 @@ int main(int argc, char** argv)
             generate_tilt_image(img, P, rng, img_tilt);
 
             generate_blur_image(img_tilt, P, rng, img_blur);
+
+            img_blur.convertTo(img_blur, CV_8UC1);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);

@@ -20,7 +20,9 @@ def rgb2gray(rgb):
     return np.dot(rgb[...,:3], [0.2989, 0.5870, 0.1140])
 
 # img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
-filename = 'D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
+filename = 'C:/Projacts/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
+# filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png"
+
 img = (plt.imread(filename))[:,:,1]
 
 N = img.shape[0]             # size of the image -- assumed to be square (pixels)
