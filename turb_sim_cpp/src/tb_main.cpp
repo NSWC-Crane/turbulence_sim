@@ -145,25 +145,21 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 64;
-        img = tmp_img(cv::Rect(8, 8, N, N));
+        uint32_t N = 200;
+        img = tmp_img(cv::Rect(0, 0, N, N));
 
         double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
-        double k = 2 * CV_PI / wavelenth;
+        //double k = 2 * CV_PI / wavelenth;
         double Cn2 = 1e-13;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
-        double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
+        //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
-        turbulence_param P(N, D, L, r0, wavelenth, obj_size);
-
-        //-----------------------------------------------------------------------------
-        // test code
-        cv::RNG rng;
+        turbulence_param P(N, D, L, Cn2, wavelenth, obj_size);
 
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;

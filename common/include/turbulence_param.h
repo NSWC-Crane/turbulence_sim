@@ -15,10 +15,13 @@ class turbulence_param
 {
 public:
     std::vector<std::complex<double>> S_vec;
-    cv::Mat kernel;
+    cv::Mat motion_kernel;
+    cv::Mat blur_kernel;
     uint64_t patch_num;
 
-    turbulence_param(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_) : N(N_), D(D_), L(L_), r0(r0_), wavelength(w_), obj_size(obj_size_)
+    turbulence_param() = default;
+
+    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_) : N(N_), D(D_), L(L_), Cn2(Cn2_), wavelength(w_), obj_size(obj_size_)
     {
         init_params();
     }
@@ -29,10 +32,13 @@ public:
         uint32_t idx;
         double tmp;
 
+        // calculate the wavenumber
+        k = (2.0 * CV_PI) / wavelength;
+        // use L,k and Cn2 to calculate the Fried parameter
+        calc_r0();
         D_r0 = D / r0;
         delta0 = (L * wavelength) / (2.0 * D);
-        k = (2.0 * CV_PI) / wavelength;
-        s_max = (delta0 / D) * (double)N;   //???????
+        s_max = (delta0 / D) * (double)N;
         spacing = delta0 / D;
         ob_s = obj_size;
         scaling = obj_size / (N * delta0);
@@ -44,8 +50,7 @@ public:
 
         generate_psd();
 
-        create_gaussian_kernel(5, 1.5);
-
+        create_gaussian_kernel(5, 1.5, motion_kernel);
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
@@ -55,16 +60,19 @@ public:
 
         // find the argmin of the smax_curve vector
         patch_num = (uint64_t)std::distance(smax_curve.begin(), std::min_element(smax_curve.begin(), smax_curve.end())) + 1;
+        
+        double patch_size = std::floor(1.4 * (N / patch_num) + 0.5);
+        create_gaussian_kernel(2*patch_size + 1, 20.0, blur_kernel);
 
     }   // end pf init_params
     
     //-----------------------------------------------------------------------------
-    void update_params(uint32_t N_, double D_, double L_, double r0_, double w_, double obj_size_)
+    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_)
     {
         N = N_;
         D = D_;
         L = L_;
-        r0 = r0_;
+        Cn2 = Cn2_;
         wavelength = w_;
         obj_size = obj_size_;
 
@@ -125,6 +133,9 @@ public:
     void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
 
     //-----------------------------------------------------------------------------
+    inline double get_r0(void) { return r0; }
+
+    //-----------------------------------------------------------------------------
     inline double get_D_r0(void) { return D_r0; }
 
     //-----------------------------------------------------------------------------
@@ -138,6 +149,7 @@ private:
     uint64_t N;             // size of pixels of one image dimension (assumed to be square image N x N)
     double D;               // size of aperture diameter (meters)
     double L;               // length of propagation (meters)
+    double Cn2;
     double r0;              // Fried parameter (meters)
     double wavelength;      // wavelength (meters)
     double obj_size;
@@ -245,7 +257,7 @@ private:
     }   // end of generate_psd
 
     //-----------------------------------------------------------------------------
-    void create_gaussian_kernel(int32_t size, double sigma)
+    void create_gaussian_kernel(int32_t size, double sigma, cv::Mat &kernel)
     {
         // assumes a 0 mean Gaussian distribution
         int32_t row, col;
@@ -269,6 +281,10 @@ private:
 
     }	// end of create_gaussian_kernel
 
+    inline void calc_r0()
+    {
+        r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
+    }
 };  // end of turbulence_param
 
 
