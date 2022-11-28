@@ -25,37 +25,12 @@ extern "C" {
 #endif
 
     //-----------------------------------------------------------------------------
-    // take a double image and scale between 0 and 1
-    TS_LIB void normalize_img(unsigned int img_w, unsigned int img_h, double* img_t, double* norm_img_t);
+    // perform the initilization of the turbulence params
+    TS_LIB void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
 
     //-----------------------------------------------------------------------------
-    // 
-    TS_LIB void transform_single_image(ms_image r_img,
-        ms_image t_img,
-        double* fused_data64_t,
-        unsigned char* fused_data8_t
-    );
-
-    //-----------------------------------------------------------------------------
-    // 
-    TS_LIB void transform_multi_image(uint32_t N,
-        ms_image r_img,
-        ms_image* t_img,
-        double* fused_data64_t,
-        unsigned char* fused_data8_t
-    );
-
-    //-----------------------------------------------------------------------------
-    TS_LIB void transform_multi_image_rect(uint32_t N,
-        ms_image r_img,
-        target_rect r_rect,
-        ms_image* imgs,
-        target_rect* img_rects,
-        double* fused_data64_t,
-        unsigned char* fused_data8_t,
-        bool tight_box
-    );
-
+    // apply the turbulence to the image
+    TS_LIB void apply_turbulence(unsigned int img_w, unsigned int img_h, unsigned char *img_, unsigned char *turb_img_);
 
 #ifdef __cplusplus
 }
