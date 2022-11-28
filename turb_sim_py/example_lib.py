@@ -1,10 +1,14 @@
 import os
 import platform
+import setuptools
+
+from cffi import FFI
+
 from matplotlib import pyplot as plt
 import numpy as np
 import cv2
 import time
-from cffi import FFI
+
 
 script_path = os.path.realpath(__file__)
 ffi = FFI()
@@ -31,13 +35,25 @@ pixel = 0.004217
 obj_size = N * pixel   # the size of the object in the object plane (meters). Can be different the Nyquist sampling, scaling
                        # will be done automatically.
 
+def prepend_path_env(added_paths, to_env='PATH'):
+    path_sep = ';'
+    prior_path_env = os.environ.get(to_env)
+    prior_paths = prior_path_env.split(path_sep)
+    added_paths = [x for x in added_paths if os.path.exists(x)]
+    new_paths = prior_paths + added_paths
+    new_env_val = path_sep.join(new_paths)
+    return new_env_val
+
 ##-----------------------------------------------------------------------------
 # modify these to point to the right locations
 if platform.system() == "Windows":
     libname = "turb_sim.dll"
     home = script_path[0:2]         # assumes that this project is placed into the same root folder as the library project
     lib_location = home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/" + libname
+    # lib_location = "C:\\Projects\\turbulence_sim\\turb_sim_lib\\build\\Release\\" + libname
     # os.add_dll_directory(home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/")
+    # os.environ['PATH'] = prepend_path_env(["C:/Projects/vcpkg-master/installed/x64-windows/bin"])
+    # os.environ['PATH'] = prepend_path_env([home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/"])
 elif platform.system() == "Linux":
     libname = "libturb_sim.so"
     home = os.path.expanduser('~')
