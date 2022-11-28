@@ -140,7 +140,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
     cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
     mv_xc = c1 * get_real(mv_xc);
-    cv::filter2D(mv_xc, mv_xc, CV_64FC1, p.kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+    cv::filter2D(mv_xc, mv_xc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
     mv_xc -= cv::mean(mv_xc)[0];
 
     //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
@@ -161,7 +161,7 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     cv::Mat mv_yc = mv_y(cv::Rect(0, N_2, p.get_N(), p.get_N()));
     mv_yc = c1 * get_real(mv_yc);
-    cv::filter2D(mv_yc, mv_yc, CV_64FC1, p.kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+    cv::filter2D(mv_yc, mv_yc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
     mv_yc -= cv::mean(mv_yc)[0];
     //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
     
@@ -197,12 +197,16 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     //cv::Mat xx, yy;
     std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
+    int32_t x, y;
 
     uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
        
     //    patch_size = round(p_obj['N'] / patchN)
     double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
      
+    int64_t blur_cols = p.blur_kernel.cols;
+    int64_t blur_rows = p.blur_kernel.rows;
+
     //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
     //cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)p.patch_num), p.patch_num) + N/(double)(2* p.patch_num);
     //x_tmp = round(x_tmp);
@@ -216,6 +220,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     
     //
     index_generate(N / (double)(2 * p.patch_num), N / (double)(2 * p.patch_num) + (double)(N - N / (double)p.patch_num), p.patch_num, xx, yy);
+    double rnd_limit = std::floor(xx[0] / 2.0);
 
     //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
     //    den = np.zeros((p_obj['N'], p_obj['N']))
@@ -223,20 +228,25 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     cv::Mat den = cv::Mat(N, N, CV_64FC1, cv::Scalar::all(1.0e-6));
         
     //    patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1), np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1))
-    cv::Mat patch_indx, patch_indy;
-    meshgrid(-patch_size, patch_size, 2 * patch_size + 1, -patch_size, patch_size, 2 * patch_size + 1, patch_indx, patch_indy);
-    patch_indx = patch_indx.mul(patch_indx);
-    patch_indx *= (-1.0 / (patch_size * patch_size));
-    patch_indy = patch_indy.mul(patch_indy);
-    patch_indy *= (-1.0 / (patch_size * patch_size));
-    cv::exp(patch_indx, patch_indx);
-    cv::exp(patch_indy, patch_indy);
-    // np.ones((patch_size * 2 + 1, patch_size * 2 + 1))
+    //cv::Mat patch_indx, patch_indy;
+    //meshgrid(-patch_size, patch_size, 2 * patch_size + 1, -patch_size, patch_size, 2 * patch_size + 1, patch_indx, patch_indy);
+    //patch_indx = patch_indx.mul(patch_indx);
+    //patch_indx *= (-1.0 / (patch_size * patch_size));
+    //patch_indy = patch_indy.mul(patch_indy);
+    //patch_indy *= (-1.0 / (patch_size * patch_size));
+    //cv::exp(patch_indx, patch_indx);
+    //cv::exp(patch_indy, patch_indy);
 
-    cv::Mat exp_tmp = patch_indx.mul(patch_indy);
+    //cv::Mat exp_tmp = patch_indx.mul(patch_indy);
+    //cv::Mat exp_tmp = cv::Mat::ones(2 * patch_size + 1, 2 * patch_size + 1, CV_64FC1);
+    //cv::Mat exp_tmp = p.blur_kernel;
+
 
     for (idx = 0; idx < (p.patch_num * p.patch_num); ++idx)
     {
+        x = xx[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
+        y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
+
         // aa = genZernikeCoeff(36, p_obj['Dr0'])
         generate_zernike_coeff(36, p.get_D_r0(), coeff, rng);
 
@@ -265,32 +275,20 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
         //patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx)), (uint64_t)(*xx.ptr<double>(idx))) = 1.0;
         //cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-        
-        //min_x = std::max(0LL, (int64_t)(*xx.ptr<double>(idx)) - (exp_tmp.cols >> 1));
-        //max_x = std::min((int64_t)N, (int64_t)(*xx.ptr<double>(idx)) + (exp_tmp.cols >> 1) + 1);
-       
-        //min_y = std::max(0LL, (int64_t)(*yy.ptr<double>(idx)) - (exp_tmp.rows >> 1));
-        //max_y = std::min((int64_t)N, (int64_t)(*yy.ptr<double>(idx)) + (exp_tmp.rows >> 1) + 1);
 
-        //min_kx = std::max(0LL, (exp_tmp.cols >> 1) - (int64_t)(*xx.ptr<double>(idx)));
-        //max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(*xx.ptr<double>(idx)))));
+        min_x = std::max((int64_t)0, (int64_t)(x) - (blur_cols >> 1));
+        max_x = std::min((int64_t)N, (int64_t)(x) + (blur_cols >> 1) + 1);
 
-        //min_ky = std::max(0LL, (exp_tmp.rows >> 1) - (int64_t)(*yy.ptr<double>(idx)));
-        //max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(*yy.ptr<double>(idx)))));
+        min_y = std::max((int64_t)0, (int64_t)(y) - (blur_rows >> 1));
+        max_y = std::min((int64_t)N, (int64_t)(y) + (blur_rows >> 1) + 1);
 
-        min_x = std::max((int64_t)0, (int64_t)(xx[idx]) - (exp_tmp.cols >> 1));
-        max_x = std::min((int64_t)N, (int64_t)(xx[idx]) + (exp_tmp.cols >> 1) + 1);
+        min_kx = std::max((int64_t)0, (blur_cols >> 1) - (int64_t)(x));
+        max_kx = std::min((int64_t)blur_cols, (int64_t)((blur_cols >> 1) + (N - (int64_t)(x))));
 
-        min_y = std::max((int64_t)0, (int64_t)(yy[idx]) - (exp_tmp.rows >> 1));
-        max_y = std::min((int64_t)N, (int64_t)(yy[idx]) + (exp_tmp.rows >> 1) + 1);
+        min_ky = std::max((int64_t)0, (blur_rows >> 1) - (int64_t)(y));
+        max_ky = std::min((int64_t)blur_rows, (int64_t)((blur_rows >> 1) + (N - (int64_t)(y))));
 
-        min_kx = std::max((int64_t)0, (exp_tmp.cols >> 1) - (int64_t)(xx[idx]));
-        max_kx = std::min((int64_t)exp_tmp.cols, (int64_t)((exp_tmp.cols >> 1) + (N - (int64_t)(xx[idx]))));
-
-        min_ky = std::max((int64_t)0, (exp_tmp.rows >> 1) - (int64_t)(yy[idx]));
-        max_ky = std::min((int64_t)exp_tmp.rows, (int64_t)((exp_tmp.rows >> 1) + (N - (int64_t)(yy[idx]))));
-
-        exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
+        p.blur_kernel(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
         // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
         cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
