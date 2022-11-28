@@ -41,6 +41,17 @@ typedef void* HINSTANCE;
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
 
+#define USE_LIB
+
+
+#if defined(USE_LIB)
+#include "turb_sim_lib.h"
+
+typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
+typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+
+#endif
+
 // ----------------------------------------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, std::vector<uint8_t>& item)
 {
@@ -86,6 +97,7 @@ int main(int argc, char** argv)
 
     std::string window_name = "image";
 
+    std::string lib_filename;
 
 
     //if (argc == 1)
@@ -104,12 +116,6 @@ int main(int argc, char** argv)
     // do work here
     try
     {    
-        const cv::Range xgv = cv::Range(1, 3);
-        const cv::Range ygv = cv::Range(0, 5);
-        cv::Mat Y;
-        //meshgrid(xgv, ygv, X, Y);
-
-        //meshgrid(-31.5, 31.5, 1.0, -31.5, 31.5, 1.0, X, Y);
 
         //cv::Mat r;
         //cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
@@ -125,7 +131,37 @@ int main(int argc, char** argv)
         //}
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
-        
+
+
+#if defined(USE_LIB)
+    // load in the library
+    #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+        lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
+        HINSTANCE turb_lib = LoadLibrary(lib_filename.c_str());
+
+        if (turb_lib == NULL)
+        {
+            throw std::runtime_error("error loading library");
+        }
+
+        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)GetProcAddress(turb_lib, "init_turbulence_params");
+        lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
+
+    #else
+        lib_filename = "../../turb_sim_lib/build/turb_sim.so";
+        void* turb_lib = dlopen(lib_filename.c_str(), RTLD_NOW);
+
+        if (turb_lib == NULL)
+        {
+            throw std::runtime_error("error loading library");
+        }
+
+        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)dlsym(turb_lib, "init_turbulence_params");
+        lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
+
+    #endif
+
+#endif      
 
         bp = 1;
 //        std::string filename = "../../data/checker_board_32x32.png";
@@ -162,11 +198,15 @@ int main(int argc, char** argv)
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
+#if defined(USE_LIB)
+        init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
+#else
         turbulence_param P(N, D, L, Cn2, wavelenth, obj_size);
+#endif
 
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
-        cv::Mat img_blur;
+        cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat montage;
         char key = 0;
 
@@ -176,19 +216,26 @@ int main(int argc, char** argv)
         {
             start_time = std::chrono::system_clock::now();
 
+
+
+#if defined(USE_LIB)
+
+            apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+#else
             generate_tilt_image(img, P, rng, img_tilt);
 
             generate_blur_image(img_tilt, P, rng, img_blur);
+#endif
 
-            img_blur.convertTo(img_blur, CV_8UC1);
+            //img_blur.convertTo(img_blur, CV_8UC1);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::hconcat(img_tilt, img_blur, montage);
-            cv::imshow(window_name, montage);
+            cv::hconcat(img, img_blur, montage);
+            cv::imshow(window_name, montage/255.0);
             key = cv::waitKey(0);
         }
         bp = 2;

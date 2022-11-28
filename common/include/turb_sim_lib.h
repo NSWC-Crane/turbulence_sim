@@ -30,7 +30,7 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     // apply the turbulence to the image
-    TS_LIB void apply_turbulence(unsigned int img_w, unsigned int img_h, unsigned char *img_, unsigned char *turb_img_);
+    TS_LIB void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, double *turb_img_);
 
 #ifdef __cplusplus
 }

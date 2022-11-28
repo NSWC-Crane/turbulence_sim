@@ -43,20 +43,20 @@ void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, 
 }   // end of init_turbulence_params
 
 //-----------------------------------------------------------------------------
-void apply_turbulence(unsigned int img_w, unsigned int img_h, unsigned char *img_, unsigned char *turb_img_)
+void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, double *turb_img_)
 {
     
     cv::Mat img_tilt, img_blur;
     
     // convert the image from pointer to cv::Mat
-    cv::Mat img = cv::Mat(img_h, img_w, CV_8UC1, img_);
-    cv::Mat turb_img = cv::Mat(img_h, img_w, CV_8UC1, turb_img_);
+    cv::Mat img = cv::Mat(img_h, img_w, CV_64FC1, img_);
+    cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC1, turb_img_);
 
     generate_tilt_image(img, tp, rng, img_tilt);
 
-    generate_blur_image(img_tilt, tp, rng, img_blur);
+    generate_blur_image(img_tilt, tp, rng, turb_img);
     
-    img_blur.convertTo(turb_img, CV_8UC1);
+    //img_blur.convertTo(turb_img, CV_8UC1);
     
 }   // end of apply_turbulence
 
