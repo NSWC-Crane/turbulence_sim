@@ -104,7 +104,7 @@ for rng = rangeV
             strPtch = "_OnePtch";
             titlePtch = " (One Patch)";
         else
-            szPatch = 64;
+            szPatch = 62;
             strPtch = "";
             titlePtch = "";
         end
@@ -163,12 +163,13 @@ for rng = rangeV
     end    
 end
 
+%% tables
 varnames = {'range', 'zoom', 'cn2str', 'Simfilename','Realfilename','numPatches', 'simMetric', 'stdPatches'};
 TmL = renamevars(TmL, TmL.Properties.VariableNames, varnames);
 TmL.filename = string(TmL.Simfilename);
 TmL.filename = string(TmL.Realfilename);
 
-% Create table uniqT that contains unique values of range, zoom, cn2
+%% Create table uniqT that contains unique values of range, zoom, cn2
 uniqT = unique(TmL(:,[1,2,3]), 'rows', 'stable');
 
 % Use "turbNums.csv" (created by Python file) to find r0 for plotting
@@ -205,48 +206,48 @@ T_atmos = readtable(fileA);
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
 
-% Plots
-for rngP = rangeV
-    ffg = figure();
-    legendL = [];
-    for zmP = zoom
-        % Get the real image's measured cn2 value and calculated r0
-        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
-        r0_c = T_atmos{ida,"r0"};
-        cn_t = T_atmos{ida,"Cn2_m___2_3_"};
-        % Setup legend entry
-        txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
-        legendL = [legendL; txt];
-        % Find indexes in uniqT with same range and zoom but different Cn2
-        % values
-        indP = find(uniqT.range == rngP & uniqT.zoom == zmP);
-        plot(uniqT.r0(indP)*100, uniqT.sMetric(indP), '-o',...
-            'LineWidth',2,...
-            'MarkerSize',3)
-        hold on
-    end
-    grid on 
-    title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch)
-    legend(legendL, 'location', 'northeastoutside')
-    xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
-    xlabel("Fried Parameter r_0 (cm)")
-    ylabel("Mean Similarity Metric")
-    x0=10;
-    y0=10;
-    width=900;
-    ht=400;
-    set(gcf,'position',[x0,y0,width,ht]) 
-    if savePlots == true
-        f = gcf;
-        fileN = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".png");
-        fileNf = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".fig");
-        exportgraphics(f,fileN,'Resolution',300)
-        savefig(ffg,fileNf)
-        close(ffg)
-    end
-end
+%% Plots
+% for rngP = rangeV
+%     ffg = figure();
+%     legendL = [];
+%     for zmP = zoom
+%         % Get the real image's measured cn2 value and calculated r0
+%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
+%         r0_c = T_atmos{ida,"r0"};
+%         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
+%         % Setup legend entry
+%         txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+%         legendL = [legendL; txt];
+%         % Find indexes in uniqT with same range and zoom but different Cn2
+%         % values
+%         indP = find(uniqT.range == rngP & uniqT.zoom == zmP);
+%         plot(uniqT.r0(indP)*100, uniqT.sMetric(indP), '-o',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+%         hold on
+%     end
+%     grid on 
+%     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch)
+%     legend(legendL, 'location', 'northeastoutside')
+%     xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
+%     xlabel("Fried Parameter r_0 (cm)")
+%     ylabel("Mean Similarity Metric")
+%     x0=10;
+%     y0=10;
+%     width=900;
+%     ht=400;
+%     set(gcf,'position',[x0,y0,width,ht]) 
+%     if savePlots == true
+%         f = gcf;
+%         fileN = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".png");
+%         fileNf = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".fig");
+%         exportgraphics(f,fileN,'Resolution',300)
+%         savefig(ffg,fileNf)
+%         close(ffg)
+%     end
+% end
 
-% Semilogx Plots
+%% Semilogx Plots
 for rngP = rangeV
     ffg = figure();
     legendL = [];
