@@ -21,6 +21,8 @@ cmake_minimum_required(VERSION 3.6)
 PROJECT(tubulence_sim_library VERSION 1.0 DESCRIPTION "Shared library for generating turbelence in images")
 set(LIB_NAME "turb_sim")
 
+#set(default_build_type "Release")
+
 set(PLATFORM "$ENV{PLATFORM}" CACHE INTERNAL "Copied from environment variable")
 if("${PLATFORM}" STREQUAL "")
     set(PLATFORM "NOT_SET")
@@ -33,8 +35,8 @@ string(FIND ${PROJECT_SOURCE_DIR} "/" INDEX REVERSE)
 string(SUBSTRING ${PROJECT_SOURCE_DIR} 0 ${INDEX} PR_ROOT)
 
 set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(WIN32)
 

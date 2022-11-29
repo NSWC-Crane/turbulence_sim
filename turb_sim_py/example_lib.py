@@ -14,8 +14,8 @@ script_path = os.path.realpath(__file__)
 ffi = FFI()
 
 # img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
-filename = 'C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
-# filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png"
+# filename = 'C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
+filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png"
 
 img = 255*(plt.imread(filename))[:, :, 1]
 
@@ -51,7 +51,7 @@ if platform.system() == "Windows":
     home = script_path[0:2]         # assumes that this project is placed into the same root folder as the library project
     lib_location = home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/" + libname
     # lib_location = "C:\\Projects\\turbulence_sim\\turb_sim_lib\\build\\Release\\" + libname
-    # os.add_dll_directory(home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/")
+    os.add_dll_directory(home + "/Projects/turbulence_sim/turb_sim_lib/build/Release")
     # os.environ['PATH'] = prepend_path_env(["C:/Projects/vcpkg-master/installed/x64-windows/bin"])
     # os.environ['PATH'] = prepend_path_env([home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/"])
 elif platform.system() == "Linux":
@@ -62,6 +62,7 @@ else:
     quit()
 
 # open the library and keep as a global variable
+print(lib_location)
 turb_lib = ffi.dlopen(lib_location)
 
 # this declares the functions that will be used in the library (taken directly from the library header)
