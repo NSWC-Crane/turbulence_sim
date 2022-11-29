@@ -10,6 +10,9 @@ full_path = mfilename('fullpath');
 plot_num = 1;
 
 cd(startpath);
+
+clear tempdir
+setenv('TMP',startpath);
 commandwindow;
 
 %% load the dll/so file
@@ -30,8 +33,17 @@ end
 % libfunctionsview(lib_name);
 % pause(1);
 
+% Setup data directories
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
 
-filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+filename = data_root + "sharpest\z5000\baseline_z5000_r1000.png";
 
 img = double(imread(filename));
 

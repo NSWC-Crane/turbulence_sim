@@ -47,16 +47,24 @@ void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, doub
 {
     
     cv::Mat img_tilt, img_blur;
-    
-    // convert the image from pointer to cv::Mat
-    cv::Mat img = cv::Mat(img_h, img_w, CV_64FC1, img_);
-    cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC1, turb_img_);
+    try
+    {
+        // convert the image from pointer to cv::Mat
+        cv::Mat img = cv::Mat(img_h, img_w, CV_64FC1, img_);
+        cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC1, turb_img_);
 
-    generate_tilt_image(img, tp, rng, img_tilt);
+        std::cout << "Test";
 
-    generate_blur_image(img_tilt, tp, rng, turb_img);
-    
-    //img_blur.convertTo(turb_img, CV_8UC1);
+        generate_tilt_image(img, tp, rng, img_tilt);
+
+        generate_blur_image(img_tilt, tp, rng, turb_img);
+
+        //img_blur.convertTo(turb_img, CV_8UC1);
+    }
+    catch (std::exception e)
+    {
+        std::cout << "error: " << std::endl << e.what() << std::endl << std::endl;
+    }
     
 }   // end of apply_turbulence
 
