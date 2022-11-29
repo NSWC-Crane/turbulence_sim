@@ -21,14 +21,14 @@ clearvars
 clc
 
 % % OPTIONS
-onePatch = false;  % Create only one large patch if true
-savePlots = true;
-allreals = true; % If true, metrics will be calculated using all real images and all simulated images.
+onePatch = true;  % Create only one large patch if true
+savePlots = false;
+allreals = false; % If true, metrics will be calculated using all real images and all simulated images.
 
 %rangeV = 600:50:1000;
 rangeV = [650];
-zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [2500];
+%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+zoom = [2000,2500];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -248,28 +248,36 @@ uniqT = sortrows(uniqT,["range","zoom","r0"]);
 % end
 
 %% Semilogx Plots
+plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
+plots_legend = [];
 for rngP = rangeV
     ffg = figure();
     legendL = [];
     upY = .4;
-    for zmP = zoom
+    for k = 1:length(zoom) %zmP = zoom
         % Get real image's measured cn2 and r0
-        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
+        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
         r0_c = T_atmos{ida,"r0"};
         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
         % Setup legend entry
-        txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+        txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
         legendL = [legendL; txt];
         % Find indexes in uniqT with same range/zoom but different Cn2 values
-        indP = find(uniqT.range == rngP & uniqT.zoom == zmP);
-        semilogx(uniqT.r0(indP)*100, uniqT.sMetric(indP), '-o',...
-            'LineWidth',2,...
-            'MarkerSize',4)
-         hold on
+        indP = find(uniqT.range == rngP & uniqT.zoom == zoom(k));
+        plots_legend(k) = semilogx(uniqT.r0(indP)*100, uniqT.sMetric(indP), '-o','Color',plotcolors(k),...
+            'LineWidth',2,'MarkerSize',4);
+        hold on
+        
         % Collect zoom, max metric location r0
         MMetric = [uniqT.sMetric(indP) uniqT.r0(indP)];
         [max1, ind1] = max(MMetric(:,1));
-        str = "Z" + num2str(zmP) + ": Max metric " + num2str(MMetric(ind1,1)) + " at r0 " + num2str(MMetric(ind1,2)*100);
+        h = stem(MMetric(ind1,2)*100,1, 'MarkerFaceColor',plotcolors(k)); %,...
+            %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
+        h.Color = plotcolors(k);
+        hold on
+        h2 = stem(r0_c*100,1,'MarkerFaceColor','k');
+        h2.Color = plotcolors(k);
+        str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + " at r0 " + num2str(MMetric(ind1,2)*100);
         annotation('textbox',[.68 .5 .3 upY], ...
             'String',str,'EdgeColor','none')
         upY = upY-0.05;
@@ -277,7 +285,7 @@ for rngP = rangeV
     
     grid on
     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch) 
-    legend(legendL, 'location', 'southeastoutside')
+    legend(plots_legend,legendL, 'location', 'southeastoutside')
     xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
     xlabel("Fried Parameter r_0 (cm)")
     ylabel("Mean Similarity Metric")
