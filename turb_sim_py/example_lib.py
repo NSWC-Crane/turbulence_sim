@@ -1,11 +1,9 @@
 import os
 import platform
-import setuptools
 
 # os.add_dll_directory(r"D:/Projects/vcpkg/installed/x64-windows/bin")
-# os.add_dll_directory(r"D:/Projects/turbulence_sim/turb_sim_lib/build/Release")
+# os.add_dll_directory(r"C:/Projects/turbulence_sim/turb_sim_lib/build/Release")
 
-import ctypes
 from cffi import FFI
 
 from matplotlib import pyplot as plt
@@ -13,8 +11,7 @@ import numpy as np
 import cv2
 import time
 
-
-script_path = os.path.realpath(__file__)
+script_path = os.path.realpath(os.path.dirname(__file__))
 ffi = FFI()
 
 def prepend_path_env(added_paths, to_env='PATH'):
@@ -32,10 +29,9 @@ if platform.system() == "Windows":
     libname = "turb_sim.dll"
     home = script_path[0:2]         # assumes that this project is placed into the same root folder as the library project
     lib_location = home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/" + libname
-    # lib_location = "C:\\Projects\\turbulence_sim\\turb_sim_lib\\build\\Release\\" + libname
+    # do this for some reason the dlopen hates this dll
+    os.chdir(script_path + "/../turb_sim_lib/build/Release")
 
-    # os.environ['PATH'] = prepend_path_env(["C:/Projects/vcpkg-master/installed/x64-windows/bin"])
-    # os.environ['PATH'] = prepend_path_env([home + "/Projects/turbulence_sim/turb_sim_lib/build/Release/"])
 elif platform.system() == "Linux":
     libname = "libturb_sim.so"
     home = os.path.expanduser('~')
@@ -45,7 +41,7 @@ else:
 
 # open the library and keep as a global variable
 print(lib_location)
-turb_lib = ffi.dlopen(libname)
+turb_lib = ffi.dlopen(lib_location)
 
 # this declares the functions that will be used in the library (taken directly from the library header)
 ffi.cdef('''
@@ -66,24 +62,22 @@ def apply_turbulence(img):
     img_h = img.shape[0]
     img_w = img.shape[1]
 
-    blur_img_ = ffi.new('double *')
+    blur_img = np.zeros([img_h, img_w], dtype=np.float64)
+    blur_img_t = ffi.cast("double *", blur_img.ctypes.data)
     img_t = ffi.cast("double *", img.ctypes.data)
 
-    turb_lib.apply_turbulence(img_w, img_h, img_t, blur_img_)
+    turb_lib.apply_turbulence(img_w, img_h, img_t, blur_img_t)
 
-    blur_img = np.frombuffer(ffi.buffer(blur_img_[0], img_h*img_w), dtype=np.uint8)
-
-    blur_img = np.reshape(blur_img, [img_h, img_w])
-
-    return blur_img
+    return blur_img.astype(np.uint8)
 
 if __name__ == '__main__':
 
     # img = rgb2gray(plt.imread('../data/checker_board_32x32.png'))
-    # filename = 'C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
-    filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png"
+    filename = 'C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png'
+    # filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png"
 
     img = 255 * (plt.imread(filename))[:, :, 1]
+    img = img.astype(np.float64)
 
     N = img.shape[0]  # size of the image -- assumed to be square (pixels)
     D = 0.095  # length of aperture diameter (meters)
@@ -92,7 +86,6 @@ if __name__ == '__main__':
     wvl = 0.525e-6  # the mean wavelength -- typically somewhere suitably in the middle of the spectrum will be sufficient
 
     Cn2 = 1e-13
-    # k = 2 * np.pi / wvl
 
     # the Fried parameter r0. The value of D/r0 is critically important! (See associated paper)
     # All values for wvl = 0.525e-6: cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097

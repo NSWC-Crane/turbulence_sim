@@ -53,8 +53,6 @@ void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, doub
         cv::Mat img = cv::Mat(img_h, img_w, CV_64FC1, img_);
         cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC1, turb_img_);
 
-        std::cout << "Test";
-
         generate_tilt_image(img, tp, rng, img_tilt);
 
         generate_blur_image(img_tilt, tp, rng, turb_img);
