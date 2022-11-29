@@ -13,14 +13,11 @@ clearvars
 clc
 
 % % OPTIONS
-% subtractBL = false; % If true, subtracts baseline image from real and simulated Images.
 onePatch = false;  % Create only one large patch if true
-% subtractMean = false; % Subtracts DC component of image before calculating Laplacian if true
-% simReal = false; % Compares to the Simulated Image closest to measured Cn2 for 
-% %      real image at range/zoom rather than to the real image, if true.
 
 %rangeV = 600:50:1000;
-rangeV = [950];
+rangeV = [700];
+%rangeV = [600, 650, 700, 750, 800, 850, 900];
 %zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 zoom = [3000];
 
@@ -45,7 +42,7 @@ dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots4";
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 
 % Collect all information for No Laplacian case
-Tm = table;
+% Tm = table;
 % Collect all information for With Laplacian case
 TmL = table;
 indT = 1;
@@ -131,7 +128,7 @@ for rng = rangeV
                 lapImgSim = conv2(ImgSim, lKernel, 'same');  % Laplacian of Sim Image
     
                 % Collect ratio without Laplacian
-                cc = [];
+%                 cc = [];
                 % Collect ratio with Laplacian
                 cc_l = [];
                 % Identifier for patch
@@ -144,38 +141,38 @@ for rng = rangeV
                     for pcol = intv:szPatch+intv:img_w-szPatch
                            
                         % Define patch of Real Image
-                        ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+%                         ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         lapImgR_patch = vlapImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         %  FFT of real patches:  real and Laplacian
-                        r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
+%                         r_fft = fftshift(fft2(ImgR_patch)/numel(ImgR_patch));
                         lr_fft = fftshift(fft2(lapImgR_patch)/numel(lapImgR_patch));
                     
                         % Autocorrelation/convolution
-                        cv_rb = conv2(r_fft, conj(r_fft(end:-1:1, end:-1:1)), 'same');
+%                         cv_rb = conv2(r_fft, conj(r_fft(end:-1:1, end:-1:1)), 'same');
                         cv_lrb = conv2(lr_fft, conj(lr_fft(end:-1:1, end:-1:1)), 'same');
 
                         %Sum results (autocorrelation)
-                        s_01 = sum(abs(cv_rb(:)));
+%                         s_01 = sum(abs(cv_rb(:)));
                         sl_01 = sum(abs(cv_lrb(:)));
                         
                         % Patch of simulated image i 
-                        ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+%                         ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         lapImgSim_patch = lapImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % FFT of sim image and lap of sim image patches
-                        sim_fft = fftshift(fft2(ImgSim_patch)/numel(ImgSim_patch));
+%                         sim_fft = fftshift(fft2(ImgSim_patch)/numel(ImgSim_patch));
                         lsim_fft = fftshift(fft2(lapImgSim_patch)/numel(lapImgSim_patch));
     
                         % Cross correlation - Non-Laplacian and Laplacian
-                        cv_simRb = conv2(r_fft, conj(sim_fft(end:-1:1, end:-1:1)), 'same');
+%                         cv_simRb = conv2(r_fft, conj(sim_fft(end:-1:1, end:-1:1)), 'same');
                         cv_lsimRb = conv2(lr_fft, conj(lsim_fft(end:-1:1, end:-1:1)), 'same');
  
                         % Sum results (cross correlation) and calculate ratios 
-                        s_02 = sum(abs(cv_simRb(:)));
+%                         s_02 = sum(abs(cv_simRb(:)));
                         sl_02 = sum(abs(cv_lsimRb(:)));
                         % Ratios Non-Laplacian
-                        r_012 = s_02/s_01;
-                        r = 1-abs(1-r_012);  % Non-Laplacian metric
-                        cc(index) = r;  % Save results of all patches
+%                         r_012 = s_02/s_01;
+%                         r = 1-abs(1-r_012);  % Non-Laplacian metric
+%                         cc(index) = r;  % Save results of all patches
                         % Ratios Laplacian
                         rl012 = sl_02/sl_01;
                         rl = 1-abs(1-rl012);  % Laplacian metric
@@ -186,10 +183,10 @@ for rng = rangeV
                 end
                 % Calculate mean metric of all patches for this image and save to
                 % tables Tm and TmL
-                avg_r = mean(cc);  % non-Laplacian
+%                 avg_r = mean(cc);  % non-Laplacian
                 avg_rl = mean(cc_l); % Laplacian
         
-                Tm(indT,:) = {rng zm string(cstr{1}) simNamelist{i} ImgNames1{j} numPatches*numPatches avg_r}; % non-Laplacian
+%                 Tm(indT,:) = {rng zm string(cstr{1}) simNamelist{i} ImgNames1{j} numPatches*numPatches avg_r}; % non-Laplacian
                 TmL(indT,:) = {rng zm string(cstr{1}) simNamelist{i} ImgNames1{j} numPatches*numPatches avg_rl}; % Laplacian
                 indT = indT + 1;
             end
@@ -202,8 +199,14 @@ TmL = renamevars(TmL, TmL.Properties.VariableNames, varnames);
 TmL.filename = string(TmL.Simfilename);
 TmL.filename = string(TmL.Realfilename);
 
+% varnames = {'range', 'zoom', 'cn2str', 'Simfilename','Realfilename','numPatches', 'simMetric'};
+% Tm = renamevars(Tm, Tm.Properties.VariableNames, varnames);
+% Tm.filename = string(Tm.Simfilename);
+% Tm.filename = string(Tm.Realfilename);
+
 % Create table uniqT that contains unique values of range, zoom, cn2
 uniqT = unique(TmL(:,[1,2,3]), 'rows', 'stable');
+%uniqTm = unique(Tm(:,[1,2,3]), 'rows', 'stable');
 
 % Use "trubNums.csv" (created by Python file) to find r0 for plotting
 Tr0 = readtable(data_root + "modifiedBaselines\SimImgs_VaryingCn2\turbNums.csv");
@@ -213,12 +216,21 @@ Tr0.strcn2 = strrep(Tr0.strcn2,'-','');
 % Get mean value of similarity metric of all simulated images of same
 % zoom/range/cn2 and add to table uniqT
 for q = 1:height(uniqT)
+    %display(q)
     indG = find(TmL.range == uniqT.range(q) & TmL.zoom == uniqT.zoom(q) & TmL.cn2str == uniqT.cn2str(q));
     uniqT.sMetric(q) = mean(TmL.simMetric(indG));
     indR = find(Tr0.range == uniqT.range(q) & Tr0.strcn2 == uniqT.cn2str(q));
     uniqT.r0(q) = Tr0.r0(indR);
     uniqT.cn2(q) = Tr0.cn2(indR);
 end
+
+% for q = 1:height(uniqTm)
+%     indG = find(Tm.range == uniqTm.range(q) & Tm.zoom == uniqTm.zoom(q) & Tm.cn2str == uniqTm.cn2str(q));
+%     uniqTm.sMetric(q) = mean(Tm.simMetric(indG));
+%     indR = find(Tr0.range == uniqTm.range(q) & Tr0.strcn2 == uniqTm.cn2str(q));
+%     uniqTm.r0(q) = Tr0.r0(indR);
+%     uniqTm.cn2(q) = Tr0.cn2(indR);
+% end
 
 % % Save Tm and TmL
 % writetable(Tm, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\Tm.csv");
@@ -231,6 +243,7 @@ T_atmos = readtable(fileA);
 % Plot by range with different colors for zoom
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
+% uniqTm = sortrows(uniqTm,["range","zoom","r0"]);
 % writetable(uniqT, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\uniqT.csv");
 
 % Create straight and semilogx plots
@@ -310,4 +323,84 @@ for rngP = rangeV
     savefig(ffg,fileNf)
     close(ffg)
 end
+% %%%%%%%%%%%%%%%%%%%%%%%%% Tm  %%%%%%%%%%%%%%%%%%
+% % Create straight and semilogx plots
+% for rngP = rangeV
+%     ffg = figure();
+%     legendL = [];
+%     for zmP = zoom
+%         % Get real image's measured cn2 and r0
+%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
+%         r0_c = T_atmos{ida,"r0"};
+%         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
+%         % Setup legend entry
+%         txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c) + " Cn2 " + num2str(cn_t);
+%         legendL = [legendL; txt];
+%         % Find indexes in uniqT with same range and zoom but different Cn2
+%         % values
+%         indP = find(uniqTm.range == rngP & uniqTm.zoom == zmP);
+%         plot(uniqTm.r0(indP), uniqTm.sMetric(indP), '-o',...
+%             'LineWidth',2,...
+%             'MarkerSize',3)
+%         hold on
+%     end
+%     grid on
+%     fileN = fullfile(dirOut, "r" + num2str(rngP) + strPtch + ".png");
+%     fileNf = fullfile(dirOut, "r" + num2str(rngP) + strPtch + ".fig");
+%     title("Non-Laplacian Metric: Range: " + num2str(rngP) + titlePtch)
+%     legend(legendL, 'location', 'northeastoutside')
+%     xlim([min(uniqTm.r0(indP)),max(uniqTm.r0(indP))])
+%     xlabel("Fried's Parameter r_0")
+%     ylabel("Mean Similarity Metric M_0_1")
+%     x0=10;
+%     y0=10;
+%     width=900;
+%     height=400;
+%     
+% %     set(gcf,'position',[x0,y0,width,height])
+% %     f = gcf;
+% %     exportgraphics(f,fileN,'Resolution',300)
+% %     savefig(ffg,fileNf)
+% %     close(ffg)
+% end
+% %%%%%%%%%%%%%%%%%%%%%%%%% Tm  %%%%%%%%%%%%%%%%%%
+% % Plot against log(r0) Semi Log Plot
+% for rngP = rangeV
+%     ffg = figure();
+%     legendL = [];
+%     for zmP = zoom
+%         % Get real image's measured cn2 and r0
+%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
+%         r0_c = T_atmos{ida,"r0"};
+%         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
+%         % Setup legend entry
+%         txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c) + " Cn2 " + num2str(cn_t);
+%         legendL = [legendL; txt];
+%         % Find indexes in uniqTm with same range/zoom but different Cn2 values
+%         indP = find(uniqTm.range == rngP & uniqTm.zoom == zmP);
+%         semilogx(uniqTm.r0(indP), uniqTm.sMetric(indP), '-o',...
+%             'LineWidth',2,...
+%             'MarkerSize',4)
+%         hold on
+%     end
+%     grid on
+%     fileN = fullfile(dirOut,"Logr" + num2str(rngP) + strPtch + ".png");
+%     fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + strPtch + ".fig");
+%     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch) 
+%     legend(legendL, 'location', 'northeastoutside')
+%     xlim([min(uniqTm.r0(indP)),max(uniqTm.r0(indP))])
+%     xlabel("Fried's Parameter r_0")
+%     ylabel("Mean Similarity Metric M_0_1")
+%     x0=10;
+%     y0=10;
+%     width=900;
+%     height=400;
+%      set(gcf,'position',[x0,y0,width,height])
+% %     f = gcf;
+% %     exportgraphics(f,fileN,'Resolution',300)
+% %     savefig(ffg,fileNf)
+% %     close(ffg)
+% end
+
+
 
