@@ -111,11 +111,11 @@ for rng = rangeV
                 for prow = intv:szPatch+intv:img_h-szPatch
                     for pcol = intv:szPatch+intv:img_w-szPatch
                         % Patch of real image j   
-                        lapImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % Patch of reference real image  
-                        lapImgRef_patch = vImgR{1,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgRef_patch = vImgR{1,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
 
-                        m = turbulence_metric_noBL(lapImgR_patch, lapImgRef_patch);
+                        m = turbulence_metric_noBL(ImgR_patch, ImgRef_patch);
                         cc_l(index) = m; % Save results of all patches
                         index = index + 1;
                    end
