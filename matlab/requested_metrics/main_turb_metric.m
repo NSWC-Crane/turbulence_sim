@@ -2,20 +2,8 @@
 % directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2.
 % The similarity metrics are calculated with all of the 20 sharpest images 
 % and all of the simulated images created with varying cn2/r0 values
-
-% Note:
-% 1. Calculates Laplacian before creating patches
-% 2. Does not use baseline image
-% 3. Does not subtract mean of image
-% 4. Averages metrics using all simulated images and all 20 sharpest real, 
-%    if allreals is set to true.
-
-% To Do:
-% 1.  Add annotation/text to show max metric for each zoom value on plot.
-% 2.  Add column to tables TmL and uniqT to store standard deviation of patches and in metrics
-% overall
-% 3.  Change units of Fried Parameter to centimeters
-% 4.  Add abilty to use simulated image as the reference image.
+% The plots show the max metric and the corresponding expected value based
+% on the real image at the range/zoom/Cn2 values.
 
 clearvars
 clc
