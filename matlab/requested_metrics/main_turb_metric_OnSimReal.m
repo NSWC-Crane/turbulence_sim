@@ -1,7 +1,9 @@
 % For each range/zoom value, this script calculates similarity metrics on files in the
 % directory C:\Data\JSSAP\modifiedBaselines\NewSimulations\SimReal.
-% The similarity metrics can be calculated with all of the 20 sharpest images 
-% and all of the simulated images.
+% The similarity metrics are calculate using one or all sharpest real
+% images as the reference and all of the 20 simulated images.  These
+% simulated images were created with the new simulated image code using the
+% Cn2 and Range of the real images.
 
 clearvars
 clc
@@ -10,6 +12,8 @@ clc
 onePatch = true;  % Create only one large patch if true
 savePlots = true;
 allreals = false; % If true, metrics will be calculated using all real images and all simulated images.
+subtractMean = true;
+useLaplacian = false;
 
 rangeV = 600:50:1000;
 %rangeV = [650];
@@ -29,7 +33,18 @@ end
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\NewSimulations\SimReal\";
 % Location to save plots
-dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal\Plots\";
+if onePatch == true
+    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal\Plots\OnePatch";
+    patchTitle = " (One Patch)";
+else
+    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal\Plots\MultiPatches";
+    patchTitle = " (MultiPatches)";
+end
+if useLaplacian == true
+ dirOut = dirOut + "\Lap";
+else
+ dirOut = dirOut + "\NoLap";
+end
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
@@ -57,9 +72,21 @@ for rng = rangeV
             % Import real image
             vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i}))); % Select 1st filename
             vImgR{i,1}= vImgR{i,1}(:,:,2);  % Real image for comparison - only green channel
-
-            % Find Laplacian of Image
-            vlapImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
+            if subtractMean == true
+                vImgR{i,1}= vImgR{i,1} - mean(vImgR{i,1},'all');
+                meanTitle = " - Subtracted Mean";
+                meanOut = "SubMean";
+            end
+            if useLaplacian == true
+                % Find Laplacian of Image
+                vImgR_preLap = vImgR;
+                vImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
+                lapTitle = " Laplacian";
+                lapOut = "Lap";
+            else
+                lapTitle = " Non-Laplacian";
+                lapOut = "NoLap";        
+            end
         end
 
         % Get the corresponding simulated images using the 
@@ -78,19 +105,14 @@ for rng = rangeV
             end
         end
         
-        % Performing metrics
         % Setup patches - Assume square images so we'll just use the image height (img_h)
         [img_h, img_w] = size(vImgR{1,1});
         % Size of subsections of image for metrics
         if onePatch == true
             numPixNot = 10;
             szPatch = floor(img_h-numPixNot);
-            strPtch = "_OnePtch";
-            titlePtch = " (One Patch)";
         else
             szPatch = 62;
-            strPtch = "";
-            titlePtch = "";
         end
 
         numPatches = floor(img_h/szPatch);
@@ -101,16 +123,22 @@ for rng = rangeV
         end
         
         intv = floor(remaining_pixels/(numPatches + 1));
-              
+        
+        % Performing metrics
         % Compare to simulated images to real images at same zoom/range
         for j = 1:length(vImgR)
             for i = 1:length(simNamelist)
                 % Read in a simulated image in namelist
                 ImgSim = double(imread(fullfile(dirSims, simNamelist{i}))); % Sim Image
+                if subtractMean == true
+                    ImgSim= ImgSim - mean(ImgSim,'all');
+                end
+                if useLaplacian == true
+                % Find Laplacian of Image
+                    ImgSim_preLap = ImgSim;
+                    ImgSim = conv2(ImgSim, lKernel, 'same'); % Laplacian of Sim Img
+                end
                 
-                % Find Laplacian of image
-                lapImgSim = conv2(ImgSim, lKernel, 'same');  % Laplacian of Sim Image
-    
                 % Collect ratio with Laplacian
                 cc_l = [];
                 % Identifier for patch
@@ -122,11 +150,11 @@ for rng = rangeV
                 for prow = intv:szPatch+intv:img_h-szPatch
                     for pcol = intv:szPatch+intv:img_w-szPatch
                         % Patch of real image j   
-                        lapImgR_patch = vlapImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % Patch of simulated image 
-                        lapImgSim_patch = lapImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
 
-                        m = turbulence_metric_noBL(lapImgR_patch, lapImgSim_patch);
+                        m = turbulence_metric_noBL(ImgR_patch, ImgSim_patch);
                         cc_l(index) = m; % Save results of all patches
                         index = index + 1;
                    end
@@ -191,7 +219,8 @@ uniqT = sortrows(uniqT,["range","zoom","r0"]);
 
 
 %% Plots
-plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
+plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F",...
+    "#FF0000","#00FFFF"];
 plots_legend = [];
 x = 1:20;
 for rngP = rangeV
@@ -215,10 +244,12 @@ for rngP = rangeV
     end
     hold off
     grid on
-    title("Simulation Metric: Range: " + num2str(rngP) + titlePtch) 
+    title("Range " + num2str(rngP) + ":" + lapTitle + patchTitle);
     legend(plots_legend,legendL, 'location', 'eastoutside')
     %xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
-    xlabel("Image Number")
+    ylim([0,1.0])
+    xlim([1,20])
+    xlabel("Simulted Image Number")
     ylabel("Similarity Metric")
     x0=10;
     y0=10;
@@ -227,8 +258,39 @@ for rngP = rangeV
     set(gcf,'position',[x0,y0,width,ht])
     if savePlots == true
         f = gcf;
-        fn = "NewSim_SimulatedRealsMetrics_r" + num2str(rngP) + strPtch + ".png";
+        fn = "NewSim_SimulatedRealsMetrics_r" + num2str(rngP) + ".png";
         fileN = fullfile(dirOut,fn);
         exportgraphics(f,fileN,'Resolution',300)
     end
+end
+
+% Plot 2 - For each range, mean metric vs zoom value
+figure()
+legd = [];
+
+ic = 1;
+for rngP = rangeV
+    rngstr = "" + num2str(rngP) + " ";
+    legd = [legd; rngstr];
+    idr = find(uniqT.range == rngP);
+    plot(uniqT.zoom(idr),uniqT.sMetric(idr), '-o','Color',plotcolors(ic),...
+            'LineWidth',2,'MarkerSize',4)
+    xlim([2000,5000])
+    ylim([0.0,1.0])
+    hold on
+    ic = ic + 1;
+end
+title("All Ranges:" + lapTitle + patchTitle);
+legend(legd,'location','eastoutside')
+xlabel('Zoom')
+ylabel('Mean Metric')
+x0=10;
+y0=10;
+width=700;
+ht=400;
+set(gcf,'position',[x0,y0,width,ht])
+if savePlots == true
+    f = gcf;
+    fileN = fullfile(dirOut,"RealToReal_MeanMetrics.png");
+    exportgraphics(f,fileN,'Resolution',300)
 end
