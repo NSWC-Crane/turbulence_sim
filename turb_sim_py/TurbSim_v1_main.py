@@ -23,7 +23,7 @@ import scipy.integrate as integrate
 from integrals_spatial_corr import save_In, In_m, I0, I2
 from math import gamma
 from motion_compensate import motion_compensate
-
+import time
 
 def p_obj(N, D, L, r0, wvl, obj_size):
     """
@@ -116,19 +116,20 @@ def genTiltImg(img, p_obj):
     :return: The output, tilted image
     """
     flag_noPSD = 0
+    std = 0.6
     if (p_obj.get('S') == None).any():
         S = gen_PSD(p_obj)
         p_obj['S'] = S
         flag_noPSD = 1
-    MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVx = np.real(np.fft.ifft2(p_obj['S'] * std * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     MVx = MVx[int(round(p_obj['N'] / 2)):2 * p_obj['N'] - int(round(p_obj['N'] / 2)), 0: p_obj['N']]
-    MVx = gaussian_filter(MVx, sigma=3, mode='reflect')
+    MVx = gaussian_filter(MVx, sigma=1.5, mode='reflect')
 
     #MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0: p_obj['N']]
 
-    MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+    MVy = np.real(np.fft.ifft2(p_obj['S'] * std * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
     MVy = MVy[0:p_obj['N'], int(round(p_obj['N'] / 2)): 2 * p_obj['N'] - int(round(p_obj['N'] / 2))]
-    MVy = gaussian_filter(MVy, sigma=3, mode='reflect')
+    MVy = gaussian_filter(MVy, sigma=1.5, mode='reflect')
     #MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2): 2 * p_obj['N'] - round(p_obj['N'] / 2)]
 
     img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
@@ -143,27 +144,47 @@ def genTiltImg(img, p_obj):
 
 def genBlurImage(p_obj, img):
     smax = p_obj['delta0'] / p_obj['D'] * p_obj['N']
-    temp = np.arange(1,101)
-    patchN = temp[np.argmin((smax*np.ones(100)/temp - 2)**2)]
-    patch_size = int(round(p_obj['N'] / patchN))
-    xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, patchN))
+    temp_line = np.arange(1,101)
+    patchN = temp_line[np.argmin((smax*np.ones(100)/temp_line - 2)**2)]
+    patch_size = int(round(1.0*p_obj['N'] / patchN))
+    xtemp = np.round_(p_obj['N']/(2*patchN) + np.linspace(0, p_obj['N'] - p_obj['N']/patchN + 0.001, int(patchN)))
     xx, yy = np.meshgrid(xtemp, xtemp)
     xx_flat, yy_flat = xx.flatten(), yy.flatten()
-    NN = 32 # For extreme scenarios, this may need to be increased
+    NN = 28         # default=32 --> For extreme scenarios, this may need to be increased
     img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN**2)))
+    img_patches2 = np.zeros((p_obj['N'], p_obj['N'], int(patchN**2)))
     den = np.zeros((p_obj['N'], p_obj['N']))
+    den2 = np.zeros((p_obj['N'], p_obj['N']))
     patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size+0.001, num=2*patch_size+1), np.linspace(-patch_size, patch_size+0.001, num=2*patch_size+1))
 
     k = np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1)))
+    # k_sum = np.sum(k)
+    # k = k/k_sum
     k_size = int(k.shape[0]/2)
 
+    den_list = []
+    den_list2 = []
+    psf_list = []
+    pm_list = []
+    ip_list = []
+    ip_list2 = []
+
     for i in range(int(patchN**2)):
+        tic = time.perf_counter()
+
         aa = genZernikeCoeff(36, p_obj['Dr0'])
+
         temp, x, y, nothing, nothing2 = psfGen(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
         psf = np.abs(temp) ** 2
-        psf = psf / np.sum(psf.ravel())
-        # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+        # psf = np.abs(temp)
+        psf = psf / np.sum(psf)
+        psf, _, _ = centroidPsf(psf, 0.9)          #: 0.95 default, Depending on the size of your PSFs, you may want to use this
+
         psf = resize(psf, (round(NN/p_obj['scaling']), round(NN/p_obj['scaling'])))
+        psf_list.append(psf)
+        toc = time.perf_counter()
+        print(f"psf time (s):  {toc - tic:0.8f} ")
+
         patch_mask = np.zeros((p_obj['N'], p_obj['N']))
         #print('xx ', xx_flat[i], ' yy ', yy_flat[i])
         roundXX = int(round(xx_flat[i]))
@@ -198,17 +219,30 @@ def genBlurImage(p_obj, img):
         patch_mask[roundXX, roundYY] = 1
         # patch_mask[min_x:max_x, min_y:max_y] = k[min_kx:max_kx, min_ky:max_ky]
 
-
-
         # patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx**2/patch_size**2)*np.exp(-patch_indy**2/patch_size**2)*np.ones((int(patch_size*2+1), int(patch_size*2+1))), mode='same')
         patch_mask = scipy.signal.fftconvolve(patch_mask, k, mode='same')
-        den += scipy.signal.fftconvolve(patch_mask, psf, mode='same')
+        pm_list.append(patch_mask)
+
+        tmp_den = scipy.signal.fftconvolve(patch_mask, psf, mode='same')
+        den_list.append(tmp_den)
+        den += tmp_den
+        den_list2.append((patch_mask))
+        den2 += patch_mask
 
         tmp_ip = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
+        ip_list.append(tmp_ip)
         img_patches[:, :, i] = tmp_ip
+
+        tmp_ip = scipy.signal.fftconvolve(img, psf, mode='same') * den_list[i]
+        img_patches2[:, :, i] = tmp_ip
+        ip_list2.append(tmp_ip)
+
         # img_patches[:,:,i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode='same')
 
     out_img = np.sum(img_patches, axis=2) / (den + 0.000001)
+
+    out_img2 = np.sum(img_patches2, axis=2) / (den + 0.000001)
+
     return out_img
 
 

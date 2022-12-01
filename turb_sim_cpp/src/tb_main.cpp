@@ -41,18 +41,16 @@ typedef void* HINSTANCE;
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
 
-//#include <gsl/gsl_linalg.h>
+#define USE_LIB
 
-// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c
-#define ACC 40.0
-#define BIGNO 1.0e10
-#define BIGNI 1.0e-10
 
-// ----------------------------------------------------------------------------------------
-//bool compare(std::pair<uint8_t, uint8_t> p1, std::pair<uint8_t, uint8_t> p2)
-//{
-//    return std::max(p1.first, p1.second) < std::max(p2.first, p2.second);
-//}
+#if defined(USE_LIB)
+#include "turb_sim_lib.h"
+
+typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
+typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+
+#endif
 
 // ----------------------------------------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, std::vector<uint8_t>& item)
@@ -77,182 +75,6 @@ inline std::ostream& operator<<(std::ostream& out, std::vector<T>& item)
     return out;
 }
 
-
-static double bessj0(double x)
-//------------------------------------------------------------
-// PURPOSE: Evaluate Bessel function of first kind and order  
-//          0 at input x   
-// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c                                   
-//------------------------------------------------------------
-{
-    double ax, z;
-    double xx, y, ans, ans1, ans2;
-
-    if ((ax = fabs(x)) < 8.0) {
-        y = x * x;
-        ans1 = 57568490574.0 + y * (-13362590354.0 + y * (651619640.7
-            + y * (-11214424.18 + y * (77392.33017 + y * (-184.9052456)))));
-        ans2 = 57568490411.0 + y * (1029532985.0 + y * (9494680.718
-            + y * (59272.64853 + y * (267.8532712 + y * 1.0))));
-        ans = ans1 / ans2;
-    }
-    else {
-        z = 8.0 / ax;
-        y = z * z;
-        xx = ax - 0.785398164;
-        ans1 = 1.0 + y * (-0.1098628627e-2 + y * (0.2734510407e-4
-            + y * (-0.2073370639e-5 + y * 0.2093887211e-6)));
-        ans2 = -0.1562499995e-1 + y * (0.1430488765e-3
-            + y * (-0.6911147651e-5 + y * (0.7621095161e-6
-                - y * 0.934935152e-7)));
-        ans = sqrt(0.636619772 / ax) * (cos(xx) * ans1 - z * sin(xx) * ans2);
-    }
-    return ans;
-}
-
-static double bessj1( double x )
-//------------------------------------------------------------
-// PURPOSE: Evaluate Bessel function of first kind and order  
-//          1 at input x                                      
-// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c
-//------------------------------------------------------------
-{
-   double ax,z;
-   double xx,y,ans,ans1,ans2;
-
-   if ((ax=fabs(x)) < 8.0) {
-      y=x*x;
-      ans1=x*(72362614232.0+y*(-7895059235.0+y*(242396853.1
-         +y*(-2972611.439+y*(15704.48260+y*(-30.16036606))))));
-      ans2=144725228442.0+y*(2300535178.0+y*(18583304.74
-         +y*(99447.43394+y*(376.9991397+y*1.0))));
-      ans=ans1/ans2;
-   } else {
-      z=8.0/ax;
-      y=z*z;
-      xx=ax-2.356194491;
-      ans1=1.0+y*(0.183105e-2+y*(-0.3516396496e-4
-         +y*(0.2457520174e-5+y*(-0.240337019e-6))));
-      ans2=0.04687499995+y*(-0.2002690873e-3
-         +y*(0.8449199096e-5+y*(-0.88228987e-6
-         +y*0.105787412e-6)));
-      ans=sqrt(0.636619772/ax)*(cos(xx)*ans1-z*sin(xx)*ans2);
-      if (x < 0.0) ans = -ans;
-   }
-   return ans;
-}
-
-double bessj( int n, double x )
-//------------------------------------------------------------
-// PURPOSE: Evaluate Bessel function of first kind and order  
-//          n at input x                                      
-// The function can also be called for n = 0 and n = 1.   
-// https://www.atnf.csiro.au/computing/software/gipsy/sub/bessel.c    
-//------------------------------------------------------------
-{
-   int    j, jsum, m;
-   double ax, bj, bjm, bjp, sum, tox, ans;
-
-
-   if (n < 0)
-   {
-      double   dblank = 0;              // mod
-      //setdblank_c( &dblank );         // mod
-      return( dblank );
-   }
-   ax=fabs(x);
-   if (n == 0)
-      return( bessj0(ax) );
-   if (n == 1)
-      return( bessj1(ax) );
-      
-
-   if (ax == 0.0)
-      return 0.0;
-   else if (ax > (double) n) {
-      tox=2.0/ax;
-      bjm=bessj0(ax);
-      bj=bessj1(ax);
-      for (j=1;j<n;j++) {
-         bjp=j*tox*bj-bjm;
-         bjm=bj;
-         bj=bjp;
-      }
-      ans=bj;
-   } else {
-      tox=2.0/ax;
-      m=2*((n+(int) sqrt(ACC*n))/2);
-      jsum=0;
-      bjp=ans=sum=0.0;
-      bj=1.0;
-      for (j=m;j>0;j--) {
-         bjm=j*tox*bj-bjp;
-         bjp=bj;
-         bj=bjm;
-         if (fabs(bj) > BIGNO) {
-            bj *= BIGNI;
-            bjp *= BIGNI;
-            ans *= BIGNI;
-            sum *= BIGNI;
-         }
-         if (jsum) sum += bj;
-         jsum=!jsum;
-         if (j == n) ans=bjp;
-      }
-      sum=2.0*sum-bj;
-      ans /= sum;
-   }
-   return  x < 0.0 && n%2 == 1 ? -ans : ans;
-}
-
-
-
-double BESSJ0(double X) {
-    /***********************************************************************
-          This subroutine calculates the First Kind Bessel Function of
-          order 0, for any real number X. The polynomial approximation by
-          series of Chebyshev polynomials is used for 0<X<8 and 0<8/X<1.
-          REFERENCES:
-          M.ABRAMOWITZ,I.A.STEGUN, HANDBOOK OF MATHEMATICAL FUNCTIONS, 1965.
-          C.W.CLENSHAW, NATIONAL PHYSICAL LABORATORY MATHEMATICAL TABLES,
-          VOL.5, 1962.
-    ************************************************************************/
-    const double
-        P1 = 1.0, P2 = -0.1098628627E-2, P3 = 0.2734510407E-4,
-        P4 = -0.2073370639E-5, P5 = 0.2093887211E-6,
-        Q1 = -0.1562499995E-1, Q2 = 0.1430488765E-3, Q3 = -0.6911147651E-5,
-        Q4 = 0.7621095161E-6, Q5 = -0.9349451520E-7,
-        R1 = 57568490574.0, R2 = -13362590354.0, R3 = 651619640.7,
-        R4 = -11214424.18, R5 = 77392.33017, R6 = -184.9052456,
-        S1 = 57568490411.0, S2 = 1029532985.0, S3 = 9494680.718,
-        S4 = 59272.64853, S5 = 267.8532712, S6 = 1.0;
-    double
-        AX, FR, FS, Z, FP, FQ, XX, Y, TMP;
-
-    if (X == 0.0) return 1.0;
-    AX = fabs(X);
-    if (AX < 8.0) {
-        Y = X * X;
-        FR = R1 + Y * (R2 + Y * (R3 + Y * (R4 + Y * (R5 + Y * R6))));
-        FS = S1 + Y * (S2 + Y * (S3 + Y * (S4 + Y * (S5 + Y * S6))));
-        TMP = FR / FS;
-    }
-    else {
-        Z = 8. / AX;
-        Y = Z * Z;
-        XX = AX - 0.785398164;
-        FP = P1 + Y * (P2 + Y * (P3 + Y * (P4 + Y * P5)));
-        FQ = Q1 + Y * (Q2 + Y * (Q3 + Y * (Q4 + Y * Q5)));
-        TMP = sqrt(0.636619772 / AX) * (FP * cos(XX) - Z * FQ * sin(XX));
-    }
-    return TMP;
-}
-
-double Sign(double X, double Y) {
-    if (Y < 0.0) return (-fabs(X));
-    else return (fabs(X));
-}
-
 //-----------------------------------------------------------------------------
 int main(int argc, char** argv)
 {
@@ -275,6 +97,7 @@ int main(int argc, char** argv)
 
     std::string window_name = "image";
 
+    std::string lib_filename;
 
 
     //if (argc == 1)
@@ -293,12 +116,6 @@ int main(int argc, char** argv)
     // do work here
     try
     {    
-        const cv::Range xgv = cv::Range(1, 3);
-        const cv::Range ygv = cv::Range(0, 5);
-        cv::Mat Y;
-        //meshgrid(xgv, ygv, X, Y);
-
-        //meshgrid(-31.5, 31.5, 1.0, -31.5, 31.5, 1.0, X, Y);
 
         //cv::Mat r;
         //cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
@@ -314,67 +131,112 @@ int main(int argc, char** argv)
         //}
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
-        
+
+
+#if defined(USE_LIB)
+    // load in the library
+    #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+        lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
+        HINSTANCE turb_lib = LoadLibrary(lib_filename.c_str());
+
+        if (turb_lib == NULL)
+        {
+            throw std::runtime_error("error loading library");
+        }
+
+        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)GetProcAddress(turb_lib, "init_turbulence_params");
+        lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
+
+    #else
+        lib_filename = "../../turb_sim_lib/build/turb_sim.so";
+        void* turb_lib = dlopen(lib_filename.c_str(), RTLD_NOW);
+
+        if (turb_lib == NULL)
+        {
+            throw std::runtime_error("error loading library");
+        }
+
+        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)dlsym(turb_lib, "init_turbulence_params");
+        lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
+
+    #endif
+
+#endif      
 
         bp = 1;
+//        std::string filename = "../../data/checker_board_32x32.png";
+        //std::string filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+        std::string filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
         cv::Mat img;
-        cv::Mat tmp_img = cv::imread("../../data/checker_board_32x32.png", cv::IMREAD_ANYCOLOR);
+        cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
+
         if (tmp_img.channels() >= 3)
         {
-            tmp_img.convertTo(tmp_img, CV_64FC3, 1.0/255.0);
+            //tmp_img.convertTo(tmp_img, CV_64FC3, 1.0 / 255.0);
+            tmp_img.convertTo(tmp_img, CV_64FC3);
             tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
-            tmp_img.convertTo(tmp_img, CV_64FC1, 1.0/255.0);
+            //tmp_img.convertTo(tmp_img, CV_64FC1, 1.0 / 255.0);
+            tmp_img.convertTo(tmp_img, CV_64FC1);
         }
 
-        uint32_t N = 256;
-        img = tmp_img(cv::Rect(16, 16, N, N));
+        //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
+        uint32_t N = 200;
+        img = tmp_img(cv::Rect(0, 0, N, N));
 
-        double pixel = 0.00246;
+        double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
         double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
-        double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 5e-14;
+        //double k = 2 * CV_PI / wavelenth;
+        double Cn2 = 1e-13;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
-        double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
+        //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
-        turbulence_param P(N, D, L, r0, wavelenth, obj_size);
-
-        //-----------------------------------------------------------------------------
-        // test code
-        cv::RNG rng;
+#if defined(USE_LIB)
+        init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
+#else
+        turbulence_param P(N, D, L, Cn2, wavelenth, obj_size);
+#endif
 
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
-        cv::Mat img_blur;
+        cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat montage;
         char key = 0;
 
         cv::resizeWindow(window_name, 4*N, 2*N);
 
         while(key != 'q')
-        //for (idx = 0; idx < 10; ++idx)
         {
             start_time = std::chrono::system_clock::now();
 
+
+
+#if defined(USE_LIB)
+
+            apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+#else
             generate_tilt_image(img, P, rng, img_tilt);
 
             generate_blur_image(img_tilt, P, rng, img_blur);
+#endif
+
+            //img_blur.convertTo(img_blur, CV_8UC1);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::hconcat(img_tilt, img_blur, montage);
-            cv::imshow(window_name, montage);
-            key = cv::waitKey(10);
+            cv::hconcat(img, img_blur, montage);
+            cv::imshow(window_name, montage/255.0);
+            key = cv::waitKey(0);
         }
         bp = 2;
 
@@ -382,11 +244,13 @@ int main(int argc, char** argv)
     catch(std::exception& e)
     {
         std::cout << "Error: " << e.what() << std::endl;
+        std::cout << "Filename: " << __FILE__ << std::endl;
+        std::cout << "Line #: " << __LINE__ << std::endl;
     }
 
+    cv::destroyAllWindows();
     std::cout << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
-    cv::destroyAllWindows();
 
 }   // end of main
 
