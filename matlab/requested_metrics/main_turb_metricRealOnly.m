@@ -7,8 +7,10 @@ clearvars
 clc
 
 % % OPTIONS
-onePatch = false;  % Create only one large patch if true
+onePatch = true;  % Create only one large patch if true
 savePlots = true;
+subtractMean = true;
+useLaplacian = true;
 
 rangeV = 600:50:1000;
 %rangeV = [600,700];
@@ -28,8 +30,10 @@ end
 % Location to save plots
 if onePatch == true
     dirOut = data_root + "turb_metrics_RealsOnly_Plots\OnePatch";
+    patchTitle = " (One Patch)";
 else
     dirOut = data_root + "turb_metrics_RealsOnly_Plots\MultiPatches";
+    patchTitle = " (MultiPatches)";
 end
 
 % Laplacian kernel
@@ -51,12 +55,24 @@ for rng = rangeV
         % Setup vector of real images vImgR
         for i = 1:length(ImgNames1) 
             % Import real image
-            vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i}))); % Select 1st filename
-            vImgR{i,1}= vImgR{i,1}(:,:,2);  % Real image for comparison - only green channel
-
-            % Find Laplacian of Image
-            vlapImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
-        end
+            vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i}))); 
+            vImgR{i,1}= vImgR{i,1}(:,:,2);  % Only green channel
+            if subtractMean == true
+                vImgR{i,1}= vImgR{i,1} - mean(vImgR{i,1},'all');
+                meanTitle = " - Subtracted Mean";
+                meanOut = "SubMean";
+            end
+            if useLaplacian == true
+                % Find Laplacian of Image
+                vImgR_preLap = vImgR;
+                vImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
+                lapTitle = " Laplacian";
+                lapOut = "Lap";
+            else
+                lapTitle = " Non-Laplacian";
+                lapOut = "NoLap";        
+            end
+       end
               
         % Performing metrics
         % Setup patches - Assume square images so we'll just use the image height (img_h)
@@ -83,7 +99,7 @@ for rng = rangeV
         intv = floor(remaining_pixels/(numPatches + 1));
               
         % Compare to one real image to all 20 real images with same zoom/range
-        for j = 1:length(vlapImgR)
+        for j = 1:length(vImgR)
                 
                 % Collect ratio with Laplacian
                 cc_l = [];
@@ -95,9 +111,9 @@ for rng = rangeV
                 for prow = intv:szPatch+intv:img_h-szPatch
                     for pcol = intv:szPatch+intv:img_w-szPatch
                         % Patch of real image j   
-                        lapImgR_patch = vlapImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        lapImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % Patch of reference real image  
-                        lapImgRef_patch = vlapImgR{1,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        lapImgRef_patch = vImgR{1,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
 
                         m = turbulence_metric_noBL(lapImgR_patch, lapImgRef_patch);
                         cc_l(index) = m; % Save results of all patches
@@ -177,10 +193,23 @@ for rngP = rangeV
         hold on
     end
     hold off
-    title("Range " + num2str(rngP));
+    title("Range " + num2str(rngP) + ":" + lapTitle + patchTitle);
+    xax = [];
+    for x = 0:19
+        if x < 10
+            txt = "i0" + num2str(x);
+            xax = [xax;txt];
+        else
+            txt = "i" + num2str(x);
+            xax = [xax;txt];
+        end
+    end
+    
     xlim([1,20])
     ylim([0.55,1.0])
     xlabel("Image Number")
+    xticks(1:20)
+    xticklabels(xax)
     ylabel("Metric")
     legend(legd, 'location', 'eastoutside')
     x0=10;
@@ -211,9 +240,10 @@ for rngP = rangeV
     hold on
     ic = ic + 1;
 end
+title("All Ranges:" + lapTitle + patchTitle);
 legend(legd,'location','eastoutside')
 xlabel('Zoom')
-ylabel('Metric')
+ylabel('Mean Metric')
 x0=10;
 y0=10;
 width=700;
