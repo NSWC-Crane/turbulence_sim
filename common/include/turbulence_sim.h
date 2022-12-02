@@ -248,10 +248,10 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
 
         // aa = genZernikeCoeff(36, p_obj['Dr0'])
-        generate_zernike_coeff(36, p.get_D_r0(), coeff, rng);
+        //generate_zernike_coeff(36, p.get_D_r0(), coeff, rng);
 
         // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-        generate_psf(NN, p, coeff, temp_psf, z_i, pad_size);
+        generate_psf(NN, p, rng, temp_psf, z_i, pad_size);
         
         //psf = np.abs(temp) * *2
         psf = abs_cmplx(temp_psf);
@@ -260,7 +260,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         // psf = psf / np.sum(psf.ravel())
         psf_sum = cv::sum(psf)[0];
         psf *= 1.0 / psf_sum;
-        centroid_psf(psf, 0.9);
+        centroid_psf(psf, 0.98);
         
         // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
