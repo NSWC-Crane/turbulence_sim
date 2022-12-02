@@ -37,18 +37,16 @@ typedef void* HINSTANCE;
 #include <num2string.h>
 #include <file_ops.h>
 
-//#include "cv_dft_conv.h"
-#include "turbulence_param.h"
-#include "turbulence_sim.h"
-
-#define USE_LIB
-
+//#define USE_LIB
 
 #if defined(USE_LIB)
 #include "turb_sim_lib.h"
 
 typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
 typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+#else
+#include "turbulence_param.h"
+#include "turbulence_sim.h"
 
 #endif
 
@@ -165,8 +163,8 @@ int main(int argc, char** argv)
 
         bp = 1;
 //        std::string filename = "../../data/checker_board_32x32.png";
-        //std::string filename = "D:/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
-        std::string filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+        std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
+        //std::string filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
         cv::Mat img;
         cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
 
@@ -187,13 +185,13 @@ int main(int argc, char** argv)
         uint32_t N = 200;
         img = tmp_img(cv::Rect(0, 0, N, N));
 
-        double pixel = 0.004217;    // 0.004217; 0.00246
+        double pixel = 0.0025;    // 0.004217; 0.00246
         double D = 0.095;
-        double L = 1000;
+        double L = 600;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         //double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1e-13;
+        double Cn2 = 1e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
