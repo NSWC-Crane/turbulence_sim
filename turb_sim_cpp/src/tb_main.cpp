@@ -36,6 +36,7 @@ typedef void* HINSTANCE;
 // custom includes
 #include <num2string.h>
 #include <file_ops.h>
+#include <opencv_helper.h>
 
 //#define USE_LIB
 
@@ -163,8 +164,9 @@ int main(int argc, char** argv)
 
         bp = 1;
 //        std::string filename = "../../data/checker_board_32x32.png";
-        std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
-        //std::string filename = "C:/Projects/data/turbulence/sharpest/z5000/baseline_z5000_r1000.png";
+        //std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
+        std::string filename = "C:/Projects/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
+
         cv::Mat img;
         cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
 
@@ -182,8 +184,8 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 128;
-        img = tmp_img(cv::Rect(0, 0, N, N));
+        uint32_t N = 256;
+        img = tmp_img(cv::Rect(0, 0, N, N)).clone();
 
         double pixel = 0.0025;    // 0.004217; 0.00246
         double D = 0.095;
