@@ -1,7 +1,8 @@
-% Modify tub_sim_lib_example to create simulated images of each real
-% image, using the range/Cn2 of real image.
-% Create plots of mod baseline, real image, simulated image
-% Create 20 simulated images of each real image to run metrics
+% This file was created from tub_sim_lib_example.m to create simulated images of each real
+% image, using the range and Cn2 of real image and the modified baseline
+% images.  Note that the modified baseline images vary by range and zoom
+% value.
+% This script create 20 simulated images for each real image.
 
 format long g
 format compact
@@ -65,13 +66,13 @@ varnamesA = {'Date', 'Time', 'Time_secs', 'range', 'zoom', 'focus', 'img_filenam
 T_atmos = renamevars(T_atmos, T_atmos.Properties.VariableNames, varnamesA);
 
 % Steps:
-% Get list of all mod BL images
-% Determine range/zoom from filename
-% Filter list to images for range/zoom
+% Get list of all modified BL images.
+% Determine range/zoom from filename in list of modified BL images.
+% Filter list of images for range/zoom to only process images of user
+% defined range/zoom.
 % Get parameters from combined_sharpest_images_withAtmos.xlsx (Cn2,
 % obj_size)
 % Create 20 simulated images
-% Plot baseline, real, simulated
 
 %rangeV = [700];
 rangeV = 600:50:1000;
