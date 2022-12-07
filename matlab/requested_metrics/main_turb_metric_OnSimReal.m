@@ -1,6 +1,6 @@
-% For each range/zoom value, this script calculates similarity metrics on files in the
-% directory C:\Data\JSSAP\modifiedBaselines\NewSimulations\SimReal.
-% The similarity metrics are calculate using one or all sharpest real
+% For each range/zoom value, this script calculates similarity metrics on
+% images that were created to simulated Real Images.
+% The similarity metrics are using one or all sharpest Real
 % images as the reference and all of the 20 simulated images.  These
 % simulated images were created with the new simulated image code using the
 % Cn2 and Range of the real images.
