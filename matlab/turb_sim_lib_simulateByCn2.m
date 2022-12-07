@@ -1,8 +1,8 @@
-% This file was created from tub_sim_lib_example.m to create simulated images of each real
-% image, using the range and Cn2 of real image and the modified baseline
+% This file was created from tub_sim_lib_example.m to create simulated images 
+% with varying range/zoom/Cn2 values with the modified baseline
 % images.  Note that the modified baseline images vary by range and zoom
 % value.
-% This script creates 20 simulated images for each real image.
+% This script creates 20 simulated images for each range/zoom/Cn2 combination.
 
 format long g
 format compact
