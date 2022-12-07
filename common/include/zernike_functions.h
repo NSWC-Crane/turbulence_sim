@@ -15,89 +15,7 @@
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
 #include "opencv_helper.h"
-
-//-----------------------------------------------------------------------------
-//This function maps the input "j" to the (row, column) of the Zernike pyramid using the Noll numbering scheme.
-//
-//Authors: Tim van Werkhoven, Jason Saredy
-//See: https://github.com/tvwerkhoven/libtim-py/blob/master/libtim/zern.py
-//
-void noll2zernike_index(int64_t j, int64_t &n, int64_t &m)
-{
-
-    if (j == 0)
-        std::cout << "Noll indices start at 1, 0 is invalid." << std::endl;
-        
-    n = 0;
-    int64_t j1 = j - 1;
-    
-    while (j1 > n)
-    {
-        ++n;
-        j1 -= n;
-    }
-    
-    //m = (-1)**j * ((n % 2) + 2 * int((j1+((n+1)%2)) / 2.0 ))
-    m = (((j & 0x01) == 1) ? -1 : 1) * ((n % 2) + 2 * ((j1 + ((n + 1) % 2))>>1));
-
-}   // end of noll_2_zern_index
-
-
-//-----------------------------------------------------------------------------
-//This function generates the covariance matrix for a single point source. See the associated paper for details on
-//the matrix itself.
-
-//:param Z: Number of Zernike basis functions/coefficients, determines the size of the matrix.
-//:param D: The diameter of the aperture (meters)
-//:param fried: The Fried parameter value
-//
-cv::Mat noll_covariance_matrix(uint32_t Z, double D, double r0)
-{   
-    uint32_t idx, jdx;
-    double c1, num, den;
-
-    int64_t ni, mi, nj, mj;
-
-    cv::Mat dst = cv::Mat::zeros(Z, Z, CV_64FC1);
-
-    for (idx=0; idx<Z; ++idx)
-    {
-        for (jdx=0; jdx<Z; ++jdx)
-        {
-            //ni, mi = nollToZernInd(idx+1)
-            //nj, mj = nollToZernInd(jdx+1)
-            noll2zernike_index(idx + 1, ni, mi);
-            noll2zernike_index(jdx + 1, nj, mj);
-                       
-            // if (abs(mi) == abs(mj)) and (np.mod(i - j, 2) == 0):
-            if ((abs(mi) == abs(mj)) & ((idx - jdx) % 2 == 0))
-            {
-                // num = math.gamma(14.0/3.0) * math.gamma((ni + nj - 5.0/3.0)/2.0)
-                num = std::tgamma(14.0/3.0) * std::tgamma(((double)(ni + nj) - 5.0/3.0)/2.0);
-                
-                // den = math.gamma((-ni + nj + 17.0/3.0)/2.0) * math.gamma((ni - nj + 17.0/3.0)/2.0) * math.gamma((ni + nj + 23.0/3.0)/2.0)
-                den = std::tgamma(((double)(-ni + nj) + 17.0/3.0)/2.0) * std::tgamma(((double)(ni - nj) + 17.0/3.0)/2.0) * std::tgamma(((double)(ni + nj) + 23.0/3.0)/2.0);
-                      
-                // coef1 = 0.0072 * (np.pi ** (8.0/3.0)) * ((D/fried) ** (5.0/3.0)) * np.sqrt((ni + 1) * (nj + 1)) * ((-1) ** ((ni + nj - 2*abs(mi))/2.0))
-                // x^(y) = std::exp(y * std::log(x))                
-                c1 = 0.0072 * std::exp((8.0 / 3.0) * std::log(CV_PI)) * std::exp((5.0 / 3.0) * std::log(D / r0));
-                c1 *= std::sqrt((ni + 1) * (nj + 1)) * ((((ni + nj - 2 * std::abs(mi)) >> 1) & 0x01 == 1) ? -1.0 : 1.0);
-
-                //C[i, j] = coef1*num/den
-                dst.at<double>(idx, jdx) = c1*num/den;
-            }
-            else
-            {
-                dst.at<double>(idx, jdx) = 0.0;
-            }
-        }
-    }
-    
-    dst.at<double>(0,0) = 1.0;
-
-    return dst;
-}   // end of noll_cov_matrix
-
+#include "noll_functions.h"
 
 //-----------------------------------------------------------------------------
 //Just a simple function to generate random coefficients as needed, conforms to Zernike's Theory. The nollCovMat()
@@ -128,7 +46,7 @@ void generate_zernike_coeff(uint32_t N, double v, std::vector<double> &coeff, cv
     // R = np.real(e_vec * np.sqrt(e_val))
     cv::sqrt(e_val, e_val);
     e_val = cv::Mat::diag(e_val);
-    cv::Mat R = e_vec * e_val;
+    cv::Mat cov_mat = e_vec * e_val;
     //R = get_real(R);
 
     // b = np.random.randn(int(num_zern), 1) * v ** (3.0/10.0)
@@ -138,8 +56,7 @@ void generate_zernike_coeff(uint32_t N, double v, std::vector<double> &coeff, cv
 
     // a = np.matmul(R, b)
     //cv::Mat dst = R * b;
-    cv::Mat a;
-    a = R * b;
+    cv::Mat a = cov_mat * b;
 
     cv::MatIterator_<double> itr;
     cv::MatIterator_<double> end;
@@ -280,21 +197,39 @@ void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern
 //    :param N :
 //: param kwargs :
 // generate_psf(NN, coeff=aa, L=p_obj['L'], D=p_obj['D'], z_i=1.2, wavelength=p_obj['wvl'])
-void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, cv::Mat& psf, double z_i = 1.2, double pad_size = 0.0)
+void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, double z_i = 1.2, double pad_size = 0.0)
 {
     
     cv::Mat x_grid, x_grid2, y_grid, y_grid2;
     cv::Mat x_samp_grid, y_samp_grid;
     cv::Mat mask;
     std::complex<double> j(0, 1);
+    std::vector<double> coeff;
 
     //    wavelength = kwargs.get('wavelength', 500 * (10 * *(-9)))
     //    pad_size = kwargs.get('pad_size', 0)
     //    D = kwargs.get('D', 0.1)
     //    L = kwargs.get('L', -1)
     //    z_i = kwargs.get('z_i', 1.2)
-    
     //    vec = kwargs.get('coeff', np.asarray([[1], [0], [0], [0], [0], [0], [0], [0], [0]] ))
+     
+    // b = np.random.randn(int(num_zern), 1) * v ** (3.0/10.0)
+    cv::Mat b(p.num_zern_coeff, 1, CV_64FC1);
+    rng.fill(b, cv::RNG::NORMAL, 0.0, 1.0);
+    b *= (p.zern_c1);
+
+    // a = np.matmul(R, b)
+    //cv::Mat dst = R * b;
+    cv::Mat a = p.cov_mat * b;
+
+    cv::MatIterator_<double> itr;
+    cv::MatIterator_<double> end;
+
+    for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
+    {
+        coeff.push_back(*itr);
+    }
+     
     //    x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
     meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
 
@@ -317,7 +252,7 @@ void generate_psf(uint64_t N, turbulence_param &p, std::vector<double> &coeff, c
     //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
     cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
     wave = mul_cmplx(mask, wave);
-    phase *= mask;
+    //phase *= mask;
 
     //    pad_wave = np.pad(wave, int(pad_size / 2), 'constant', constant_values = 0)
     

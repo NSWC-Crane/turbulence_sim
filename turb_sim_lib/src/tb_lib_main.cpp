@@ -53,7 +53,14 @@ void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, doub
         cv::Mat img = cv::Mat(img_h, img_w, CV_64FC1, img_);
         cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC1, turb_img_);
 
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+
         generate_tilt_image(img, tp, rng, img_tilt);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "img_tilt[0]: " << img_tilt.at<double>(0, 0) << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
 
         generate_blur_image(img_tilt, tp, rng, turb_img);
 
@@ -61,7 +68,10 @@ void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, doub
     }
     catch (std::exception e)
     {
-        std::cout << "error: " << std::endl << e.what() << std::endl << std::endl;
+        std::cout << "error: " << std::endl << e.what() << std::endl;
+        std::cout << "Filename: " << __FILE__ << std::endl;
+        std::cout << "Line #: " << __LINE__ << std::endl << std::endl;
+        std::cout << "Function: " << __FUNCTION__ << std::endl << std::endl;
     }
     
 }   // end of apply_turbulence

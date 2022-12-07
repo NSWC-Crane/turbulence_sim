@@ -9,15 +9,21 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "noll_functions.h"
 #include "integrals_spatial_corr.h"
 
 class turbulence_param
 {
 public:
     std::vector<std::complex<double>> S_vec;
+    uint64_t patch_num;
+    
     cv::Mat motion_kernel;
     cv::Mat blur_kernel;
-    uint64_t patch_num;
+    cv::Mat cov_mat;
+
+    uint32_t num_zern_coeff = 36;
+    double zern_c1;
 
     turbulence_param() = default;
 
@@ -50,19 +56,23 @@ public:
 
         generate_psd();
 
+        zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
+        zern_c1 *= zern_c1;
+        calc_zern_cov_matrix();
+
         create_gaussian_kernel(5, 1.5, motion_kernel);
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
-            tmp = (s_max / (double)(idx)) - 1.7;
+            tmp = (s_max / (double)(idx)) - 1.0;
             smax_curve.push_back(tmp * tmp);
         }
 
         // find the argmin of the smax_curve vector
         patch_num = (uint64_t)std::distance(smax_curve.begin(), std::min_element(smax_curve.begin(), smax_curve.end())) + 1;
         
-        double patch_size = std::floor(1.4 * (N / patch_num) + 0.5);
-        create_gaussian_kernel(2*patch_size + 1, 20.0, blur_kernel);
+        double patch_size = std::floor(1.1 * (N / patch_num) + 0.5);
+        create_gaussian_kernel(2*patch_size + 1, patch_size/2.2, blur_kernel);
 
     }   // end pf init_params
     
@@ -281,10 +291,28 @@ private:
 
     }	// end of create_gaussian_kernel
 
+    //-----------------------------------------------------------------------------
     inline void calc_r0()
     {
         r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
-    }
+    }   // end of calc_r0
+
+    //-----------------------------------------------------------------------------
+    inline void calc_zern_cov_matrix()
+    {
+        cv::Mat ncm = noll_covariance_matrix(num_zern_coeff, 1, 1);
+
+        // e_val, e_vec = np.linalg.eig(C)
+        cv::Mat e_val, e_vec;
+        eigen(ncm, e_val, e_vec);
+
+        // R = np.real(e_vec * np.sqrt(e_val))
+        cv::sqrt(e_val, e_val);
+        e_val = cv::Mat::diag(e_val);
+        cov_mat = e_vec * e_val;
+
+    }   // end of calc_zern_cov_matrix
+
 };  // end of turbulence_param
 
 
