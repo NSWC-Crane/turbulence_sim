@@ -1,8 +1,5 @@
 function [dirModBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod(data_root, rangeV, zoomV)
 
-% data_root = "C:\Data\JSSAP\";
-%data_root = "C:\Projects\data\turbulence\";
-
 dirBase = data_root + "sharpest\z" + num2str(zoomV);
 dirModBase = data_root + "modifiedBaselines";
 
