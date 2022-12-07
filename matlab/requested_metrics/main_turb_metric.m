@@ -1,7 +1,7 @@
-% For each range/zoom value, this script calculates similarity metrics on files in the
-% directory C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2.
-% The similarity metrics are calculated with all of the 20 sharpest images 
-% and all of the simulated images created with varying cn2/r0 values
+% For each range/zoom value, this script calculates similarity metrics on
+% simulated images that were created by varying Cn2.
+% The similarity metrics can be calculated with all of the 20 sharpest images 
+% and all of the simulated images created with varying cn2/r0 values.
 % The plots show the max metric and the corresponding expected value based
 % on the real image at the range/zoom/Cn2 values.
 
@@ -9,14 +9,16 @@ clearvars
 clc
 
 % % OPTIONS
-onePatch = true;  % Create only one large patch if true
-savePlots = false;
+onePatch = true;  % Create only one large patch in metric calculations
+savePlots = true;
 allreals = false; % If true, metrics will be calculated using all real images and all simulated images.
+subtractMean = true;
+useLaplacian = false;
 
-%rangeV = 600:50:1000;
-rangeV = [650];
-%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoom = [2000,2500];
+rangeV = 600:50:1000;
+%rangeV = [650];
+zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+%zoom = [2000,2500];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -29,9 +31,20 @@ end
 
 % Define directories
 % Location of simulated images by Cn2 value
-dirSims = data_root + "modifiedBaselines\SimImgs_VaryingCn2";
+dirSims = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\";
 % Location to save plots
-dirOut = data_root + "modifiedBaselines\SimImgs_VaryingCn2\Plots5";
+if onePatch == true
+    dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\OnePatch";
+    patchTitle = " (One Patch)";
+else
+    dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\MultiPatches";
+    patchTitle = " (MultiPatches)";
+end
+if useLaplacian == true
+ dirOut = dirOut + "\Lap";
+else
+ dirOut = dirOut + "\NoLap";
+end
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
@@ -40,17 +53,19 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 TmL = table;
 indT = 1;
 
-% 1.  Find all real image names in the sharpest directory using range/zoom values 
+% 1.  Find all real image file names in the sharpest directory using range/zoom values 
 % 2.  Find names of all simulated files in directory dirSims by filtering
 %     on range/zoom to get the simulated images created using the Python file
 %     called "CreateImagesByCn2.py"
-% 3.  Run metrics
+% 3.  Run metrics on each simulated image against its associated range/zoom
+%     real image. 
+% 4.  Enter results into table
 
 for rng = rangeV
     for zm = zoom
         display("Range " + num2str(rng) + " Zoom " + num2str(zm))
         
-        [~, dirReal1, ~, ImgNames1] = GetImageInfoMod(data_root, rng, zm);
+        [dirReal1, ImgNames1] = GetRealImageFilenames(data_root, rng, zm);
         if allreals == false
             ImgNames1 = ImgNames1(1);
         end
@@ -58,16 +73,24 @@ for rng = rangeV
         % Setup vector of real images vImgR
         for i = 1:length(ImgNames1) 
             % Import real image
-            vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i}))); % Select 1st filename
-            vImgR{i,1}= vImgR{i,1}(:,:,2);  % Real image for comparison - only green channel
-
+            vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i})));
+            vImgR{i,1}= vImgR{i,1}(:,:,2);  % Only green channel
+            % Subtract Mean of Image
+            if subtractMean == true
+                vImgR{i,1}= vImgR{i,1} - mean(vImgR{i,1},'all');
+            end
             % Find Laplacian of Image
-            vlapImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
+            if useLaplacian == true
+                vImgR_preLap = vImgR;
+                vImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img            
+                lapTitle = " Laplacian";
+            else
+                lapTitle = " Non-Laplacian";      
+            end   
         end
 
-        % Get the corresponding simulated images in the directory called
-        %  C:\Data\JSSAP\modifiedBaselines\SimImgs_VaryingCn2 using the 
-        %  range/zoom combination with all Cn2 values
+        % Get the corresponding simulated images in the directory dirSims
+        %  using the range/zoom combination with all Cn2 values
         simFiles = dir(fullfile(dirSims, '*.png'));
         SimImgNames = {simFiles(~[simFiles.isdir]).name};
         simNamelist = []; % list of all simulated image files at this zoom/range
@@ -82,7 +105,7 @@ for rng = rangeV
             end
         end
         
-        % Performing metrics
+        % Perform metrics
         % Setup patches - Assume square images so we'll just use the image height (img_h)
         [img_h, img_w] = size(vImgR{1,1});
         % Size of subsections of image for metrics
@@ -109,18 +132,23 @@ for rng = rangeV
         % Compare to simulated images to real images at same zoom/range
         for j = 1:length(vImgR)
             for i = 1:length(simNamelist)
-                % Read in a simulated image in namelist
                 % cstr:  cn2 in filename (used to get r0 later)
                 cstr = strsplit(simNamelist{i},'_c');
                 cstr = strsplit(cstr{2},'.');
                 cstr = strsplit(cstr{1},'_');
-    
+                % Read in a simulated image in namelist
                 ImgSim = double(imread(fullfile(dirSims, simNamelist{i}))); % Sim Image
-                
-                % Find Laplacian of image
-                lapImgSim = conv2(ImgSim, lKernel, 'same');  % Laplacian of Sim Image
-    
-                % Collect ratio with Laplacian
+
+                if subtractMean == true
+                    ImgSim= ImgSim - mean(ImgSim,'all');
+                end
+                if useLaplacian == true
+                % Find Laplacian of Image
+                    ImgSim_preLap = ImgSim;
+                    ImgSim = conv2(ImgSim, lKernel, 'same'); % Laplacian of Sim Img
+                end
+                   
+                % Collect ratio 
                 cc_l = [];
                 % Identifier for patch
                 index = 1;
@@ -131,11 +159,11 @@ for rng = rangeV
                 for prow = intv:szPatch+intv:img_h-szPatch
                     for pcol = intv:szPatch+intv:img_w-szPatch
                         % Patch of real image j   
-                        lapImgR_patch = vlapImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % Patch of simulated image 
-                        lapImgSim_patch = lapImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
+                        ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
 
-                        m = turbulence_metric_noBL(lapImgR_patch, lapImgSim_patch);
+                        m = turbulence_metric_noBL(ImgR_patch, ImgSim_patch);
                         cc_l(index) = m; % Save results of all patches
                         index = index + 1;
                    end
@@ -154,8 +182,8 @@ end
 %% tables
 varnames = {'range', 'zoom', 'cn2str', 'Simfilename','Realfilename','numPatches', 'simMetric', 'stdPatches'};
 TmL = renamevars(TmL, TmL.Properties.VariableNames, varnames);
-TmL.filename = string(TmL.Simfilename);
-TmL.filename = string(TmL.Realfilename);
+TmL.Simfilename = string(TmL.Simfilename);
+TmL.Realfilename = string(TmL.Realfilename);
 
 %% Create table uniqT that contains unique values of range, zoom, cn2
 uniqT = unique(TmL(:,[1,2,3]), 'rows', 'stable');
@@ -164,6 +192,14 @@ uniqT = unique(TmL(:,[1,2,3]), 'rows', 'stable');
 Tr0 = readtable(data_root + "modifiedBaselines\SimImgs_VaryingCn2\turbNums.csv");
 Tr0.strcn2 = string(Tr0.cn2);
 Tr0.strcn2 = strrep(Tr0.strcn2,'-','');
+
+% Real image data in fileA - to use in plots
+fileA = data_root + "combined_sharpest_images_withAtmos.xlsx";
+T_atmos = readtable(fileA);
+varnamesA = {'Date', 'Time', 'Time_secs', 'range', 'zoom', 'focus', 'img_filename', ...
+    'img_height', 'img_width', 'pixel_step', 'start', 'stop', 'obj_size', 'Temperature', ...
+    'Humidity', 'Wind_speed', 'Wind_dir', 'Bar_pressure', 'Solar_load', 'Cn2', 'r0' };
+T_atmos = renamevars(T_atmos, T_atmos.Properties.VariableNames, varnamesA);
 
 % Get mean value of similarity metric of all simulated images of same
 % zoom/range/cn2 and add to table uniqT
@@ -186,11 +222,6 @@ end
 % % Save TmL table
 % writetable(TmL, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\TmL.csv");
 
-% Get r0 for real image in fileA - to use in plots
-fileA = data_root + "combined_sharpest_images_withAtmos.xlsx";
-T_atmos = readtable(fileA);
-
-% Plot by range with different colors for zoom
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
 
@@ -246,7 +277,7 @@ for rngP = rangeV
         % Get real image's measured cn2 and r0
         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
         r0_c = T_atmos{ida,"r0"};
-        cn_t = T_atmos{ida,"Cn2_m___2_3_"};
+        cn_t = T_atmos{ida,"Cn2"};
         % Setup legend entry
         txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
         legendL = [legendL; txt];
@@ -272,9 +303,9 @@ for rngP = rangeV
     end
     
     grid on
-    title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch) 
+    title("Metric: Range: " + num2str(rngP) + titlePtch) 
     legend(plots_legend,legendL, 'location', 'southeastoutside')
-    xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
+    %xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
     xlabel("Fried Parameter r_0 (cm)")
     ylabel("Mean Similarity Metric")
     x0=10;
@@ -284,69 +315,11 @@ for rngP = rangeV
     set(gcf,'position',[x0,y0,width,ht])
     if savePlots == true
         f = gcf;
-        fileN = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".png");
-        fileNf = fullfile(dirOut,"LogLr" + num2str(rngP) + strPtch + ".fig");
+        fileN = fullfile(dirOut,"Log_r" + num2str(rngP) + strPtch + ".png");
+        %fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + strPtch + ".fig");
         exportgraphics(f,fileN,'Resolution',300)
-        savefig(ffg,fileNf)
-        close(ffg)
+        %savefig(ffg,fileNf)
+        %close(ffg)
     end
 end
 
-%% Plots for Standard Deviation Information
-% % Plot standard deviation of patches used to calculate metric of each image
-% % Sort TmL by Cn2 value and range/zoom - Each Patch
-% TmL = sortrows(TmL,["range","zoom","r0"]);
-% figure()
-% x = 1:height(TmL);
-% plot(x,TmL.simMetric, '-o',...
-%             'LineWidth',1,...
-%             'MarkerSize',2)
-% hold on
-% plot(x,TmL.stdPatches, '-o',...
-%             'LineWidth',1,...
-%             'MarkerSize',2)
-% grid on
-% xlabel("Image Number")
-% ylabel ("Mean Metric and Std")
-% legend('Mean','Standard Deviation','location', 'east')
-% title("Mean and Std of Patches for Each Image")
-% fileS = fullfile(dirOut,"Std_Patches.png");
-% x0=10;
-% y0=10;
-% width=800;
-% ht=400;
-% set(gcf,'position',[x0,y0,width,ht])
-% if savePlots == true
-%     f = gcf;
-%     exportgraphics(f,fileS,'Resolution',300)
-% end
-% 
-% % Plot standard deviation of all simulated images used to calculate metric
-% % for each range/zoom/cn2 value.
-% % Metric over 20 simulated images
-% % Sorted uniqT earlier:  uniqT = sortrows(uniqT,["range","zoom","r0"]);
-% figure()
-% x = 1:height(uniqT);
-% plot(x, uniqT.sMetric, '-o',...
-%             'LineWidth',1,...
-%             'MarkerSize',2)
-% hold on
-% plot(x, uniqT.std, '-o',...
-%             'LineWidth',1,...
-%             'MarkerSize',2)
-% grid on
-% xlabel("Set Number")
-% ylabel ("Mean and Std of Metric")
-% legend('Mean','Standard Deviation','location', 'east')
-% title("Mean and Std of 20 Simulated Image Sets")
-% fileS = fullfile(dirOut,"Std_SimImages.png");
-% x0=10;
-% y0=10;
-% width=800;
-% ht=400;
-% set(gcf,'position',[x0,y0,width,ht])
-% if savePlots == true
-%     f = gcf;
-%     exportgraphics(f,fileS,'Resolution',300)
-% end
-% 
