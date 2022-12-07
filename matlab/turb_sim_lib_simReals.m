@@ -2,7 +2,7 @@
 % image, using the range and Cn2 of real image and the modified baseline
 % images.  Note that the modified baseline images vary by range and zoom
 % value.
-% This script create 20 simulated images for each real image.
+% This script creates 20 simulated images for each real image.
 
 format long g
 format compact
@@ -86,6 +86,7 @@ for rng = rangeV
     ind = 1;
     blNamelist = []; % list of all baseline image files at this zoom/range
     for zm = zoom
+        display("Range " + num2str(rng) + " Zoom " + num2str(zm))
         % Filter by range and zoom to get file names of range/zoom
         if rng < 1000
             patt = "_z" + num2str(zm) + "_r0" + num2str(rng);
@@ -134,7 +135,7 @@ for rng = rangeV
             img_blur = reshape(img_blur_t.Value, [img_h, img_w])';
             img_blur = uint8(img_blur);
             fileI = "NewSim_r" + num2str(rng) + "_z" + num2str(zm) + "_N" + num2str(idx) + ".png";
-            pathI = data_root + "modifiedBaselines\NewSimulations\SimReal\" + fileI;
+            pathI = data_root + "modifiedBaselines\NewSimulations\SimReal2\" + fileI;
             imwrite(img_blur, pathI);
         
         end
