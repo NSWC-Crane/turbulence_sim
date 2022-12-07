@@ -1,5 +1,6 @@
 % Compares simulated image at same range/zoom/cn2 to one of the simulated
-% images.
+% images.  Simulated images are compared to a reference image that is a
+% simulated image.
 
 clearvars
 clc
@@ -55,10 +56,8 @@ lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
 TmL = table;
 indT = 1;
 
-% 1.  Find all real image names in the sharpest directory using range/zoom values 
-% 2.  Find names of all simulated files in directory dirSims by filtering
-%     on range/zoom to get the simulated images created using the Python file
-%     called "CreateImagesByCn2.py"
+% 1.  Find names of all simulated files in directory dirSims by filtering
+%     on range/zoom to get the simulated images 
 % 3.  Run metrics
 
 for rng = rangeV
