@@ -15,10 +15,10 @@ allreals = false; % If true, metrics will be calculated using all real images an
 subtractMean = true;
 useLaplacian = false;
 
-rangeV = 600:50:1000;
-%rangeV = [650];
-zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [2000,2500];
+%rangeV = 600:50:1000;
+rangeV = [650];
+%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+zoom = [2000,2500];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -31,13 +31,13 @@ end
 
 % Define directories
 % Location of simulated images by Cn2 value
-dirSims = data_root + "modifiedBaselines\NewSimulations\SimReal\";
+dirSims = data_root + "modifiedBaselines\NewSimulations\SimReal2\";
 % Location to save plots
 if onePatch == true
-    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal\Plots\OnePatch";
+    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal2\Plots\OnePatch";
     patchTitle = " (One Patch)";
 else
-    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal\Plots\MultiPatches";
+    dirOut = data_root + "modifiedBaselines\NewSimulations\SimReal2\Plots\MultiPatches";
     patchTitle = " (MultiPatches)";
 end
 if useLaplacian == true
@@ -62,7 +62,7 @@ for rng = rangeV
     for zm = zoom
         display("Range " + num2str(rng) + " Zoom " + num2str(zm))
         
-        [~, dirReal1, ~, ImgNames1] = GetImageInfoMod(data_root, rng, zm);
+        [dirReal1, ImgNames1] = GetRealImageFilenames(data_root, rng, zm);
         if allreals == false
             ImgNames1 = ImgNames1(1);
         end
@@ -72,20 +72,17 @@ for rng = rangeV
             % Import real image
             vImgR{i,1} = double(imread(fullfile(dirReal1, ImgNames1{i}))); % Select 1st filename
             vImgR{i,1}= vImgR{i,1}(:,:,2);  % Real image for comparison - only green channel
+            % Subtract Mean of Image
             if subtractMean == true
                 vImgR{i,1}= vImgR{i,1} - mean(vImgR{i,1},'all');
-                meanTitle = " - Subtracted Mean";
-                meanOut = "SubMean";
             end
+            % Find Laplacian of Image
             if useLaplacian == true
-                % Find Laplacian of Image
                 vImgR_preLap = vImgR;
                 vImgR{i,1} = conv2(vImgR{i,1}, lKernel, 'same'); % Laplacian of Real Img
                 lapTitle = " Laplacian";
-                lapOut = "Lap";
             else
-                lapTitle = " Non-Laplacian";
-                lapOut = "NoLap";        
+                lapTitle = " Non-Laplacian";      
             end
         end
 
@@ -139,7 +136,7 @@ for rng = rangeV
                     ImgSim = conv2(ImgSim, lKernel, 'same'); % Laplacian of Sim Img
                 end
                 
-                % Collect ratio with Laplacian
+                % Collect ratio 
                 cc_l = [];
                 % Identifier for patch
                 index = 1;
