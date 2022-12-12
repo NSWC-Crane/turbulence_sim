@@ -20,47 +20,55 @@ function [m] = turbulence_metric_noBL(img_0, img_1, mtype, rngstr, zmstr)
         fprintf("Warning:  Improper mtype");
     end
 
-    figure()
-    imagesc(abs(fftshift(img_0_fft)))
-    title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
-    figure()
-    imagesc(abs(fftshift(img_1_fft)))
-    title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
-    figure()
-    imagesc(abs(fftshift(log2(img_0_fft))))
-    title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
-    figure()
-    imagesc(abs(fftshift(log2(img_1_fft))))
-    title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
+%     figure()
+%     imagesc(abs(fftshift(img_0_fft)))
+%     title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
+%     figure()
+%     imagesc(abs(fftshift(img_1_fft)))
+%     title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
+%     figure()
+%     imagesc(abs(fftshift(log2(img_0_fft))))
+%     title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
+%     figure()
+%     imagesc(abs(fftshift(log2(img_1_fft))))
+%     title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
 
     figure()
     plot(abs(img_0_fft))
     title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
+    grid on
     figure()
     plot(abs(img_1_fft))
     title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
+    grid on
 
-    figure()
-    mesh(abs(img_0_fft))
-    title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
-    figure()
-    mesh(abs(img_1_fft))
+%     figure()
+%     mesh(abs(img_0_fft))
+%     title("Real Image FFT:  Rng " + rngstr + ", Zm " + zmstr)
+%     figure()
+%     mesh(abs(img_1_fft))
     title(strM + " FFT:  Rng " + rngstr + ", Zm " + zmstr)
-    
-
-    
+       
     % step 2: Auto correlation
     K_00 = conv2(img_0_fft, conj(img_0_fft(end:-1:1, end:-1:1)), 'same');
     
     % step 3: Cross correlation
     K_01 = conv2(img_0_fft, conj(img_1_fft(end:-1:1, end:-1:1)), 'same');
 
+%     figure()
+%     mesh(abs(K_00))
+%     title("K_00 Convolution:  Rng " + rngstr + ", Zm " + zmstr)
     figure()
-    mesh(abs(K_00))
+    plot(abs(K_00))
     title("K_00 Convolution:  Rng " + rngstr + ", Zm " + zmstr)
+    grid on
+%     figure()
+%     mesh(abs(K_01))
+%     title("K_01 Convolution " + strM + ":  Rng " + rngstr + ", Zm " + zmstr)
     figure()
-    mesh(abs(K_01))
+    plot(abs(K_01))
     title("K_01 Convolution " + strM + ":  Rng " + rngstr + ", Zm " + zmstr)
+    grid on
     
     % step 4: calculate the sums of the correleations
     sum_K_00 = sum(abs(K_00(:)));
