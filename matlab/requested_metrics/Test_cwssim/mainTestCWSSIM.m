@@ -1,14 +1,23 @@
 clearvars
 clc
 
+platform = string(getenv("PLATFORM"));
+if(platform == "Laptop")
+    data_root = "D:\data\turbulence\";
+elseif (platform == "LaptopN")
+    data_root = "C:\Projects\data\turbulence\";
+else   
+    data_root = "C:\Data\JSSAP\";
+end
+
 % % Range 600, Zoom 3000
 % % Real:  C:\Data\JSSAP\sharpest\z3000\0600\image_z02996_f47005_e15004_i00.png
 % % Max metric:  C:\Data\JSSAP\modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c3e14_N1.png
 % % Closest real: C:\Data\JSSAP\modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c5e15_N1.png
 % 
-ref_image1_Files = "C:\Data\JSSAP\sharpest\z3000\0600\image_z02996_f47005_e15004_i00.png";
-test_images1_Files = ["C:\Data\JSSAP\modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c3e14_N1.png",...
-    "C:\Data\JSSAP\modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c5e15_N1.png"];
+ref_image1_Files = data_root + "sharpest\z3000\0600\image_z02996_f47005_e15004_i00.png";
+test_images1_Files = [data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c3e14_N1.png",...
+    data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c5e15_N1.png"];
 
 rngstr = "600";
 zmstr = "3000";
