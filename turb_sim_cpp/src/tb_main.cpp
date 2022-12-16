@@ -163,37 +163,53 @@ int main(int argc, char** argv)
 #endif      
 
         bp = 1;
+
 //        std::string filename = "../../data/checker_board_32x32.png";
         //std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
-        std::string filename = "C:/Projects/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
+        std::string base_directory = "d:/data/turbulence/";
+//        std::string base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
+
+        std::string baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r1000.png";
+        std::string real_filename = base_directory + "sharpest/z2000/1000/image_z01999_f46264_e02776_i00.png";
 
         cv::Mat img;
-        cv::Mat tmp_img = cv::imread(filename, cv::IMREAD_ANYCOLOR);
+        cv::Mat rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
+        cv::Mat tmp_img = cv::imread(baseline_filename, cv::IMREAD_ANYCOLOR);
+
+        if (rw_img.channels() >= 3)
+        {
+            rw_img.convertTo(rw_img, CV_64FC3);
+            rw_img = get_channel(rw_img, 1);
+        }
+        else
+        {
+            rw_img.convertTo(rw_img, CV_64FC1);
+        }
 
         if (tmp_img.channels() >= 3)
         {
-            //tmp_img.convertTo(tmp_img, CV_64FC3, 1.0 / 255.0);
             tmp_img.convertTo(tmp_img, CV_64FC3);
             tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
-            //tmp_img.convertTo(tmp_img, CV_64FC1, 1.0 / 255.0);
             tmp_img.convertTo(tmp_img, CV_64FC1);
         }
 
+
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 256;
+        uint32_t N = 150;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
+        rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
-        double pixel = 0.0025;    // 0.004217; 0.00246
+        double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
-        double L = 600;
+        double L = 1000;
         double wavelenth = 525e-9;
         double obj_size = N * pixel;
         //double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1.25e-14;
+        double Cn2 = 7.0e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
@@ -234,7 +250,7 @@ int main(int argc, char** argv)
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::hconcat(img, img_blur, montage);
+            cv::hconcat(rw_img, img_blur, montage);
             cv::imshow(window_name, montage/255.0);
             key = cv::waitKey(50);
         }
@@ -249,7 +265,7 @@ int main(int argc, char** argv)
     }
 
     cv::destroyAllWindows();
-    std::cout << "End of Program.  Press Enter to close..." << std::endl;
+    std::cout << std::endl << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
 
 }   // end of main
