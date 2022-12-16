@@ -53,6 +53,9 @@ testImgCl_gauss = imgaussfilt(testImgClose,.69);
 scoreClose = CW_SSIM(refImg, testImgClose);
 scoreCloseG = CW_SSIM(refImg, testImgCl_gauss);
 
+[ac1, ccMax] = xcorrImages(refImg, testImgMax);
+[ac2, ccClose] = xcorrImages(refImg, testImgClose);
+
 
 
 
