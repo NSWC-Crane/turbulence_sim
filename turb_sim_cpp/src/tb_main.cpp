@@ -199,7 +199,7 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 150;
+        uint32_t N = 64;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 

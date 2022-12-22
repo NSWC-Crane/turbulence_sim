@@ -5,6 +5,7 @@
 #include <cmath>
 #include <vector>
 #include <limits>
+#include <thread>
 
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
@@ -51,38 +52,51 @@ inline void index_generate(double start, double stop, uint32_t num, std::vector<
 }   // end of index_generate
 
 //-----------------------------------------------------------------------------
-void centroid_psf(cv::Mat &psf, double threshold = 0.95)
+void sum_channels(std::vector<cv::Mat>& patches, cv::Mat& dst)
+{
+    uint32_t idx;
+
+    //dst = cv::Mat::zeros(patches[0].rows, patches[0].cols, patches[0].type());
+
+    for (idx = 0; idx < patches.size(); ++idx)
+    {
+        dst += patches[idx];
+    }
+}   // end of sum_channels
+
+//-----------------------------------------------------------------------------
+inline void centroid_psf(cv::Mat &psf, double threshold = 0.95)
 {
     int32_t radius = 4;
-    int32_t cx, cy;
     int32_t min_x, max_x;
     int32_t min_y, max_y;
 
     double temp_sum = 0.0;
     cv::Mat mx, my;
     cv::Mat tmp_psf;
-    cv::Rect psf_roi;
-    std::vector<std::vector<cv::Point> > psf_contours;
-    std::vector<cv::Vec4i> psf_hr;
+
+    cv::Point center;
+
+    cv::minMaxLoc(psf, NULL, NULL, NULL, &center);
 
     //x = np.linspace(0, psf.shape[0], psf.shape[0])
     //y = np.linspace(0, psf.shape[1], psf.shape[1])
     //col, row = np.meshgrid(x, y)
-    meshgrid<double>(0, psf.cols - 1, psf.cols, 0, psf.rows - 1, psf.rows, mx, my);
+    //meshgrid<double>(0, psf.cols - 1, psf.cols, 0, psf.rows - 1, psf.rows, mx, my);
 
     try 
     {
-        cx = (uint8_t)cv::sum(mx.mul(psf))[0];
-        cy = (uint8_t)cv::sum(my.mul(psf))[0];
+        //center.x = (uint8_t)cv::sum(mx.mul(psf))[0];
+        //center.y = (uint8_t)cv::sum(my.mul(psf))[0];
 
         while (temp_sum < threshold)
         {
             ++radius;
 
-            min_x = std::max(0, cx - radius);
-            max_x = std::min(psf.cols, cx + radius + 1);
-            min_y = std::max(0, cy - radius);
-            max_y = std::min(psf.rows, cy + radius + 1);
+            min_x = std::max(0, center.x - radius);
+            max_x = std::min(psf.cols, center.x + radius + 1);
+            min_y = std::max(0, center.y - radius);
+            max_y = std::min(psf.rows, center.y + radius + 1);
 
             // return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
             tmp_psf = psf(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
@@ -183,25 +197,17 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
-    uint64_t min_x, max_x, min_kx, max_kx;
-    uint64_t min_y, max_y, min_ky, max_ky;
 
     int64_t N = p.get_N();
     double tmp_min = std::numeric_limits<double>::max();
-    double tmp;
-    double psf_sum;
     double z_i = 1.2;
     double pad_size = 0.0;
 
-    cv::Mat patch_mask;
-    cv::Mat psf, temp_psf;
-    cv::Mat img_patches = cv::Mat::zeros(N, N, CV_64FC1);
-    cv::Mat tmp_conv;
+    uint32_t num_threads = std::max(1U, std::thread::hardware_concurrency() - 1);
+    uint32_t num_loops;
 
-    //cv::Mat xx, yy;
     std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
-    int32_t x, y;
 
     uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
        
@@ -211,114 +217,125 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     int64_t blur_cols = p.blur_kernel.cols;
     int64_t blur_rows = p.blur_kernel.rows;
 
-    //    xtemp = np.round_(p_obj['N'] / (2 * patchN) + np.linspace(0, p_obj['N'] - p_obj['N'] / patchN + 0.001, patchN)  )
-    //cv::Mat x_tmp = linspace(0.0, (double)(N - N / (double)p.patch_num), p.patch_num) + N/(double)(2* p.patch_num);
-    //x_tmp = round(x_tmp);
-
-    ////    xx, yy = np.meshgrid(xtemp, xtemp)
-    //meshgrid(x_tmp, x_tmp, xx, yy);
-    //
-    ////    xx_flat, yy_flat = xx.flatten(), yy.flatten()
-    //xx = xx.reshape(1, xx.total());
-    //yy = yy.reshape(1, yy.total());
-    
     try
     {
-        //
+        // generate the indexes to put the patches
         index_generate(N / (double)(2 * p.patch_num), N / (double)(2 * p.patch_num) + (double)(N - N / (double)p.patch_num), p.patch_num, xx, yy);
         double rnd_limit = std::floor(xx[0] / 2.0);
 
         //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
         //    den = np.zeros((p_obj['N'], p_obj['N']))
-        dst = cv::Mat::zeros(N, N, CV_64FC1);
+//        dst = cv::Mat::zeros(N, N, CV_64FC1);
+        cv::Mat img_patch = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat den = cv::Mat(N, N, CV_64FC1, cv::Scalar::all(1.0e-6));
         
-        //    patch_indx, patch_indy = np.meshgrid(np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1), np.linspace(-patch_size, patch_size + 0.001, num = 2 * patch_size + 1))
-        //cv::Mat patch_indx, patch_indy;
-        //meshgrid(-patch_size, patch_size, 2 * patch_size + 1, -patch_size, patch_size, 2 * patch_size + 1, patch_indx, patch_indy);
-        //patch_indx = patch_indx.mul(patch_indx);
-        //patch_indx *= (-1.0 / (patch_size * patch_size));
-        //patch_indy = patch_indy.mul(patch_indy);
-        //patch_indy *= (-1.0 / (patch_size * patch_size));
-        //cv::exp(patch_indx, patch_indx);
-        //cv::exp(patch_indy, patch_indy);
+        // parallel for lop idea adapted from teh link below 
+        // https://www.alecjacobson.com/weblog/?p=4544
 
-        //cv::Mat exp_tmp = patch_indx.mul(patch_indy);
-        //cv::Mat exp_tmp = cv::Mat::ones(2 * patch_size + 1, 2 * patch_size + 1, CV_64FC1);
-        //cv::Mat exp_tmp = p.blur_kernel;
+        std::vector<cv::Mat> img_patches(p.patch_num * p.patch_num);
+        std::vector<cv::Mat> den_patches(p.patch_num * p.patch_num);
 
+        num_loops = (p.patch_num * p.patch_num);
+        std::vector<std::thread> threads(num_threads);
 
-        for (idx = 0; idx < (p.patch_num * p.patch_num); ++idx)
+        for (int tdx = 0; tdx < num_threads; ++tdx)
         {
-            x = xx[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
-            y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
+            threads[tdx] = std::thread(std::bind([&](const int bi, const int ei, const int t)
+            {
+                int32_t x, y;
 
-            // aa = genZernikeCoeff(36, p_obj['Dr0'])
-            //generate_zernike_coeff(36, p.get_D_r0(), coeff, rng);
+                uint64_t min_x, max_x, min_kx, max_kx;
+                uint64_t min_y, max_y, min_ky, max_ky;
 
-            // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-            generate_psf(NN, p, rng, temp_psf, z_i, pad_size);
-        
-            //psf = np.abs(temp) * *2
-            psf = abs_cmplx(temp_psf);
-            psf = psf.mul(psf);
-        
-            // psf = psf / np.sum(psf.ravel())
-            psf_sum = cv::sum(psf)[0];
-            psf *= 1.0 / psf_sum;
-            centroid_psf(psf, 0.98);
-        
-            // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
-            // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
-            cv::resize(psf, psf, cv::Size(std::floor(NN / p.get_scaling() + 0.5), std::floor(NN / p.get_scaling() + 0.5)), 0.0, 0.0, cv::INTER_LINEAR);
-            //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-            //cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
+                cv::Mat patch_mask;
+                cv::Mat psf, temp_psf;
+                //cv::Mat img_patch = cv::Mat::zeros(N, N, CV_64FC1);
+                cv::Mat tmp_conv;
+                double psf_sum;
 
-            // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
-            patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
+                // loop over the range of values
+                for (int idx = bi; idx < ei; ++idx)          
+                //for (idx = 0; idx < (p.patch_num * p.patch_num); ++idx)
+                {
+                    //idx = range.start;
+                    x = xx[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
+                    y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
 
-            // patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
-            // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
-            //patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx)), (uint64_t)(*xx.ptr<double>(idx))) = 1.0;
-            //cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+                    // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
+                    generate_psf(NN, p, rng, temp_psf, z_i, pad_size);
 
-            min_x = std::max((int64_t)0, (int64_t)(x) - (blur_cols >> 1));
-            max_x = std::min((int64_t)N, (int64_t)(x) + (blur_cols >> 1) + 1);
+                    //psf = np.abs(temp) * *2
+                    psf = abs_cmplx(temp_psf);
+                    psf = psf.mul(psf);
 
-            min_y = std::max((int64_t)0, (int64_t)(y) - (blur_rows >> 1));
-            max_y = std::min((int64_t)N, (int64_t)(y) + (blur_rows >> 1) + 1);
+                    // psf = psf / np.sum(psf.ravel())
+                    psf_sum = cv::sum(psf)[0];
+                    psf *= 1.0 / psf_sum;
+                    centroid_psf(psf, 0.98);
 
-            min_kx = std::max((int64_t)0, (blur_cols >> 1) - (int64_t)(x));
-            max_kx = std::min((int64_t)blur_cols, (int64_t)((blur_cols >> 1) + (N - (int64_t)(x))));
+                    // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+                    // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+                    cv::resize(psf, psf, cv::Size(std::floor(NN / p.get_scaling() + 0.5), std::floor(NN / p.get_scaling() + 0.5)), 0.0, 0.0, cv::INTER_LINEAR);
+                    //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+                    //cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
 
-            min_ky = std::max((int64_t)0, (blur_rows >> 1) - (int64_t)(y));
-            max_ky = std::min((int64_t)blur_rows, (int64_t)((blur_rows >> 1) + (N - (int64_t)(y))));
+                    // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
+                    patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
+
+                    // patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
+                    // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
+                    //patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx)), (uint64_t)(*xx.ptr<double>(idx))) = 1.0;
+                    //cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+
+                    min_x = std::max((int64_t)0, (int64_t)(x)-(blur_cols >> 1));
+                    max_x = std::min((int64_t)N, (int64_t)(x)+(blur_cols >> 1) + 1);
+
+                    min_y = std::max((int64_t)0, (int64_t)(y)-(blur_rows >> 1));
+                    max_y = std::min((int64_t)N, (int64_t)(y)+(blur_rows >> 1) + 1);
+
+                    min_kx = std::max((int64_t)0, (blur_cols >> 1) - (int64_t)(x));
+                    max_kx = std::min((int64_t)blur_cols, (int64_t)((blur_cols >> 1) + (N - (int64_t)(x))));
+
+                    min_ky = std::max((int64_t)0, (blur_rows >> 1) - (int64_t)(y));
+                    max_ky = std::min((int64_t)blur_rows, (int64_t)((blur_rows >> 1) + (N - (int64_t)(y))));
 
 
-            p.blur_kernel(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
+                    p.blur_kernel(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
-            // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
-            cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-            den += tmp_conv;
-            //cv::Mat tmp_conv2;
-            //cv::filter2D(exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)), tmp_conv2, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-            //cv::Mat den_roi = den(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
-            //den_roi += tmp_conv2;
+                    // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
+                    //cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+                    //den += tmp_conv;
+                    cv::filter2D(patch_mask, den_patches[idx], -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
 
-            // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
-            patch_mask = patch_mask.mul(src);
-            cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-            img_patches += tmp_conv;
+                    //cv::Mat tmp_conv2;
+                    //cv::filter2D(exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)), tmp_conv2, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+                    //cv::Mat den_roi = den(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
+                    //den_roi += tmp_conv2;
 
-            //cv::Mat t2 = exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).mul(src(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
+                    // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
+                    patch_mask = patch_mask.mul(src);
+                    //cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+                    //img_patch += tmp_conv;
+                    cv::filter2D(patch_mask, img_patches[idx], -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
 
-            //cv::filter2D(t2, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-            //cv::Mat img_roi = img_patches(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
-            //img_roi += tmp_conv;
+                    //cv::Mat t2 = exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).mul(src(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
-        }
+                    //cv::filter2D(t2, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+                    //cv::Mat img_roi = img_patches(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
+                    //img_roi += tmp_conv;
+
+                }
+
+            }, tdx* num_loops / num_threads, (tdx + 1) == num_threads ? num_loops : (tdx + 1) * num_loops / num_threads, tdx));
+
+        }   // end of thread loop
+        std::for_each(threads.begin(), threads.end(), [](std::thread& x) {x.join(); });
+
         // out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
-        dst = img_patches.mul(1.0 / den);
+        sum_channels(img_patches, img_patch);
+        sum_channels(den_patches, den);
+
+        dst = img_patch.mul(1.0 / den);
 
     }
     catch (std::exception e)
