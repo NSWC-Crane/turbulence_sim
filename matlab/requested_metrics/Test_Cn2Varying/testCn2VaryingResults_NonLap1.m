@@ -67,6 +67,7 @@ m2 = turbulence_metric_noBL_testVL(refImg, testImgClose,"c", rngstr, zmstr);
 
 m2g = turbulence_metric_noBL_testVL(refImg, testImgCl_gauss,"c", rngstr, zmstr);
 
+bp = 1;
 % % Range 600, Zoom 2500
 % % Real:  C:\Data\JSSAP\sharpest\z2500\0600\image_z02498_f46581_e15004_i00.png
 % % Max metric:  C:\Data\JSSAP\modifiedBaselines\NewSimulations\ByVaryingCn2\NewSim_r600_z3000_c1e13_N1.png
