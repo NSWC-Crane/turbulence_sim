@@ -199,14 +199,17 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 64;
+        uint32_t N = tmp_img.rows;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
-        double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
+        uint32_t zoom = 2000;
+
         double L = 1000;
         double wavelenth = 525e-9;
+        double pixel = turbulence_param::get_pixel_size(zoom, L); // 0.004217;    // 0.004217; 0.00246
+
         double obj_size = N * pixel;
         //double k = 2 * CV_PI / wavelenth;
         double Cn2 = 7.0e-14;
@@ -217,12 +220,21 @@ int main(int argc, char** argv)
 #if defined(USE_LIB)
         init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
 #else
-        turbulence_param P(N, D, L, Cn2, wavelenth, obj_size);
+        std::vector<turbulence_param> Pv;
+        for (idx = 0; idx < 23; ++idx)
+        {
+
+            L = 10.0 * idx + 600.0;
+            pixel = turbulence_param::get_pixel_size(zoom, L);
+            obj_size = N * pixel;
+            Pv.push_back(turbulence_param(N, D, L, Cn2, wavelenth, obj_size));
+        }
 #endif
 
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
         cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
+        cv::Mat img_blur2;
         cv::Mat montage;
         char key = 0;
 
@@ -238,9 +250,11 @@ int main(int argc, char** argv)
 
             apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
 #else
-            generate_tilt_image(img, P, rng, img_tilt);
+            generate_tilt_image(img, Pv[0], rng, img_tilt);
+            generate_blur_image(img_tilt, Pv[0], rng, img_blur);
 
-            generate_blur_image(img_tilt, P, rng, img_blur);
+            generate_tilt_image(img, Pv[22], rng, img_tilt);
+            generate_blur_image(img_tilt, Pv[22], rng, img_blur2);
 #endif
 
             //img_blur.convertTo(img_blur, CV_8UC1);
@@ -251,6 +265,7 @@ int main(int argc, char** argv)
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
             cv::hconcat(rw_img, img_blur, montage);
+            cv::hconcat(montage, img_blur2, montage);
             cv::imshow(window_name, montage/255.0);
             key = cv::waitKey(50);
         }
