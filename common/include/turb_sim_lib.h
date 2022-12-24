@@ -29,6 +29,9 @@ extern "C" {
     TS_LIB void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
 
     //-----------------------------------------------------------------------------
+    TS_LIB double get_pixel_size(unsigned int z, double r);
+
+    //-----------------------------------------------------------------------------
     // apply the turbulence to the image
     TS_LIB void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, double *turb_img_);
 

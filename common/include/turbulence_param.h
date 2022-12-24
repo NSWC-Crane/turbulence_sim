@@ -60,7 +60,7 @@ public:
         zern_c1 *= zern_c1;
         calc_zern_cov_matrix();
 
-        create_gaussian_kernel(5, 1.5, motion_kernel);
+        create_gaussian_kernel(5, 1.2, motion_kernel);
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
@@ -90,21 +90,35 @@ public:
     }
 
     //-----------------------------------------------------------------------------
-    void update_params(double L_)
+    void update_range(double L_)
     {
         L = L_;
         init_params();
     }
 
     //-----------------------------------------------------------------------------
-    void update_params(double L_, double D_)
+    void update_D(double D_)
     {
         D = D_;
-        L = L_;
 
         init_params();
     }
-    
+
+    //-----------------------------------------------------------------------------
+    void update_Cn2(double Cn2_)
+    {
+        Cn2 = Cn2_;
+
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    void update_obj_size(double obj_size_)
+    {
+        obj_size = obj_size_;
+
+        init_params();
+    }
 
     //-----------------------------------------------------------------------------
     inline double get_D(void) { return D; }
@@ -153,6 +167,14 @@ public:
 
     //-----------------------------------------------------------------------------
     inline double get_scaling(void) { return scaling; }
+
+    //-----------------------------------------------------------------------------
+    // this function returns the curve fit of real data for a given lens zoom setting and range (L)
+    inline static double get_pixel_size(uint32_t zoom, double range)
+    {
+        return (-0.003657 + (4.707e-07 * zoom) + (1.791e-05 * range) + (-1.893e-11 * zoom * zoom) + (-1.84e-09 * zoom * range) + (-1.378e-08 * range * range) //
+            + (7.507e-14 * zoom * zoom * range) + (6.222e-13 * zoom * range * range) + (5.017e-12 * range * range * range));
+    }
 
 //-----------------------------------------------------------------------------
 private:
