@@ -6,10 +6,13 @@ function [m] = turbulence_metric_noBL(img_0, img_1)
 
     m = 0;
     
+    mean_img_0 = mean(img_0(:));
+    mean_img_1 = mean(img_1(:));
+    
     % step 1: take the FFT2 of the image to transform into the 2-D
     % frequency domain
-    img_0_fft = fftshift(fft2(img_0)/numel(img_0));
-    img_1_fft = fftshift(fft2(img_1)/numel(img_1));
+    img_0_fft = fftshift(fft2(img_0 - mean_img_0)/numel(img_0));
+    img_1_fft = fftshift(fft2(img_1 - mean_img_1)/numel(img_1));
     
     % step 2: Auto correlation
     K_00 = conv2(img_0_fft, conj(img_0_fft(end:-1:1, end:-1:1)), 'same');
