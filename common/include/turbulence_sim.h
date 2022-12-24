@@ -125,7 +125,7 @@ inline void centroid_psf(cv::Mat &psf, double threshold = 0.95)
 // adapted from here:
 // https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst, double std = 0.7)
+void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst, double std = 0.8)
 {
     uint64_t idx;
     double c1 = 2.0*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
