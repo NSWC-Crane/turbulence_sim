@@ -110,6 +110,7 @@ int main(int argc, char** argv)
 
     // setup the windows to display the results
     cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    cv::namedWindow("color", cv::WINDOW_NORMAL);
     //cv::resizeWindow(window_name, 2*img_w, img_h);
 
     // do work here
@@ -234,11 +235,14 @@ int main(int argc, char** argv)
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
         cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
-        cv::Mat img_blur2;
-        cv::Mat montage;
+        cv::Mat img_blur_r, img_blur_g, img_blur_b;
+        std::vector<cv::Mat> img_blur_v(3);
+        std::vector<cv::Mat> img_tilt_v(3);
+
+        cv::Mat montage, montage2;
         char key = 0;
 
-        cv::resizeWindow(window_name, 4*N, 2*N);
+        cv::resizeWindow(window_name, 6*N, 2*N);
 
         while(key != 'q')
         {
@@ -274,7 +278,7 @@ int main(int argc, char** argv)
     }
     catch(std::exception& e)
     {
-        std::cout << "Error: " << e.what() << std::endl;
+        std::cout << e.what() << std::endl;
         std::cout << "Filename: " << __FILE__ << std::endl;
         std::cout << "Line #: " << __LINE__ << std::endl;
     }
