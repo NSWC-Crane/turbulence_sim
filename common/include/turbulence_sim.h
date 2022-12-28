@@ -143,52 +143,59 @@ void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     cv::MatIterator_<double> rnd_itr;
     cv::MatIterator_<cv::Vec2d> S_itr;
 
-    //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, std);
-    rnd_itr = rnd_x.begin<double>();
-    S_itr = S.begin<cv::Vec2d>();
-    for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
-    {
-        tmp = p.S_vec[idx] * (*rnd_itr);
-        *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
+    try {
+        //MVx = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+        rng.fill(rnd_x, cv::RNG::NORMAL, 0.0, std);
+        rnd_itr = rnd_x.begin<double>();
+        S_itr = S.begin<cv::Vec2d>();
+        for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
+        {
+            tmp = p.S_vec[idx] * (*rnd_itr);
+            *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
+        }
+
+        cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+
+        //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+        cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
+        mv_xc = c1 * get_real(mv_xc);
+        cv::filter2D(mv_xc, mv_xc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+        mv_xc -= cv::mean(mv_xc)[0];
+
+        //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
+        //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
+        rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, std);
+
+        rnd_itr = rnd_y.begin<double>();
+        S_itr = S.begin<cv::Vec2d>();
+
+        for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
+        {
+            tmp = p.S_vec[idx] * (*rnd_itr);
+            *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
+        }
+
+        cv::dft(S, mv_y, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
+
+        //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+        cv::Mat mv_yc = mv_y(cv::Rect(0, N_2, p.get_N(), p.get_N()));
+        mv_yc = c1 * get_real(mv_yc);
+        cv::filter2D(mv_yc, mv_yc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+        mv_yc -= cv::mean(mv_yc)[0];
+        //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
+
+        //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
+        motion_compensate(src, dst, mv_xc, mv_yc, 0.5);
+
+        //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
+        //#plt.show()
     }
-
-    cv::dft(S, mv_x, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-
-    //MVx = MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
-    cv::Mat mv_xc = mv_x(cv::Rect(N_2, 0, p.get_N(), p.get_N()));
-    mv_xc = c1 * get_real(mv_xc);
-    cv::filter2D(mv_xc, mv_xc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-    mv_xc -= cv::mean(mv_xc)[0];
-
-    //#MVx = 1 / p_obj['scaling'] * MVx[round(p_obj['N'] / 2):2 * p_obj['N'] - round(p_obj['N'] / 2), 0 : p_obj['N']]
-    //MVy = np.real(np.fft.ifft2(p_obj['S'] * np.random.randn(2 * p_obj['N'], 2 * p_obj['N']))) * np.sqrt(2) * 2 * p_obj['N'] * (p_obj['L'] / p_obj['delta0'])
-    rng.fill(rnd_y, cv::RNG::NORMAL, 0.0, std);
-    
-    rnd_itr = rnd_y.begin<double>();
-    S_itr = S.begin<cv::Vec2d>();
-
-    for (idx = 0; idx < (N * N); ++idx, ++rnd_itr, ++S_itr)
+    catch (std::exception& e)
     {
-        tmp = p.S_vec[idx] * (*rnd_itr);
-        *S_itr = cv::Vec2d(tmp.real(), tmp.imag());
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        throw std::runtime_error(error_string);
     }
-
-    cv::dft(S, mv_y, cv::DFT_INVERSE + cv::DFT_SCALE, S.rows);
-
-    //MVy = MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
-    cv::Mat mv_yc = mv_y(cv::Rect(0, N_2, p.get_N(), p.get_N()));
-    mv_yc = c1 * get_real(mv_yc);
-    cv::filter2D(mv_yc, mv_yc, CV_64FC1, p.motion_kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-    mv_yc -= cv::mean(mv_yc)[0];
-    //#MVy = 1 / p_obj['scaling'] * MVy[0:p_obj['N'], round(p_obj['N'] / 2) : 2 * p_obj['N'] - round(p_obj['N'] / 2)]
-    
-    //img_ = motion_compensate(img, MVx - np.mean(MVx), MVy - np.mean(MVy), 0.5)
-    motion_compensate(src, dst, mv_xc, mv_yc, 0.5);
-
-    //#plt.quiver(MVx[::10, ::10], MVy[::10, ::10], scale = 60)
-    //#plt.show()
-
 }   // end of generate_tilt_image
 
 //-----------------------------------------------------------------------------
@@ -210,15 +217,17 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     std::vector<double> coeff;
 
     uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
-       
-    //    patch_size = round(p_obj['N'] / patchN)
-    double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
-     
-    int64_t blur_cols = p.blur_kernel.cols;
-    int64_t blur_rows = p.blur_kernel.rows;
 
     try
-    {
+    {       
+        //    patch_size = round(p_obj['N'] / patchN)
+        double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
+     
+        int64_t blur_cols = p.blur_kernel.cols;
+        int64_t blur_rows = p.blur_kernel.rows;
+
+        uint32_t src_ch = src.channels();
+
         // generate the indexes to put the patches
         index_generate(N / (double)(2 * p.patch_num), N / (double)(2 * p.patch_num) + (double)(N - N / (double)p.patch_num), p.patch_num, xx, yy);
         double rnd_limit = std::floor(xx[0] / 2.0);
@@ -338,12 +347,11 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         dst = img_patch.mul(1.0 / den);
 
     }
-    catch (std::exception e)
+    catch (std::exception &e)
     {
-        std::cout << "error: " << e.what() << std::endl;
-        std::cout << "Filename: " << __FILE__ << std::endl;
-        std::cout << "Line #: " << __LINE__ << std::endl;
-        std::cout << "Function: " << __FUNCTION__ << std::endl << std::endl;
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        throw std::runtime_error(error_string);
     }
 
 }   // end of generate_blur_image
