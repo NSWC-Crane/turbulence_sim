@@ -45,13 +45,13 @@ public:
         D_r0 = D / r0;
         delta0 = (L * wavelength) / (2.0 * D);
         s_max = (delta0 / D) * (double)N;
-        spacing = delta0 / D;
-        ob_s = obj_size;
+        //spacing = delta0 / D;
+        //ob_s = obj_size;
         scaling = obj_size / (N * delta0);
 
         s_max *= scaling;
-        spacing *= scaling;
-        ob_s *= scaling;
+        //spacing *= scaling;
+        //ob_s *= scaling;
         delta0 *= scaling;
 
         generate_psd();
@@ -60,7 +60,6 @@ public:
         zern_c1 *= zern_c1;
         calc_zern_cov_matrix();
 
-        create_gaussian_kernel(5, 1.2, motion_kernel);
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
@@ -73,6 +72,7 @@ public:
         
         double patch_size = std::floor(1.1 * (N / patch_num) + 0.5);
         create_gaussian_kernel(2*patch_size + 1, patch_size/2.2, blur_kernel);
+        create_gaussian_kernel(5, 1.3, motion_kernel);
 
     }   // end pf init_params
     
@@ -190,8 +190,8 @@ private:
     double delta0;
     double k;
     double s_max;
-    double spacing;
-    double ob_s;
+    //double spacing;
+    //double ob_s;
     double scaling;
 
     std::vector<double> smax_curve;

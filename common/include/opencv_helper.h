@@ -1,5 +1,5 @@
-#ifndef _OPENCV_HELPER_H_
-#define _OPENCV_HELPER_H_
+#ifndef _TURB_OPENCV_HELPER_H_
+#define _TURB_OPENCV_HELPER_H_
 
 
 #include <cstdint>
@@ -381,4 +381,4 @@ void fftshift(cv::Mat& img)
     tmp.copyTo(q2);
 }   // end of fftshift
 
-#endif  // _OPENCV_HELPER_H_
+#endif  // _TURB_OPENCV_HELPER_H_
