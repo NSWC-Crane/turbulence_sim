@@ -273,7 +273,6 @@ private:
             //cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
             cv::Mat c_fft;// = cv::Mat::zeros(C.rows, C.cols, CV_64FC2);
 
-
             cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
 
             S_vec.clear();
@@ -293,7 +292,7 @@ private:
         catch (std::exception& e)
         {
             std::string error_string = "Error: " + std::string(e.what()) + "\n";
-            error_string += "File: " + std::string(__FILE__) + ", Line #: " + std::to_string(__LINE__);
+            error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
             throw std::runtime_error(error_string);
         }
     }   // end of generate_psd
