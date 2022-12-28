@@ -128,11 +128,11 @@ inline void centroid_psf(cv::Mat &psf, double threshold = 0.95)
 void generate_tilt_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Mat& dst, double std = 0.8)
 {
     uint64_t idx;
-    double c1 = 2.0*std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
+    double c1 = 2.0 * std::sqrt(2) * p.get_N() * (p.get_L() / p.get_delta0());
     uint64_t N = 2 * p.get_N();
     uint64_t N_2 = p.get_N() >> 1;
     uint64_t N2 = N * N;
-    
+
     std::complex<double> tmp;
 
     cv::Mat mv_x;
@@ -235,10 +235,10 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
         //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
         //    den = np.zeros((p_obj['N'], p_obj['N']))
 //        dst = cv::Mat::zeros(N, N, CV_64FC1);
-        cv::Mat img_patch = cv::Mat::zeros(N, N, CV_64FC1);
-        cv::Mat den = cv::Mat(N, N, CV_64FC1, cv::Scalar::all(1.0e-6));
+        cv::Mat img_patch = cv::Mat::zeros(N, N, src.type());
+        cv::Mat den = cv::Mat(N, N, src.type(), cv::Scalar::all(1.0e-6));
         
-        // parallel for lop idea adapted from teh link below 
+        // parallel for lop idea adapted from the link below 
         // https://www.alecjacobson.com/weblog/?p=4544
 
         std::vector<cv::Mat> img_patches(p.patch_num * p.patch_num);
@@ -338,6 +338,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
             }, tdx* num_loops / num_threads, (tdx + 1) == num_threads ? num_loops : (tdx + 1) * num_loops / num_threads, tdx));
 
         }   // end of thread loop
+
+        // join all of the threads
         std::for_each(threads.begin(), threads.end(), [](std::thread& x) {x.join(); });
 
         // out_img = np.sum(img_patches, axis = 2) / (den + 0.000001)
