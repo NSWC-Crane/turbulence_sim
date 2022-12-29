@@ -217,7 +217,7 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     // b = np.random.randn(int(num_zern), 1) * v ** (3.0/10.0)
     cv::Mat b(p.num_zern_coeff, 1, CV_64FC1);
     rng.fill(b, cv::RNG::NORMAL, 0.0, 1.0);
-    b *= (p.zern_c1);
+    b *= (p.cp[0].zern_c1);
 
     // a = np.matmul(R, b)
     //cv::Mat dst = R * b;
