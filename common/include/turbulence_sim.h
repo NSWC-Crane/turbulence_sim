@@ -235,7 +235,6 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 
         //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
         //    den = np.zeros((p_obj['N'], p_obj['N']))
-//        dst = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat img_patch = cv::Mat::zeros(N, N, src.type());
         cv::Mat den = cv::Mat(N, N, src.type(), cv::Scalar::all(1.0e-6));
         
@@ -258,7 +257,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
                 uint64_t min_y, max_y, min_ky, max_ky;
 
                 cv::Mat patch_mask;
-                cv::Mat psf, temp_psf;
+                std::vector<cv::Mat> psf(3);
+                //cv::Mat temp_psf;
                 //cv::Mat img_patch = cv::Mat::zeros(N, N, CV_64FC1);
                 cv::Mat tmp_conv;
                 double psf_sum;
@@ -271,25 +271,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
                     x = xx[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
                     y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
 
-                    // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-                    generate_psf(NN, p, rng, psf, z_i, pad_size);
-
-                    centroid_psf(psf, 0.98);
-
-                    // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
-                    // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
-                    cv::resize(psf, psf, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
-                    //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-                    //cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
-
-                    // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
-                    patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
-
-                    // patch_mask[round(xx_flat[i]), round(yy_flat[i])] = 1
-                    // patch_mask = scipy.signal.fftconvolve(patch_mask, np.exp(-patch_indx * *2 / patch_size * *2) * np.exp(-patch_indy * *2 / patch_size * *2) * np.ones((patch_size * 2 + 1, patch_size * 2 + 1)), mode = 'same')
-                    //patch_mask.at<double>((uint64_t)(*yy.ptr<double>(idx)), (uint64_t)(*xx.ptr<double>(idx))) = 1.0;
-                    //cv::filter2D(patch_mask, patch_mask, -1, exp_tmp, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-
+                    // calculate the bounds of where copying the filter kernel happens
                     min_x = std::max((int64_t)0, (int64_t)(x)-(blur_cols >> 1));
                     max_x = std::min((int64_t)N, (int64_t)(x)+(blur_cols >> 1) + 1);
 
@@ -302,24 +284,28 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
                     min_ky = std::max((int64_t)0, (blur_rows >> 1) - (int64_t)(y));
                     max_ky = std::min((int64_t)blur_rows, (int64_t)((blur_rows >> 1) + (N - (int64_t)(y))));
 
+                    // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
+                    generate_psf(NN, p, rng, psf[0], z_i, pad_size);
+
+                    centroid_psf(psf[0], 0.98);
+
+                    // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+                    // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+                    cv::resize(psf[0], psf[0], cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+                    //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
+                    //cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
+
+                    // patch_mask = np.zeros((p_obj['N'], p_obj['N']))
+                    patch_mask = cv::Mat::zeros(N, N, CV_64FC1);
 
                     p.blur_kernel(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).copyTo(patch_mask(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
                     // den += scipy.signal.fftconvolve(patch_mask, psf, mode = 'same')
-                    //cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-                    //den += tmp_conv;
-                    cv::filter2D(patch_mask, den_patches[idx], -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-
-                    //cv::Mat tmp_conv2;
-                    //cv::filter2D(exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)), tmp_conv2, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
-                    //cv::Mat den_roi = den(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
-                    //den_roi += tmp_conv2;
+                    cv::filter2D(patch_mask, den_patches[idx], -1, psf[0], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
 
                     // img_patches[:, : , i] = scipy.signal.fftconvolve(img * patch_mask, psf, mode = 'same')
                     patch_mask = patch_mask.mul(src);
-                    //cv::filter2D(patch_mask, tmp_conv, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-                    //img_patch += tmp_conv;
-                    cv::filter2D(patch_mask, img_patches[idx], -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+                    cv::filter2D(patch_mask, img_patches[idx], -1, psf[0], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
 
                     //cv::Mat t2 = exp_tmp(cv::Range(min_ky, max_ky), cv::Range(min_kx, max_kx)).mul(src(cv::Range(min_y, max_y), cv::Range(min_x, max_x)));
 
