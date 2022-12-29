@@ -170,8 +170,8 @@ int main(int argc, char** argv)
         std::string base_directory = "d:/data/turbulence/";
 //        std::string base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
 
-        std::string baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r1000.png";
-        std::string real_filename = base_directory + "sharpest/z2000/1000/image_z01999_f46264_e02776_i00.png";
+        std::string baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        std::string real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
         cv::Mat img;
         cv::Mat rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
@@ -180,7 +180,7 @@ int main(int argc, char** argv)
         if (rw_img.channels() >= 3)
         {
             rw_img.convertTo(rw_img, CV_64FC3);
-            rw_img = get_channel(rw_img, 1);
+            //rw_img = get_channel(rw_img, 1);
         }
         else
         {
@@ -194,26 +194,28 @@ int main(int argc, char** argv)
         }
         else
         {
-            tmp_img.convertTo(tmp_img, CV_64FC1);
+            //tmp_img.convertTo(tmp_img, CV_64FC3);
+            cv::cvtColor(tmp_img, tmp_img, cv::COLOR_GRAY2BGR);
+            tmp_img.convertTo(tmp_img, CV_64FC3);
         }
 
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = tmp_img.rows;
+        uint32_t N = 80;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
         double D = 0.095;
         uint32_t zoom = 2000;
 
-        double L = 1000;
+        double L = 600;
         double wavelenth = 525e-9;
         double pixel = turbulence_param::get_pixel_size(zoom, L); // 0.004217;    // 0.004217; 0.00246
 
         double obj_size = N * pixel;
         //double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 7.0e-14;
+        double Cn2 = 1.2e-14;
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
@@ -222,20 +224,32 @@ int main(int argc, char** argv)
         init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
 #else
         std::vector<turbulence_param> Pv;
-        for (idx = 0; idx < 23; ++idx)
-        {
+        //turbulence_param P;
+        L = 800;
+        pixel = turbulence_param::get_pixel_size(zoom, L);
+        obj_size = N * pixel;
 
-            L = 10.0 * idx + 600.0;
-            pixel = turbulence_param::get_pixel_size(zoom, L);
-            obj_size = N * pixel;
-            Pv.push_back(turbulence_param(N, D, L, Cn2, wavelenth, obj_size));
-        }
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 639e-9, obj_size));
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 525e-9, obj_size));
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 471e-9, obj_size));
+
+        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size));
+
+        //for (idx = 0; idx < 23; ++idx)
+        //{
+
+        //    L = 10.0 * idx + 600.0;
+        //    pixel = turbulence_param::get_pixel_size(zoom, L);
+        //    obj_size = N * pixel;
+        //    Pv.push_back(turbulence_param(N, D, L, Cn2, wavelenth, obj_size));
+        //}
 #endif
 
         //-----------------------------------------------------------------------------
-        cv::Mat img_tilt;
+        cv::Mat img_tilt, img_tilt2;
         cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat img_blur_r, img_blur_g, img_blur_b;
+        std::vector<cv::Mat> img_v(3);
         std::vector<cv::Mat> img_blur_v(3);
         std::vector<cv::Mat> img_tilt_v(3);
 
@@ -243,6 +257,9 @@ int main(int argc, char** argv)
         char key = 0;
 
         cv::resizeWindow(window_name, 6*N, 2*N);
+
+        auto rng_seed = time(NULL);
+
 
         while(key != 'q')
         {
@@ -254,11 +271,32 @@ int main(int argc, char** argv)
 
             apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
 #else
-            generate_tilt_image(img, Pv[0], rng, img_tilt);
-            generate_blur_image(img_tilt, Pv[0], rng, img_blur);
 
-            generate_tilt_image(img, Pv[22], rng, img_tilt);
-            generate_blur_image(img_tilt, Pv[22], rng, img_blur2);
+            rng_seed = 1672270304;// time(NULL);
+            //// red - 2, green - 1, blue - 0
+            //cv::split(img, img_v);
+
+            //rng = cv::RNG(rng_seed);
+            //generate_tilt_image(img_v[2], Pv[0], rng, img_tilt_v[2]);
+            //rng = cv::RNG(rng_seed);
+            //generate_tilt_image(img_v[1], Pv[1], rng, img_tilt_v[1]);
+            //rng = cv::RNG(rng_seed);
+            //generate_tilt_image(img_v[0], Pv[2], rng, img_tilt_v[0]);
+            //cv::merge(img_tilt_v, img_tilt);
+
+            rng = cv::RNG(rng_seed);
+            generate_tilt_image(img, Pv[0], rng, img_tilt);
+            cv::split(img_tilt, img_tilt_v);
+
+            rng = cv::RNG(rng_seed);
+            generate_blur_image(img_tilt_v[2], Pv[0], rng, img_blur_v[2]);
+            rng = cv::RNG(rng_seed);
+            generate_blur_image(img_tilt_v[1], Pv[0], rng, img_blur_v[1]);
+            rng = cv::RNG(rng_seed);
+            generate_blur_image(img_tilt_v[0], Pv[0], rng, img_blur_v[0]);
+
+            cv::merge(img_blur_v, img_blur);
+
 #endif
 
             //img_blur.convertTo(img_blur, CV_8UC1);
@@ -268,10 +306,14 @@ int main(int argc, char** argv)
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::hconcat(rw_img, img_blur, montage);
-            cv::hconcat(montage, img_blur2, montage);
-            cv::imshow(window_name, montage/255.0);
-            key = cv::waitKey(50);
+            //cv::hconcat(img_blur_v[0], img_blur_v[1], montage);
+            cv::hconcat(img, img_tilt, montage);
+            cv::hconcat(rw_img, img_blur, montage2);
+
+            cv::imshow(window_name, montage / 255.0);
+            cv::imshow("color", montage2 / 255.0);
+
+            key = cv::waitKey(0);
         }
         bp = 2;
 
@@ -279,8 +321,6 @@ int main(int argc, char** argv)
     catch(std::exception& e)
     {
         std::cout << e.what() << std::endl;
-        std::cout << "Filename: " << __FILE__ << std::endl;
-        std::cout << "Line #: " << __LINE__ << std::endl;
     }
 
     cv::destroyAllWindows();
