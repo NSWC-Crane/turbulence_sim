@@ -347,9 +347,10 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
 }   // end of generate_psf
 
 //-----------------------------------------------------------------------------
-void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector<cv::Mat>& psf, double z_i = 1.2, double pad_size = 0.0)
+void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, cv::Mat &psf, double z_i = 1.2, double pad_size = 0.0)
+//void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector<cv::Mat> &psf_v, double z_i = 1.2, double pad_size = 0.0)
 {
-    uint32_t idx;
+    uint32_t idx, jdx;
     cv::Mat x_grid, x_grid2, y_grid, y_grid2;
     cv::Mat x_samp_grid, y_samp_grid;
     cv::Mat mask;
@@ -358,8 +359,11 @@ void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector
     cv::Mat phase;
     cv::Mat tmp_psf;
     std::complex<double> j(0, 1);
-    std::vector<double> coeff;
-    double psf_sum;
+    std::vector<double> coeff(p.num_zern_coeff);
+    std::vector<cv::Mat> psf_v(p.cp.size());
+    //psf_v.resize(p.cp.size());
+    double psf_sum = 0.0;
+    int32_t top, left, bot, right;
 
     //    x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
     meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
@@ -380,17 +384,20 @@ void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector
     cv::MatIterator_<double> itr;
     cv::MatIterator_<double> end;
 
+    int32_t max_width = 0, max_height = 0;
+
     for (idx = 0; idx < p.cp.size(); ++idx)
     {
 
-        b2 = (p.cp[0].zern_c1) * b;
+        b2 = (p.cp[idx].zern_c1) * b;
 
         // a = np.matmul(R, b)
-        a = p.cov_mat * b;
-
+        a = p.cov_mat * b2;
+        
+        jdx = 0;
         for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
         {
-            coeff.push_back(*itr);
+            coeff[jdx++] = (*itr);
         }
 
         generate_zernike_phase(N, coeff, phase, x_grid, y_grid);
@@ -403,13 +410,30 @@ void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector
         fftshift(tmp_psf);
 
         //psf = np.abs(temp) * *2
-        psf[idx] = abs_cmplx(tmp_psf);
-        psf[idx] = psf[idx].mul(psf[idx]);
+        psf_v[idx] = abs_cmplx(tmp_psf);
+        psf_v[idx] = psf_v[idx].mul(psf_v[idx]);
 
         // psf = psf / np.sum(psf.ravel())
-        psf_sum = cv::sum(psf[idx])[0];
-        psf[idx] *= 1.0 / psf_sum;
+        psf_sum = cv::sum(psf_v[idx])[0];
+        psf_v[idx] *= 1.0 / psf_sum;
+
+        centroid_psf(psf_v[idx], 0.98);
+
+        max_width = std::max(psf_v[idx].cols, max_width);
+        max_height = std::max(psf_v[idx].rows, max_height);
     }
+
+    // make the psf size identical
+    for (idx = 0; idx < p.cp.size(); ++idx)
+    {
+        top = (max_height - psf_v[idx].rows) >> 1;
+        bot = max_height - psf_v[idx].rows - top;
+        left = (max_width - psf_v[idx].cols) >> 1;
+        right = max_width - psf_v[idx].cols - left;
+        cv::copyMakeBorder(psf_v[idx], psf_v[idx], top, bot, left, right, cv::BORDER_CONSTANT, cv::Scalar(0));
+    }
+
+    cv::merge(psf_v, psf);
 
 }   // end of generate_rgb_psf
 
