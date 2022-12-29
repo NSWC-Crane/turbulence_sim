@@ -17,6 +17,60 @@
 #include "opencv_helper.h"
 #include "noll_functions.h"
 
+
+//-----------------------------------------------------------------------------
+inline void centroid_psf(cv::Mat& psf, double threshold = 0.95)
+{
+    int32_t radius = 4;
+    int32_t min_x, max_x;
+    int32_t min_y, max_y;
+
+    double temp_sum = 0.0;
+    cv::Mat mx, my;
+    cv::Mat tmp_psf;
+
+    cv::Point center;
+
+    cv::minMaxLoc(psf, NULL, NULL, NULL, &center);
+
+    //x = np.linspace(0, psf.shape[0], psf.shape[0])
+    //y = np.linspace(0, psf.shape[1], psf.shape[1])
+    //col, row = np.meshgrid(x, y)
+    //meshgrid<double>(0, psf.cols - 1, psf.cols, 0, psf.rows - 1, psf.rows, mx, my);
+
+    try
+    {
+        //center.x = (uint8_t)cv::sum(mx.mul(psf))[0];
+        //center.y = (uint8_t)cv::sum(my.mul(psf))[0];
+
+        while (temp_sum < threshold)
+        {
+            ++radius;
+
+            min_x = std::max(0, center.x - radius);
+            max_x = std::min(psf.cols, center.x + radius + 1);
+            min_y = std::max(0, center.y - radius);
+            max_y = std::min(psf.rows, center.y + radius + 1);
+
+            // make sure that this thing doesn't run away
+            if ((max_x - min_x) == psf.cols || (max_y - min_y) == psf.rows)
+                break;
+
+            // return_psf = psf[cen_row - radius:cen_row + radius + 1, cen_col - radius : cen_col + radius + 1]
+            tmp_psf = psf(cv::Range(min_y, max_y), cv::Range(min_x, max_x));
+            temp_sum = cv::sum(tmp_psf)[0];
+        }
+
+        psf = tmp_psf.clone();
+    }
+    catch (std::exception e)
+    {
+        std::cout << "error: " << e.what() << std::endl;
+        std::cout << "Filename: " << __FILE__ << std::endl;
+        std::cout << "Line #: " << __LINE__ << std::endl;
+    }
+}   // end of centroid_psf
+
 //-----------------------------------------------------------------------------
 //Just a simple function to generate random coefficients as needed, conforms to Zernike's Theory. The nollCovMat()
 //function is at the heart of this function.
