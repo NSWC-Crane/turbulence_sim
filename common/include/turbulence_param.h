@@ -12,9 +12,44 @@
 #include "noll_functions.h"
 #include "integrals_spatial_corr.h"
 
+//-----------------------------------------------------------------------------
+// calculate the fried parameter for a constant Cn2 across distance
+inline double calc_r0(double k, double Cn2, double L)
+{
+    return std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L)); 
+}   // end of calc_r0
+
+//-----------------------------------------------------------------------------
+typedef struct color_params
+{
+    double wavelength;
+    double r0;
+    double D_r0;
+    double zern_c1;
+    double scaling;
+
+    color_params() = default;
+
+    color_params(double Cn2, double L, double D, double delta0, double w_) : wavelength(w_)
+    {
+        r0 = calc_r0((2.0 * CV_PI) / wavelength, Cn2, L);
+        D_r0 = D / r0;
+        zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
+        zern_c1 *= zern_c1;
+        scaling = (2.0 * D * delta0) / (L * wavelength);
+    }
+
+} color_params;
+
+//-----------------------------------------------------------------------------
 class turbulence_param
 {
 public:
+
+    bool use_color;
+
+    std::vector<color_params> cp;
+
     std::vector<std::complex<double>> S_vec;
     uint64_t patch_num;
     
@@ -23,12 +58,13 @@ public:
     cv::Mat cov_mat;
 
     uint32_t num_zern_coeff = 36;
-    double zern_c1;
+    //double zern_c1;
 
     turbulence_param() = default;
 
-    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_) : N(N_), D(D_), L(L_), Cn2(Cn2_), wavelength(w_), obj_size(obj_size_)
+    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_) : N(N_), D(D_), L(L_), Cn2(Cn2_), obj_size(obj_size_)
     {
+        use_color = false;
         init_params();
     }
     
@@ -38,26 +74,45 @@ public:
         uint32_t idx;
         double tmp;
 
+        /*
         // calculate the wavenumber
         k = (2.0 * CV_PI) / wavelength;
         // use L,k and Cn2 to calculate the Fried parameter
-        calc_r0();
+        calc_r0((2.0 * CV_PI) / wavelength, Cn2, L);
         D_r0 = D / r0;
-        delta0 = (L * wavelength) / (2.0 * D);
-        s_max = (delta0 / D) * (double)N;
+        //delta0 = (L * wavelength) / (2.0 * D);
+        //s_max = (delta0 / D) * (double)N;
+        //scaling = obj_size / (N * delta0);
         //spacing = delta0 / D;
         //ob_s = obj_size;
-        scaling = obj_size / (N * delta0);
 
-        s_max *= scaling;
         //spacing *= scaling;
         //ob_s *= scaling;
-        delta0 *= scaling;
+        //s_max *= scaling;
+        //delta0 *= scaling;
+        */
+        double scaling = (2.0 * D * obj_size) / (N * L * green_wvl);
 
-        generate_psd();
+        // simplified version based on convoluted math done by purdue
+        s_max = obj_size / D;
+        delta0 = obj_size / (double)N;
 
-        zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
-        zern_c1 *= zern_c1;
+        cp.clear();
+        if (use_color == true)
+        {
+            cp.push_back(color_params(Cn2, L, D, delta0, red_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, blue_wvl));
+            generate_psd(cp[1]);
+        }
+        else
+        {
+            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            generate_psd(cp[0]);
+        }       
+
+        //zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
+        //zern_c1 *= zern_c1;
         calc_zern_cov_matrix();
 
         smax_curve.clear();
@@ -77,13 +132,13 @@ public:
     }   // end pf init_params
     
     //-----------------------------------------------------------------------------
-    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_)
+    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_)
     {
         N = N_;
         D = D_;
         L = L_;
         Cn2 = Cn2_;
-        wavelength = w_;
+        //wavelength = w_;
         obj_size = obj_size_;
 
         init_params();
@@ -145,10 +200,19 @@ public:
     }
 
     //-----------------------------------------------------------------------------
-    inline double get_wavelength(void) { return wavelength; }
-    void set_wavelength(double w_) 
-    { 
-        wavelength = w_; 
+    //inline double get_wavelength(void) { return wavelength; }
+    //void set_wavelength(double w_) 
+    //{ 
+    //    wavelength = w_; 
+    //    init_params();
+    //}
+
+    //-----------------------------------------------------------------------------
+    void set_wavelengths(double r_, double g_, double b_)
+    {
+        red_wvl = r_;
+        green_wvl = g_;
+        blue_wvl = b_;
         init_params();
     }
 
@@ -157,16 +221,16 @@ public:
     void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
 
     //-----------------------------------------------------------------------------
-    inline double get_r0(void) { return r0; }
+    //inline double get_r0(void) { return r0; }
 
     //-----------------------------------------------------------------------------
-    inline double get_D_r0(void) { return D_r0; }
+    //inline double get_D_r0(void) { return D_r0; }
 
     //-----------------------------------------------------------------------------
     inline double get_delta0(void) { return delta0; }
 
     //-----------------------------------------------------------------------------
-    inline double get_scaling(void) { return scaling; }
+    inline double get_scaling(void) { return use_color ? cp[1].scaling : cp[0].scaling; }
 
     //-----------------------------------------------------------------------------
     // this function returns the curve fit of real data for a given lens zoom setting and range (L)
@@ -182,17 +246,21 @@ private:
     double D;               // size of aperture diameter (meters)
     double L;               // length of propagation (meters)
     double Cn2;
-    double r0;              // Fried parameter (meters)
-    double wavelength;      // wavelength (meters)
+    //double r0;              // Fried parameter (meters)
+    //double r0_r, r0_g, r0_b;
+    //double wavelength;      // wavelength (meters)
+    double red_wvl = 639e-9;
+    double green_wvl = 525e-9;
+    double blue_wvl = 471e-9;
     double obj_size;
     
-    double D_r0;
+    //double D_r0;
     double delta0;
-    double k;
+    //double k;
     double s_max;
     //double spacing;
     //double ob_s;
-    double scaling;
+    //double scaling;
 
     std::vector<double> smax_curve;
     
@@ -208,7 +276,7 @@ private:
 //adapted from here: 
 //https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-    void generate_psd(void)
+    void generate_psd(color_params cp)
     {
         uint64_t idx;
         cv::Mat x, y;
@@ -231,7 +299,7 @@ private:
             double c2 = ((4.0 * c1) / CV_PI) * (tgamma(11.0 / 6.0)) * (tgamma(11.0 / 6.0));
 
             // c3 = (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
-            double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(D_r0 / 2.0)) * (2 * wavelength / (CV_PI * D)) * (2 * wavelength / (CV_PI * D));
+            double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(cp.D_r0 / 2.0)) * (2 * cp.wavelength / (CV_PI * D)) * (2 * cp.wavelength / (CV_PI * D));
 
             cv::Mat s_arr = linspace(0.0, s_max_local, N2);
 
@@ -321,12 +389,6 @@ private:
         kernel = kernel * (1.0 / matsum);	// get the matrix to sum up to 1...
 
     }	// end of create_gaussian_kernel
-
-    //-----------------------------------------------------------------------------
-    inline void calc_r0()
-    {
-        r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
-    }   // end of calc_r0
 
     //-----------------------------------------------------------------------------
     inline void calc_zern_cov_matrix()
