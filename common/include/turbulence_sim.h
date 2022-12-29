@@ -222,7 +222,8 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     {       
         //    patch_size = round(p_obj['N'] / patchN)
         double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
-     
+        double scale_factor = std::floor(NN / p.get_scaling() + 0.5);
+
         int64_t blur_cols = p.blur_kernel.cols;
         int64_t blur_rows = p.blur_kernel.rows;
 
@@ -271,20 +272,13 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
                     y = yy[idx] + (int32_t)rng.uniform(-rnd_limit, rnd_limit);
 
                     // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-                    generate_psf(NN, p, rng, temp_psf, z_i, pad_size);
+                    generate_psf(NN, p, rng, psf, z_i, pad_size);
 
-                    //psf = np.abs(temp) * *2
-                    psf = abs_cmplx(temp_psf);
-                    psf = psf.mul(psf);
-
-                    // psf = psf / np.sum(psf.ravel())
-                    psf_sum = cv::sum(psf)[0];
-                    psf *= 1.0 / psf_sum;
                     centroid_psf(psf, 0.98);
 
                     // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
                     // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
-                    cv::resize(psf, psf, cv::Size(std::floor(NN / p.get_scaling() + 0.5), std::floor(NN / p.get_scaling() + 0.5)), 0.0, 0.0, cv::INTER_LINEAR);
+                    cv::resize(psf, psf, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
                     //cv::filter2D(psf, psf, -1, k2, cv::Point(-1, -1), 0.0, cv::BORDER_CONSTANT(0));
                     //cv::GaussianBlur(psf, psf, cv::Size(3, 3), 0);
 

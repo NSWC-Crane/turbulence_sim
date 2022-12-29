@@ -205,6 +205,7 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     cv::Mat mask;
     std::complex<double> j(0, 1);
     std::vector<double> coeff;
+    double psf_sum;
 
     //    wavelength = kwargs.get('wavelength', 500 * (10 * *(-9)))
     //    pad_size = kwargs.get('pad_size', 0)
@@ -242,7 +243,6 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     //mask = (mask <= 1);
     cv::threshold(mask, mask, 1.0, 1.0, cv::THRESH_BINARY_INV);
 
-
     //    zernike_stack = zernikeGen(N, vec)
     //    phase = np.sum(zernike_stack, axis = 2)
     std::vector<cv::Mat> zernike_stack;
@@ -256,26 +256,30 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
 
     //    pad_wave = np.pad(wave, int(pad_size / 2), 'constant', constant_values = 0)
     
-    
     //    #c_psf = np.fft.fftshift(np.fft.fft2(pad_wave))
     //    h = np.fft.fftshift(np.fft.ifft2(pad_wave))
     //cv::Mat h;
     cv::dft(wave, psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT + cv::DFT_SCALE, wave.rows);
     fftshift(psf);
+
+    //psf = np.abs(temp) * *2
+    psf = abs_cmplx(psf);
+    psf = psf.mul(psf);
+
+    // psf = psf / np.sum(psf.ravel())
+    psf_sum = cv::sum(psf)[0];
+    psf *= 1.0 / psf_sum;
     
     //    #pad_wave = np.abs(pad_wave) * *2
     //    # numpy.correlate(x, x, mode = 'same')
     //    #plt.imshow(phase * mask)
     //    #plt.show()
     //    M = pad_size + N
-    
-    
+       
     //    fs = N * wavelength * z_i / D
     //double fs = 0.5 * N * p.get_wavelength() * (z_i / p.get_D());
     
-    //    temp = np.linspace(-fs / 2, fs / 2, M)
-    
-    
+    //    temp = np.linspace(-fs / 2, fs / 2, M)  
     //    x_samp_grid, y_samp_grid = np.meshgrid(temp, -temp)
     //meshgrid(-fs, fs, pad_size + N, fs, -fs, pad_size + N, x_samp_grid, y_samp_grid);
     //x_samp_grid *= (p.get_L() / z_i);
@@ -286,6 +290,7 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     //    else:
     //return h, (L / z_i)* x_samp_grid, (L / z_i)* y_samp_grid, phase* mask, wave
 
+}   // end of generate_psf
 
 
 }   // end of generate_psf
