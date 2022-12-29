@@ -80,8 +80,8 @@ void motion_compensate(cv::Mat &src, cv::Mat &dst, cv::Mat &mv_x, cv::Mat &mv_y,
 
         for (idx = 0; idx < img_ch; ++idx)
         {
-            *(g_itr+idx) = *(f_itr + idx + (img_ch * index));
-            ++g_itr;
+            *(g_itr++) = *(f_itr + idx + (img_ch * index));
+            //++g_itr;
         }
     }
 
