@@ -132,7 +132,6 @@ int main(int argc, char** argv)
         
         //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
 
-
 #if defined(USE_LIB)
     // load in the library
     #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
@@ -233,7 +232,7 @@ int main(int argc, char** argv)
         //Pv.push_back(turbulence_param(N, D, L, Cn2, 525e-9, obj_size));
         //Pv.push_back(turbulence_param(N, D, L, Cn2, 471e-9, obj_size));
 
-        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size));
+        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size, true));
 
         //for (idx = 0; idx < 23; ++idx)
         //{
@@ -246,7 +245,7 @@ int main(int argc, char** argv)
 #endif
 
         //-----------------------------------------------------------------------------
-        cv::Mat img_tilt, img_tilt2;
+        cv::Mat img_tilt, img_tilt2, img_blur2;
         cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
         cv::Mat img_blur_r, img_blur_g, img_blur_b;
         std::vector<cv::Mat> img_v(3);
@@ -260,19 +259,57 @@ int main(int argc, char** argv)
 
         auto rng_seed = time(NULL);
 
+        //-----
+        //test something
+        std::vector<cv::Mat> psf(3);
+        cv::Mat psf2, psf3, psf4;
+        rng_seed = 1672270304;
+        double scale_factor = std::floor(28 / Pv[0].get_scaling() + 0.5);
+
+        rng = cv::RNG(rng_seed);
+        generate_psf(N, Pv[0], rng, psf3);
+        //centroid_psf(psf3, 0.98);
+        cv::resize(psf3, psf3, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+
+        rng = cv::RNG(rng_seed);
+        generate_rgb_psf(N, Pv[0], rng, psf2);
+
+        //centroid_psf(psf2, 0.98);
+        cv::resize(psf2, psf2, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+
+        //for (uint32_t jdx = 0; jdx < 3; ++jdx)
+        //{
+        //    centroid_psf(psf[jdx], 0.98);
+        //    scale_factor = std::floor(28 / Pv[0].cp[jdx].scaling + 0.5);
+        //    // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
+        //    // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
+        //    cv::resize(psf[jdx], psf[jdx], cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+        //}
+
+        //std::vector<cv::Mat> psf2 = { psf[2],psf[1],psf[0] };
+        //cv::Mat psfm;
+        //cv::merge(psf, psfm);
+        cv::filter2D(img, img_blur, -1, psf2, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+
+        //cv::split(img, img_v);
+        //cv::filter2D(img_v[2], img_blur_v[2], -1, psf[2], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+        //cv::filter2D(img_v[1], img_blur_v[1], -1, psf[1], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+        //cv::filter2D(img_v[0], img_blur_v[0], -1, psf[0], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+
+        //cv::merge(img_blur_v, img_blur2);
+
+        bp = 1;
 
         while(key != 'q')
         {
             start_time = std::chrono::system_clock::now();
-
-
 
 #if defined(USE_LIB)
 
             apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
 #else
 
-            rng_seed = 1672270304;// time(NULL);
+            //rng_seed = 1672270304;// time(NULL);
             //// red - 2, green - 1, blue - 0
             //cv::split(img, img_v);
 
@@ -284,18 +321,21 @@ int main(int argc, char** argv)
             //generate_tilt_image(img_v[0], Pv[2], rng, img_tilt_v[0]);
             //cv::merge(img_tilt_v, img_tilt);
 
-            rng = cv::RNG(rng_seed);
+            //rng = cv::RNG(rng_seed);
             generate_tilt_image(img, Pv[0], rng, img_tilt);
-            cv::split(img_tilt, img_tilt_v);
+            //cv::split(img_tilt, img_tilt_v);
 
-            rng = cv::RNG(rng_seed);
-            generate_blur_image(img_tilt_v[2], Pv[0], rng, img_blur_v[2]);
-            rng = cv::RNG(rng_seed);
-            generate_blur_image(img_tilt_v[1], Pv[0], rng, img_blur_v[1]);
-            rng = cv::RNG(rng_seed);
-            generate_blur_image(img_tilt_v[0], Pv[0], rng, img_blur_v[0]);
+            //rng = cv::RNG(rng_seed);
+            generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
 
-            cv::merge(img_blur_v, img_blur);
+            //rng = cv::RNG(rng_seed);
+            //generate_blur_image(img_tilt_v[2], Pv[0], rng, img_blur_v[2]);
+            //rng = cv::RNG(rng_seed);
+            //generate_blur_image(img_tilt_v[1], Pv[0], rng, img_blur_v[1]);
+            //rng = cv::RNG(rng_seed);
+            //generate_blur_image(img_tilt_v[0], Pv[0], rng, img_blur_v[0]);
+
+            //cv::merge(img_blur_v, img_blur);
 
 #endif
 
