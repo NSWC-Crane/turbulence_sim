@@ -62,9 +62,8 @@ public:
 
     turbulence_param() = default;
 
-    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_) : N(N_), D(D_), L(L_), Cn2(Cn2_), obj_size(obj_size_)
+    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_=false) : N(N_), D(D_), L(L_), Cn2(Cn2_), obj_size(obj_size_), use_color(uc_)
     {
-        use_color = false;
         init_params();
     }
     
@@ -100,13 +99,16 @@ public:
         cp.clear();
         if (use_color == true)
         {
-            cp.push_back(color_params(Cn2, L, D, delta0, red_wvl));
-            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            // put them in the standard OpenCV order - BGR
             cp.push_back(color_params(Cn2, L, D, delta0, blue_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, red_wvl));
+            // use the green wavelength to generate the PSD since there isn't much difference between the wavelengths here
             generate_psd(cp[1]);
         }
         else
         {
+            // mono color - use the green wavelength
             cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
             generate_psd(cp[0]);
         }       
