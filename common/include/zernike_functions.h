@@ -292,8 +292,71 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
 
 }   // end of generate_psf
 
+//-----------------------------------------------------------------------------
+void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, std::vector<cv::Mat>& psf, double z_i = 1.2, double pad_size = 0.0)
+{
+    uint32_t idx;
+    cv::Mat x_grid, x_grid2, y_grid, y_grid2;
+    cv::Mat x_samp_grid, y_samp_grid;
+    cv::Mat mask;
+    cv::Mat b2;
+    cv::Mat a;
+    cv::Mat phase;
+    cv::Mat tmp_psf;
+    std::complex<double> j(0, 1);
+    std::vector<double> coeff;
+    double psf_sum;
 
-}   // end of generate_psf
+    //    x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
+    meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
 
+    //    mask = np.sqrt(x_grid * *2 + y_grid * *2) <= 1
+    x_grid2 = x_grid.mul(x_grid);
+    y_grid2 = y_grid.mul(y_grid);
+    mask = x_grid2 + y_grid2;
+
+    cv::sqrt(mask, mask);
+    //mask = (mask <= 1);
+    cv::threshold(mask, mask, 1.0, 1.0, cv::THRESH_BINARY_INV);
+
+    // b = np.random.randn(int(num_zern), 1) * v ** (3.0/10.0)
+    cv::Mat b(p.num_zern_coeff, 1, CV_64FC1);
+    rng.fill(b, cv::RNG::NORMAL, 0.0, 1.0);
+
+    cv::MatIterator_<double> itr;
+    cv::MatIterator_<double> end;
+
+    for (idx = 0; idx < p.cp.size(); ++idx)
+    {
+
+        b2 = (p.cp[0].zern_c1) * b;
+
+        // a = np.matmul(R, b)
+        a = p.cov_mat * b;
+
+        for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
+        {
+            coeff.push_back(*itr);
+        }
+
+        generate_zernike_phase(N, coeff, phase, x_grid, y_grid);
+
+        //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
+        cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
+        wave = mul_cmplx(mask, wave);
+
+        cv::dft(wave, tmp_psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT + cv::DFT_SCALE, wave.rows);
+        fftshift(tmp_psf);
+
+        //psf = np.abs(temp) * *2
+        psf[idx] = abs_cmplx(tmp_psf);
+        psf[idx] = psf[idx].mul(psf[idx]);
+
+        // psf = psf / np.sum(psf.ravel())
+        psf_sum = cv::sum(psf[idx])[0];
+        psf[idx] *= 1.0 / psf_sum;
+    }
+
+}   // end of generate_rgb_psf
 
 #endif  // _ZERNIKE_FUNCTIONS_H_
