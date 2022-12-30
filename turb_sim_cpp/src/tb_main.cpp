@@ -37,8 +37,9 @@ typedef void* HINSTANCE;
 #include <num2string.h>
 #include <file_ops.h>
 #include <opencv_helper.h>
+#include <lens_pixel_size.h>
 
-#define USE_LIB
+//#define USE_LIB
 
 #if defined(USE_LIB)
 //#include "turb_sim_lib.h"
@@ -210,13 +211,13 @@ int main(int argc, char** argv)
         double D = 0.095;
         uint32_t zoom = 2000;
 
-        double L = 600;
-        double wavelenth = 525e-9;
-        double pixel = 0.004217;// turbulence_param::get_pixel_size(zoom, L); // 0.004217;    // 0.004217; 0.00246
+        double L = 0600;
+        //double wavelenth = 525e-9;
+        double pixel = get_pixel_size(zoom, L);   // 0.004217; 0.00246
 
         double obj_size = N * pixel;
-        //double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 1.2e-14;
+        double Cn2 = 9e-15;
+
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
@@ -235,7 +236,7 @@ int main(int argc, char** argv)
 #else
         std::vector<turbulence_param> Pv;
         L = 800;
-        pixel = turbulence_param::get_pixel_size(zoom, L);
+        pixel = get_pixel_size(zoom, L);
         obj_size = N * pixel;
 
         //Pv.push_back(turbulence_param(N, D, L, Cn2, 639e-9, obj_size));
@@ -284,7 +285,7 @@ int main(int argc, char** argv)
 
 
 #else
-            for (int jdx = 0; jdx < 64; ++jdx)
+            for (int jdx = 0; jdx < 1; ++jdx)
             {
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
