@@ -210,13 +210,14 @@ cv::Mat generate_zernike_poly(int64_t N, cv::Mat& x_grid, cv::Mat& y_grid)
 // This implementation uses Noll's indices. 1 -> (0,0), 2 -> (1,1), 3 -> (1, -1), 4 -> (2,0), 5 -> (2, -2), etc.
 //def zernikeGen(N, coeff, **kwargs)
 // 
-void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern_out, cv::Mat &x_grid, cv::Mat &y_grid)
+//void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern_out, cv::Mat &x_grid, cv::Mat &y_grid)
+void generate_zernike_phase(int64_t N, cv::Mat& coeff, cv::Mat& zern_out, cv::Mat& x_grid, cv::Mat& y_grid)
 {
-    uint64_t idx;
+    uint64_t idx = 0;
     //cv::Mat x_grid, y_grid;
 
     //num_coeff = coeff.size
-    uint64_t num_coeff = coeff.size();
+    uint64_t num_coeff = coeff.total();
 
     // Setting up 2D grid
     //x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
@@ -229,10 +230,17 @@ void generate_zernike_phase(int64_t N, std::vector<double>& coeff, cv::Mat& zern
     //zern_out = np.zeros((N, N, num_coeff))
     zern_out = cv::Mat::zeros(N, N, CV_64FC1);
 
-    for (idx = 0; idx < num_coeff; ++idx)
+    //for (idx = 0; idx < num_coeff; ++idx)
+    //{
+    //    // zern_out[:, : , i] = coeff[i] * genZernPoly(i + 1, x_grid, y_grid)
+    //    zern_out += coeff[idx] * generate_zernike_poly(idx + 1, x_grid, y_grid);
+    //}
+
+    cv::MatIterator_<double> c_itr = coeff.begin<double>();
+    cv::MatIterator_<double> c_end = coeff.end<double>();
+    for (; c_itr != c_end; ++c_itr, ++idx)
     {
-        // zern_out[:, : , i] = coeff[i] * genZernPoly(i + 1, x_grid, y_grid)
-        zern_out += coeff[idx] * generate_zernike_poly(idx + 1, x_grid, y_grid);
+        zern_out += (*c_itr) * generate_zernike_poly(idx + 1, x_grid, y_grid);
     }
 
 }   // end of generate_zernike_phase
@@ -280,10 +288,10 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     cv::MatIterator_<double> itr;
     cv::MatIterator_<double> end;
 
-    for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
-    {
-        coeff.push_back(*itr);
-    }
+    //for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
+    //{
+    //    coeff.push_back(*itr);
+    //}
      
     //    x_grid, y_grid = np.meshgrid(np.linspace(-1, 1, N, endpoint = True), np.linspace(-1, 1, N, endpoint = True))
     meshgrid(-1.0, 1.0, N, -1.0, 1.0, N, x_grid, y_grid);
@@ -301,7 +309,7 @@ void generate_psf(uint64_t N, turbulence_param &p, cv::RNG& rng, cv::Mat& psf, d
     //    phase = np.sum(zernike_stack, axis = 2)
     std::vector<cv::Mat> zernike_stack;
     cv::Mat phase;
-    generate_zernike_phase(N, coeff, phase, x_grid, y_grid);
+    generate_zernike_phase(N, a, phase, x_grid, y_grid);
         
     //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
     cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
@@ -394,16 +402,16 @@ void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, cv::Mat &ps
         // a = np.matmul(R, b)
         a = p.cov_mat * b2;
         
-        jdx = 0;
-        for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
-        {
-            coeff[jdx++] = (*itr);
-        }
+        //jdx = 0;
+        //for (itr = a.begin<double>(), end = a.end<double>(); itr != end; ++itr)
+        //{
+        //    coeff[jdx++] = (*itr);
+        //}
 
-        generate_zernike_phase(N, coeff, phase, x_grid, y_grid);
+        generate_zernike_phase(N, a, phase, x_grid, y_grid);
 
         //    wave = np.exp((1j * 2 * np.pi * phase)) * mask
-        cv::Mat wave = exp_cmplx(2 * CV_PI * j, phase);
+        cv::Mat wave = exp_cmplx(0.75*2 * CV_PI * j, phase);
         wave = mul_cmplx(mask, wave);
 
         cv::dft(wave, tmp_psf, cv::DFT_INVERSE + cv::DFT_COMPLEX_OUTPUT + cv::DFT_SCALE, wave.rows);
