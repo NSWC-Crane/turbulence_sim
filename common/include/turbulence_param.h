@@ -235,14 +235,6 @@ public:
     //-----------------------------------------------------------------------------
     inline double get_scaling(void) { return use_color ? cp[1].scaling : cp[0].scaling; }
 
-    //-----------------------------------------------------------------------------
-    // this function returns the curve fit of real data for a given lens zoom setting and range (L)
-    inline static double get_pixel_size(uint32_t zoom, double range)
-    {
-        return (-0.003657 + (4.707e-07 * zoom) + (1.791e-05 * range) + (-1.893e-11 * zoom * zoom) + (-1.84e-09 * zoom * range) + (-1.378e-08 * range * range) //
-            + (7.507e-14 * zoom * zoom * range) + (6.222e-13 * zoom * range * range) + (5.017e-12 * range * range * range));
-    }
-
 //-----------------------------------------------------------------------------
 private:
     uint64_t N;             // size of pixels of one image dimension (assumed to be square image N x N)
