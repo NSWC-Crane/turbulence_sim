@@ -35,9 +35,9 @@ turbulence_param tp;
 cv::RNG rng;
 
 //-----------------------------------------------------------------------------
-void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_)
+void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_)
 {
-    tp.update_params(N_, D_, L_, Cn2_, w_, obj_size_);
+    tp.update_params(N_, D_, L_, Cn2_, obj_size_, uc_);
     rng = cv::RNG(time(NULL));
     
 }   // end of init_turbulence_params
@@ -74,12 +74,42 @@ void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, doub
     }
     catch (std::exception e)
     {
-        std::cout << "error: " << std::endl << e.what() << std::endl;
-        std::cout << "Filename: " << __FILE__ << std::endl;
-        std::cout << "Line #: " << __LINE__ << std::endl << std::endl;
-        std::cout << "Function: " << __FUNCTION__ << std::endl << std::endl;
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        std::cout << error_string << std::endl;
     }
     
 }   // end of apply_turbulence
 
+//-----------------------------------------------------------------------------
+void apply_rgb_turbulence(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_)
+{
 
+    cv::Mat img_tilt, img_blur;
+    try
+    {
+        // convert the image from pointer to cv::Mat
+        cv::Mat img = cv::Mat(img_h, img_w, CV_64FC3, img_);
+        cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC3, turb_img_);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+
+        generate_tilt_image(img, tp, rng, img_tilt);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "img_tilt[0]: " << img_tilt.at<double>(0, 0) << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+
+        generate_blur_rgb_image(img_tilt, tp, rng, turb_img);
+
+        //img_blur.convertTo(turb_img, CV_8UC1);
+    }
+    catch (std::exception e)
+    {
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        std::cout << error_string << std::endl;
+    }
+
+}   // end of apply_rgb_turbulence

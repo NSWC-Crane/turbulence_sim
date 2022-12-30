@@ -134,7 +134,7 @@ public:
     }   // end pf init_params
     
     //-----------------------------------------------------------------------------
-    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_)
+    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_)
     {
         N = N_;
         D = D_;
@@ -142,6 +142,7 @@ public:
         Cn2 = Cn2_;
         //wavelength = w_;
         obj_size = obj_size_;
+        use_color = uc_;
 
         init_params();
     }

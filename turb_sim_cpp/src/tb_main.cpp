@@ -38,13 +38,15 @@ typedef void* HINSTANCE;
 #include <file_ops.h>
 #include <opencv_helper.h>
 
-//#define USE_LIB
+#define USE_LIB
 
 #if defined(USE_LIB)
-#include "turb_sim_lib.h"
+//#include "turb_sim_lib.h"
 
-typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
+typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
 typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_apply_rgb_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+
 #else
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
@@ -92,8 +94,6 @@ int main(int argc, char** argv)
     auto stop_time = std::chrono::system_clock::now();
     auto elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
-    cv::Mat img_f1, img_f2;
-
     std::string window_name = "image";
 
     std::string lib_filename;
@@ -119,7 +119,7 @@ int main(int argc, char** argv)
 
         //cv::Mat r;
         //cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
-        //cv::Mat circ = cv::Mat(64, 64, CV_32FC1, cv::Scalar::all(0.0));
+        cv::Mat circ = cv::Mat::zeros(80, 80, CV_64FC1);
 
         //for (idx = 0; idx < 64; ++idx)
         //{
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
         //    }
         //}
         
-        //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
+        //cv::circle(circ, cv::Point(39, 39), (80-2)>>1, 255, 0, cv::LineTypes::LINE_8, 0);
 
 #if defined(USE_LIB)
     // load in the library
@@ -145,6 +145,7 @@ int main(int argc, char** argv)
 
         lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)GetProcAddress(turb_lib, "init_turbulence_params");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
+        lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)GetProcAddress(turb_lib, "apply_rgb_turbulence");
 
     #else
         lib_filename = "../../turb_sim_lib/build/turb_sim.so";
@@ -157,6 +158,7 @@ int main(int argc, char** argv)
 
         lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)dlsym(turb_lib, "init_turbulence_params");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
+        lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)dlsym(turb_lib, "apply_rgb_turbulence");
 
     #endif
 
@@ -201,7 +203,7 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 80;
+        uint32_t N = 64;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
@@ -210,7 +212,7 @@ int main(int argc, char** argv)
 
         double L = 600;
         double wavelenth = 525e-9;
-        double pixel = turbulence_param::get_pixel_size(zoom, L); // 0.004217;    // 0.004217; 0.00246
+        double pixel = 0.004217;// turbulence_param::get_pixel_size(zoom, L); // 0.004217;    // 0.004217; 0.00246
 
         double obj_size = N * pixel;
         //double k = 2 * CV_PI / wavelenth;
@@ -219,11 +221,19 @@ int main(int argc, char** argv)
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
+        cv::Mat img_blur;
+        bool use_color = true;
+
 #if defined(USE_LIB)
-        init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
+        
+        init_turbulence_params(N, D, L, Cn2, obj_size, use_color);
+        if(use_color)
+            img_blur = cv::Mat::zeros(N, N, CV_64FC3);
+        else
+            img_blur = cv::Mat::zeros(N, N, CV_64FC1);
+
 #else
         std::vector<turbulence_param> Pv;
-        //turbulence_param P;
         L = 800;
         pixel = turbulence_param::get_pixel_size(zoom, L);
         obj_size = N * pixel;
@@ -242,15 +252,17 @@ int main(int argc, char** argv)
         //    obj_size = N * pixel;
         //    Pv.push_back(turbulence_param(N, D, L, Cn2, wavelenth, obj_size));
         //}
+
 #endif
 
         //-----------------------------------------------------------------------------
-        cv::Mat img_tilt, img_tilt2, img_blur2;
-        cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
-        cv::Mat img_blur_r, img_blur_g, img_blur_b;
-        std::vector<cv::Mat> img_v(3);
-        std::vector<cv::Mat> img_blur_v(3);
-        std::vector<cv::Mat> img_tilt_v(3);
+        cv::Mat img_tilt;
+        cv::Mat img_tilt2, img_blur2;
+
+        //cv::Mat img_blur_r, img_blur_g, img_blur_b;
+        //std::vector<cv::Mat> img_v(3);
+        //std::vector<cv::Mat> img_blur_v(3);
+        //std::vector<cv::Mat> img_tilt_v(3);
 
         cv::Mat montage, montage2;
         char key = 0;
@@ -258,45 +270,6 @@ int main(int argc, char** argv)
         cv::resizeWindow(window_name, 6*N, 2*N);
 
         auto rng_seed = time(NULL);
-
-        //-----
-        //test something
-        std::vector<cv::Mat> psf(3);
-        cv::Mat psf2, psf3, psf4;
-        rng_seed = 1672270304;
-        double scale_factor = std::floor(28 / Pv[0].get_scaling() + 0.5);
-
-        rng = cv::RNG(rng_seed);
-        generate_psf(N, Pv[0], rng, psf3);
-        //centroid_psf(psf3, 0.98);
-        cv::resize(psf3, psf3, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
-
-        rng = cv::RNG(rng_seed);
-        generate_rgb_psf(N, Pv[0], rng, psf2);
-
-        //centroid_psf(psf2, 0.98);
-        cv::resize(psf2, psf2, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
-
-        //for (uint32_t jdx = 0; jdx < 3; ++jdx)
-        //{
-        //    centroid_psf(psf[jdx], 0.98);
-        //    scale_factor = std::floor(28 / Pv[0].cp[jdx].scaling + 0.5);
-        //    // # focus_psf, _, _ = centroidPsf(psf, 0.95) : Depending on the size of your PSFs, you may want to use this
-        //    // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
-        //    cv::resize(psf[jdx], psf[jdx], cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
-        //}
-
-        //std::vector<cv::Mat> psf2 = { psf[2],psf[1],psf[0] };
-        //cv::Mat psfm;
-        //cv::merge(psf, psfm);
-        cv::filter2D(img, img_blur, -1, psf2, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-
-        //cv::split(img, img_v);
-        //cv::filter2D(img_v[2], img_blur_v[2], -1, psf[2], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-        //cv::filter2D(img_v[1], img_blur_v[1], -1, psf[1], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-        //cv::filter2D(img_v[0], img_blur_v[0], -1, psf[0], cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
-
-        //cv::merge(img_blur_v, img_blur2);
 
         bp = 1;
 
@@ -306,40 +279,22 @@ int main(int argc, char** argv)
 
 #if defined(USE_LIB)
 
-            apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+            //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+            apply_rgb_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+
+
 #else
+            for (int jdx = 0; jdx < 64; ++jdx)
+            {
+                //rng_seed = 1672270304;// time(NULL);
+                //// red - 2, green - 1, blue - 0
+                //rng = cv::RNG(rng_seed);
+                generate_tilt_image(img, Pv[0], rng, img_tilt);
 
-            //rng_seed = 1672270304;// time(NULL);
-            //// red - 2, green - 1, blue - 0
-            //cv::split(img, img_v);
-
-            //rng = cv::RNG(rng_seed);
-            //generate_tilt_image(img_v[2], Pv[0], rng, img_tilt_v[2]);
-            //rng = cv::RNG(rng_seed);
-            //generate_tilt_image(img_v[1], Pv[1], rng, img_tilt_v[1]);
-            //rng = cv::RNG(rng_seed);
-            //generate_tilt_image(img_v[0], Pv[2], rng, img_tilt_v[0]);
-            //cv::merge(img_tilt_v, img_tilt);
-
-            //rng = cv::RNG(rng_seed);
-            generate_tilt_image(img, Pv[0], rng, img_tilt);
-            //cv::split(img_tilt, img_tilt_v);
-
-            //rng = cv::RNG(rng_seed);
-            generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
-
-            //rng = cv::RNG(rng_seed);
-            //generate_blur_image(img_tilt_v[2], Pv[0], rng, img_blur_v[2]);
-            //rng = cv::RNG(rng_seed);
-            //generate_blur_image(img_tilt_v[1], Pv[0], rng, img_blur_v[1]);
-            //rng = cv::RNG(rng_seed);
-            //generate_blur_image(img_tilt_v[0], Pv[0], rng, img_blur_v[0]);
-
-            //cv::merge(img_blur_v, img_blur);
-
+                //rng = cv::RNG(rng_seed);
+                generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+            }
 #endif
-
-            //img_blur.convertTo(img_blur, CV_8UC1);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
@@ -347,10 +302,10 @@ int main(int argc, char** argv)
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
             //cv::hconcat(img_blur_v[0], img_blur_v[1], montage);
-            cv::hconcat(img, img_tilt, montage);
+            //cv::hconcat(img, img_tilt, montage);
             cv::hconcat(rw_img, img_blur, montage2);
 
-            cv::imshow(window_name, montage / 255.0);
+            //cv::imshow(window_name, montage / 255.0);
             cv::imshow("color", montage2 / 255.0);
 
             key = cv::waitKey(0);
