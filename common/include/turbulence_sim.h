@@ -322,7 +322,7 @@ void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv
 
         // generate the indexes to put the patches
         index_generate(N / (double)(2 * p.patch_num), N / (double)(2 * p.patch_num) + (double)(N - N / (double)p.patch_num), p.patch_num, xx, yy);
-        double rnd_limit = std::floor(xx[0] / 2.0);
+        double rnd_limit = std::floor(xx[0] / 1.8);
 
         //    img_patches = np.zeros((p_obj['N'], p_obj['N'], int(patchN * *2)))
         //    den = np.zeros((p_obj['N'], p_obj['N']))
