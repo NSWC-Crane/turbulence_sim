@@ -43,12 +43,6 @@ void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, 
 }   // end of init_turbulence_params
 
 //-----------------------------------------------------------------------------
-double get_pixel_size(unsigned int z, double r)
-{
-    return tp.get_pixel_size(z, r);
-}
-
-//-----------------------------------------------------------------------------
 void apply_turbulence(unsigned int img_w, unsigned int img_h, double *img_, double *turb_img_)
 {
     
