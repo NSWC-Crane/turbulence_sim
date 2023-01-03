@@ -199,13 +199,14 @@ int main(int argc, char** argv)
         }
         else
         {
-            rw_img.convertTo(rw_img, CV_64FC1);
+            cv::cvtColor(rw_img, rw_img, cv::COLOR_GRAY2BGR);
+            rw_img.convertTo(rw_img, CV_64FC3);
         }
 
         if (tmp_img.channels() >= 3)
         {
             tmp_img.convertTo(tmp_img, CV_64FC3);
-            tmp_img = get_channel(tmp_img, 1);
+            //tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
@@ -213,7 +214,6 @@ int main(int argc, char** argv)
             cv::cvtColor(tmp_img, tmp_img, cv::COLOR_GRAY2BGR);
             tmp_img.convertTo(tmp_img, CV_64FC3);
         }
-
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
@@ -261,7 +261,6 @@ int main(int argc, char** argv)
 
         //for (idx = 0; idx < 23; ++idx)
         //{
-
         //    L = 10.0 * idx + 600.0;
         //    pixel = turbulence_param::get_pixel_size(zoom, L);
         //    obj_size = N * pixel;
@@ -306,15 +305,10 @@ int main(int argc, char** argv)
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
                 //rng = cv::RNG(rng_seed);
-                std::cout << "Tilt" << std::endl;
+
                 generate_tilt_image(img, Pv[0], rng, img_tilt);
                 
-                cv::imshow("color", img_tilt / 255.0);
-
-                key = cv::waitKey(0);
-            
                 //rng = cv::RNG(rng_seed);
-                std::cout << "Blur" << std::endl;
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
             }
 #endif

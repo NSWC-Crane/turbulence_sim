@@ -33,6 +33,8 @@ message("Platform: " ${PLATFORM})
 string(FIND ${PROJECT_SOURCE_DIR} "/" INDEX REVERSE)
 string(SUBSTRING ${PROJECT_SOURCE_DIR} 0 ${INDEX} PR_ROOT)
 
+set(default_build_type "Release")
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
