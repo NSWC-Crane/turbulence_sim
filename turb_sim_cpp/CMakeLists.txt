@@ -142,9 +142,9 @@ if(WIN32)
     endif()
     
 elseif(UNIX)
-#    target_link_libraries(${exe_name} ${project_libs} ${CMAKE_DL_LIBS})    
-    target_link_libraries(${exe_name} ${project_libs})    
-    #target_link_libraries(${exe_name} PRIVATE GSL::gsl GSL::gslcblas)
+
+    target_link_libraries(${exe_name} ${project_libs} pthread)    
+#    target_link_libraries(${exe_name} ${project_libs} gsl gslcblas)
 
 endif()
 

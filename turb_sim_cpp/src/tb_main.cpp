@@ -167,13 +167,26 @@ int main(int argc, char** argv)
 
         bp = 1;
 
-//        std::string filename = "../../data/checker_board_32x32.png";
-        //std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
-        std::string base_directory = "d:/data/turbulence/";
-//        std::string base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
 
-        std::string baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
-        std::string real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        std::string base_directory;
+        std::string baseline_filename;
+        std::string real_filename;
+        
+//        std::string filename = "../../data/checker_board_32x32.png";
+//        std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
+
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+        base_directory = "D:/data/turbulence/";
+        //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
+        
+        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        
+#else
+        base_directory = "../../data/";
+        baseline_filename = base_directory + "checker_board_32x32.png";
+        real_filename = base_directory + "checker_board_32x32.png";
+#endif
 
         cv::Mat img;
         cv::Mat rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
@@ -234,6 +247,7 @@ int main(int argc, char** argv)
             img_blur = cv::Mat::zeros(N, N, CV_64FC1);
 
 #else
+        std::cout << "Initializing the turbulence parameters" << std::endl;
         std::vector<turbulence_param> Pv;
         L = 800;
         pixel = get_pixel_size(zoom, L);
@@ -273,6 +287,8 @@ int main(int argc, char** argv)
         auto rng_seed = time(NULL);
 
         bp = 1;
+        
+        std::cout << "Running the turbulence generation" << std::endl;
 
         while(key != 'q')
         {
@@ -290,9 +306,15 @@ int main(int argc, char** argv)
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
                 //rng = cv::RNG(rng_seed);
+                std::cout << "Tilt" << std::endl;
                 generate_tilt_image(img, Pv[0], rng, img_tilt);
+                
+                cv::imshow("color", img_tilt / 255.0);
 
+                key = cv::waitKey(0);
+            
                 //rng = cv::RNG(rng_seed);
+                std::cout << "Blur" << std::endl;
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
             }
 #endif
