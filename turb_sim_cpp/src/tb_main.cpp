@@ -99,6 +99,9 @@ int main(int argc, char** argv)
 
     std::string lib_filename;
 
+    std::vector<int32_t> compression_params;
+    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(2);
 
     //if (argc == 1)
     //{
@@ -181,6 +184,9 @@ int main(int argc, char** argv)
         
         baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
         real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+
+        baseline_filename = "C:/Projects/vs_gen/vs_gen_test/build/test_image_fp1.png";
+        real_filename = "C:/Projects/vs_gen/vs_gen_test/build/test_image_fp2.png";
         
 #else
         base_directory = "../../data/";
@@ -217,7 +223,7 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 64;
+        uint32_t N = 512;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
@@ -229,7 +235,7 @@ int main(int argc, char** argv)
         double pixel = get_pixel_size(zoom, L);   // 0.004217; 0.00246
 
         double obj_size = N * pixel;
-        double Cn2 = 9e-15;
+        double Cn2 = 5e-14;
 
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
@@ -249,7 +255,7 @@ int main(int argc, char** argv)
 #else
         std::cout << "Initializing the turbulence parameters" << std::endl;
         std::vector<turbulence_param> Pv;
-        L = 800;
+        L = 600;
         pixel = get_pixel_size(zoom, L);
         obj_size = N * pixel;
 
@@ -300,7 +306,7 @@ int main(int argc, char** argv)
 
 
 #else
-            for (int jdx = 0; jdx < 1; ++jdx)
+            for (int jdx = 0; jdx < 20; ++jdx)
             {
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
@@ -310,6 +316,16 @@ int main(int argc, char** argv)
                 
                 //rng = cv::RNG(rng_seed);
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+
+                cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
+
+                generate_tilt_image(rw_img, Pv[0], rng, img_tilt);
+
+                //rng = cv::RNG(rng_seed);
+                generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+
+                cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
+
             }
 #endif
 
