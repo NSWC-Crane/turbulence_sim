@@ -103,6 +103,10 @@ int main(int argc, char** argv)
     compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
     compression_params.push_back(2);
 
+    std::string base_directory;
+    std::string baseline_filename;
+    std::string real_filename;
+
     //if (argc == 1)
     //{
     //    std::cout << "Error: Missing confige file" << std::endl;
@@ -167,31 +171,24 @@ int main(int argc, char** argv)
     #endif
 
 #endif      
-
-        bp = 1;
-
-
-        std::string base_directory;
-        std::string baseline_filename;
-        std::string real_filename;
         
-//        std::string filename = "../../data/checker_board_32x32.png";
-//        std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
-
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
         base_directory = "D:/data/turbulence/";
         //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
         
-        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
-        real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        //baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        //real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
-        baseline_filename = "C:/Projects/vs_gen/vs_gen_test/build/test_image_fp1.png";
-        real_filename = "C:/Projects/vs_gen/vs_gen_test/build/test_image_fp2.png";
+        baseline_filename = "../../data/test_image_fp1.png";
+        real_filename = "../../data/test_image_fp2.png";
         
 #else
         base_directory = "../../data/";
-        baseline_filename = base_directory + "checker_board_32x32.png";
-        real_filename = base_directory + "checker_board_32x32.png";
+        //baseline_filename = base_directory + "checker_board_32x32.png";
+        //real_filename = base_directory + "checker_board_32x32.png";
+
+        baseline_filename = "../../data/test_image_fp1.png";
+        real_filename = "../../data/test_image_fp2.png";
 #endif
 
         cv::Mat img;
@@ -306,7 +303,7 @@ int main(int argc, char** argv)
 
 
 #else
-            for (int jdx = 0; jdx < 20; ++jdx)
+            for (int jdx = 0; jdx < 1; ++jdx)
             {
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
@@ -339,9 +336,9 @@ int main(int argc, char** argv)
             cv::hconcat(rw_img, img_blur, montage2);
 
             //cv::imshow(window_name, montage / 255.0);
-            cv::imshow("color", montage2 / 255.0);
+            //cv::imshow("color", montage2 / 255.0);
 
-            key = cv::waitKey(0);
+            key = 'q';// cv::waitKey(0);
         }
         bp = 2;
 
