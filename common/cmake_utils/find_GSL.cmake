@@ -30,8 +30,8 @@ if (GSL_LIBRARIES AND GSL_INCLUDE_DIRS)
 
 else()
     message("--- GSL library was not found! ---")
-    message(STATUS "Found GSL Includes: " ${GSL_INCLUDE_DIRS})
-    message(STATUS "Found GSL Library: " ${GSL_LIBRARIES})
+    message(STATUS "GSL_INCLUDE_DIRS: " ${GSL_INCLUDE_DIRS})
+    message(STATUS "GSL_LIBRARIES: " ${GSL_LIBRARIES})
     set(GSL_FOUND FALSE)
 endif()
 

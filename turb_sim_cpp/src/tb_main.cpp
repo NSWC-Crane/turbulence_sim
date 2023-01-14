@@ -28,10 +28,10 @@ typedef void* HINSTANCE;
 
 // OpenCV includes
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/video.hpp>
-#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/video.hpp>
+//#include <opencv2/imgcodecs.hpp>
 
 // custom includes
 #include <num2string.h>
@@ -117,9 +117,8 @@ int main(int argc, char** argv)
     //}
 
     // setup the windows to display the results
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    cv::namedWindow("color", cv::WINDOW_NORMAL);
-    //cv::resizeWindow(window_name, 2*img_w, img_h);
+    //cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    //cv::namedWindow("color", cv::WINDOW_NORMAL);
 
     // do work here
     try
@@ -348,7 +347,7 @@ int main(int argc, char** argv)
         std::cout << e.what() << std::endl;
     }
 
-    cv::destroyAllWindows();
+    //cv::destroyAllWindows();
     std::cout << std::endl << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
 
