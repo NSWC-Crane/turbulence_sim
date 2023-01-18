@@ -12,9 +12,44 @@
 #include "noll_functions.h"
 #include "integrals_spatial_corr.h"
 
+//-----------------------------------------------------------------------------
+// calculate the fried parameter for a constant Cn2 across distance
+inline double calc_r0(double k, double Cn2, double L)
+{
+    return std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L)); 
+}   // end of calc_r0
+
+//-----------------------------------------------------------------------------
+typedef struct color_params
+{
+    double wavelength;
+    double r0;
+    double D_r0;
+    double zern_c1;
+    double scaling;
+
+    color_params() = default;
+
+    color_params(double Cn2, double L, double D, double delta0, double w_) : wavelength(w_)
+    {
+        r0 = calc_r0((2.0 * CV_PI) / wavelength, Cn2, L);
+        D_r0 = D / r0;
+        zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
+        zern_c1 *= zern_c1;
+        scaling = (2.0 * D * delta0) / (L * wavelength);
+    }
+
+} color_params;
+
+//-----------------------------------------------------------------------------
 class turbulence_param
 {
 public:
+
+    bool use_color;
+
+    std::vector<color_params> cp;
+
     std::vector<std::complex<double>> S_vec;
     uint64_t patch_num;
     
@@ -23,11 +58,11 @@ public:
     cv::Mat cov_mat;
 
     uint32_t num_zern_coeff = 36;
-    double zern_c1;
+    //double zern_c1;
 
     turbulence_param() = default;
 
-    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_) : N(N_), D(D_), L(L_), Cn2(Cn2_), wavelength(w_), obj_size(obj_size_)
+    turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_=false) : N(N_), D(D_), L(L_), Cn2(Cn2_), obj_size(obj_size_), use_color(uc_)
     {
         init_params();
     }
@@ -38,29 +73,50 @@ public:
         uint32_t idx;
         double tmp;
 
+        /*
         // calculate the wavenumber
         k = (2.0 * CV_PI) / wavelength;
         // use L,k and Cn2 to calculate the Fried parameter
-        calc_r0();
+        calc_r0((2.0 * CV_PI) / wavelength, Cn2, L);
         D_r0 = D / r0;
-        delta0 = (L * wavelength) / (2.0 * D);
-        s_max = (delta0 / D) * (double)N;
-        spacing = delta0 / D;
-        ob_s = obj_size;
-        scaling = obj_size / (N * delta0);
+        //delta0 = (L * wavelength) / (2.0 * D);
+        //s_max = (delta0 / D) * (double)N;
+        //scaling = obj_size / (N * delta0);
+        //spacing = delta0 / D;
+        //ob_s = obj_size;
 
-        s_max *= scaling;
-        spacing *= scaling;
-        ob_s *= scaling;
-        delta0 *= scaling;
+        //spacing *= scaling;
+        //ob_s *= scaling;
+        //s_max *= scaling;
+        //delta0 *= scaling;
+        */
+        double scaling = (2.0 * D * obj_size) / (N * L * green_wvl);
 
-        generate_psd();
+        // simplified version based on convoluted math done by purdue
+        s_max = obj_size / D;
+        delta0 = obj_size / (double)N;
 
-        zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
-        zern_c1 *= zern_c1;
+        cp.clear();
+        if (use_color == true)
+        {
+            // put them in the standard OpenCV order - BGR
+            cp.push_back(color_params(Cn2, L, D, delta0, blue_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            cp.push_back(color_params(Cn2, L, D, delta0, red_wvl));
+            // use the green wavelength to generate the PSD since there isn't much difference between the wavelengths here
+            generate_psd(cp[1]);
+        }
+        else
+        {
+            // mono color - use the green wavelength
+            cp.push_back(color_params(Cn2, L, D, delta0, green_wvl));
+            generate_psd(cp[0]);
+        }       
+
+        //zern_c1 = std::exp((3.0 / 10.0) * std::log(D_r0));
+        //zern_c1 *= zern_c1;
         calc_zern_cov_matrix();
 
-        create_gaussian_kernel(5, 1.5, motion_kernel);
         smax_curve.clear();
         for (idx = 1; idx < 101; ++idx)
         {
@@ -73,38 +129,54 @@ public:
         
         double patch_size = std::floor(1.1 * (N / patch_num) + 0.5);
         create_gaussian_kernel(2*patch_size + 1, patch_size/2.2, blur_kernel);
+        create_gaussian_kernel(5, 1.3, motion_kernel);
 
     }   // end pf init_params
     
     //-----------------------------------------------------------------------------
-    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double w_, double obj_size_)
+    void update_params(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_)
     {
         N = N_;
         D = D_;
         L = L_;
         Cn2 = Cn2_;
-        wavelength = w_;
+        //wavelength = w_;
+        obj_size = obj_size_;
+        use_color = uc_;
+
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    void update_range(double L_)
+    {
+        L = L_;
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    void update_D(double D_)
+    {
+        D = D_;
+
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    void update_Cn2(double Cn2_)
+    {
+        Cn2 = Cn2_;
+
+        init_params();
+    }
+
+    //-----------------------------------------------------------------------------
+    void update_obj_size(double obj_size_)
+    {
         obj_size = obj_size_;
 
         init_params();
     }
-
-    //-----------------------------------------------------------------------------
-    void update_params(double L_)
-    {
-        L = L_;
-        init_params();
-    }
-
-    //-----------------------------------------------------------------------------
-    void update_params(double L_, double D_)
-    {
-        D = D_;
-        L = L_;
-
-        init_params();
-    }
-    
 
     //-----------------------------------------------------------------------------
     inline double get_D(void) { return D; }
@@ -131,10 +203,19 @@ public:
     }
 
     //-----------------------------------------------------------------------------
-    inline double get_wavelength(void) { return wavelength; }
-    void set_wavelength(double w_) 
-    { 
-        wavelength = w_; 
+    //inline double get_wavelength(void) { return wavelength; }
+    //void set_wavelength(double w_) 
+    //{ 
+    //    wavelength = w_; 
+    //    init_params();
+    //}
+
+    //-----------------------------------------------------------------------------
+    void set_wavelengths(double r_, double g_, double b_)
+    {
+        red_wvl = r_;
+        green_wvl = g_;
+        blue_wvl = b_;
         init_params();
     }
 
@@ -143,16 +224,16 @@ public:
     void set_S_vec(std::vector<std::complex<double>> S_vec_) { S_vec = S_vec_; }
 
     //-----------------------------------------------------------------------------
-    inline double get_r0(void) { return r0; }
+    //inline double get_r0(void) { return r0; }
 
     //-----------------------------------------------------------------------------
-    inline double get_D_r0(void) { return D_r0; }
+    //inline double get_D_r0(void) { return D_r0; }
 
     //-----------------------------------------------------------------------------
     inline double get_delta0(void) { return delta0; }
 
     //-----------------------------------------------------------------------------
-    inline double get_scaling(void) { return scaling; }
+    inline double get_scaling(void) { return use_color ? cp[1].scaling : cp[0].scaling; }
 
 //-----------------------------------------------------------------------------
 private:
@@ -160,17 +241,21 @@ private:
     double D;               // size of aperture diameter (meters)
     double L;               // length of propagation (meters)
     double Cn2;
-    double r0;              // Fried parameter (meters)
-    double wavelength;      // wavelength (meters)
+    //double r0;              // Fried parameter (meters)
+    //double r0_r, r0_g, r0_b;
+    //double wavelength;      // wavelength (meters)
+    double red_wvl = 639e-9;
+    double green_wvl = 525e-9;
+    double blue_wvl = 471e-9;
     double obj_size;
     
-    double D_r0;
+    //double D_r0;
     double delta0;
-    double k;
+    //double k;
     double s_max;
-    double spacing;
-    double ob_s;
-    double scaling;
+    //double spacing;
+    //double ob_s;
+    //double scaling;
 
     std::vector<double> smax_curve;
     
@@ -186,7 +271,7 @@ private:
 //adapted from here: 
 //https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
 //
-    void generate_psd(void)
+    void generate_psd(color_params cp)
     {
         uint64_t idx;
         cv::Mat x, y;
@@ -195,75 +280,84 @@ private:
         // N = 2 * p_obj['N']
         uint32_t N2 = 2 * N;
 
-        double delta0_D = (delta0 / D);
-        double s_max_local = delta0_D * (double)N2;
-        double i0_val = I0(0);
+        try {
 
-        // x^(y) = std::exp(y * std::log(x))
-        // c1 = 2 * ((24 / 5) * gamma(6 / 5)) * *(5 / 6)
-        double c1 = 2.0 * std::exp((5.0 / 6.0) * std::log((24.0 / 5.0) * tgamma(6.0 / 5.0)));
+            double delta0_D = (delta0 / D);
+            double s_max_local = delta0_D * (double)N2;
+            double i0_val = I0(0);
 
-        // c2 = 4 * c1 / np.pi * (gamma(11 / 6)) ** 2
-        double c2 = ((4.0 * c1) / CV_PI) * (tgamma(11.0 / 6.0)) * (tgamma(11.0 / 6.0));
+            // x^(y) = std::exp(y * std::log(x))
+            // c1 = 2 * ((24 / 5) * gamma(6 / 5)) * *(5 / 6)
+            double c1 = 2.0 * std::exp((5.0 / 6.0) * std::log((24.0 / 5.0) * tgamma(6.0 / 5.0)));
 
-        // c3 = (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
-        double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(D_r0 / 2.0)) * (2 * wavelength / (CV_PI * D)) * (2 * wavelength / (CV_PI * D));
+            // c2 = 4 * c1 / np.pi * (gamma(11 / 6)) ** 2
+            double c2 = ((4.0 * c1) / CV_PI) * (tgamma(11.0 / 6.0)) * (tgamma(11.0 / 6.0));
 
-        cv::Mat s_arr = linspace(0.0, s_max_local, N2);
+            // c3 = (p_obj['Dr0']) ** (5 / 3) / (2 ** (5 / 3)) * (2 * p_obj['wvl'] / (np.pi * p_obj['D'])) ** 2 * 2 * np.pi
+            double c3 = 2.0 * CV_PI * std::exp((5.0 / 3.0) * std::log(cp.D_r0 / 2.0)) * (2 * cp.wavelength / (CV_PI * D)) * (2 * cp.wavelength / (CV_PI * D));
 
-        cv::Mat I0_arr = cv::Mat::zeros(s_arr.size(), CV_64FC1);
-        cv::Mat I2_arr = cv::Mat::zeros(s_arr.size(), CV_64FC1);
+            cv::Mat s_arr = linspace(0.0, s_max_local, N2);
 
-        cv::MatIterator_<double> it, end;
-        cv::MatIterator_<double> I0_itr = I0_arr.begin<double>();
-        cv::MatIterator_<double> I2_itr = I2_arr.begin<double>();
-        for (it = s_arr.begin<double>(), end = s_arr.end<double>(); it != end; ++it, ++I0_itr, ++I2_itr)
-        {
-            *I0_itr = I0(*it);      // I0_arr[idx] = I0(s_arr[idx])
-            *I2_itr = I2(*it);      // I2_arr[idx] = I2(s_arr[idx])
+            cv::Mat I0_arr = cv::Mat::zeros(s_arr.size(), CV_64FC1);
+            cv::Mat I2_arr = cv::Mat::zeros(s_arr.size(), CV_64FC1);
+
+            cv::MatIterator_<double> it, end;
+            cv::MatIterator_<double> I0_itr = I0_arr.begin<double>();
+            cv::MatIterator_<double> I2_itr = I2_arr.begin<double>();
+            for (it = s_arr.begin<double>(), end = s_arr.end<double>(); it != end; ++it, ++I0_itr, ++I2_itr)
+            {
+                *I0_itr = I0(*it);      // I0_arr[idx] = I0(s_arr[idx])
+                *I2_itr = I2(*it);      // I2_arr[idx] = I2(s_arr[idx])
+            }
+
+            //[x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
+            meshgrid(1.0, (double)N2, N2, 1.0, (double)N2, N2, x, y);
+
+            // i, j = np.int32(N / 2), np.int32(N / 2)
+            // s = np.sqrt((x - i) ** 2 + (y - j) ** 2)
+            cv::Mat s;
+            cv::Mat tmp_x = (x - N).mul(x - N);
+            cv::Mat tmp_y = (y - N).mul(y - N);
+            cv::sqrt(tmp_x + tmp_y, s);
+
+            // In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I0_arr)
+            cv::Mat In_1 = In_m(s, delta0_D * N2, I0_arr);
+            cv::Mat In_2 = In_m(s, delta0_D * N2, I2_arr);
+            cv::Mat C = (In_1 + In_2) * (1.0 / i0_val);
+
+            // C[p.get_N(), p.get_N()] = 1
+            C.at<double>(N, N) = 1.0;
+
+            //C = C * I0(0) * c2 * (p.get_D_r0()) ** (5.0 / 3.0) / (2 ** (5.0 / 3.0)) * (2 * p.wavelength / (CV_PI * p.D)) ** 2 * 2 * CV_PI;
+            C = C * (i0_val * c2 * c3);
+
+            // test of complex vector under the hood
+            //std::vector<std::complex<double>> c_fft_vec(C.rows * C.cols, 0.0);
+            //cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
+            cv::Mat c_fft;// = cv::Mat::zeros(C.rows, C.cols, CV_64FC2);
+
+            cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
+
+            S_vec.clear();
+            S_vec.resize(C.rows * C.cols);
+            s_half = cv::Mat(C.rows, C.cols, CV_64FC2, S_vec.data());
+            sqrt_cmplx(c_fft, s_half);
+
+            // find the maximum magnitude of the FFT
+            double s_half_max;
+            cv::Mat abs_s_half = abs_cmplx(s_half);
+
+            cv::minMaxIdx(abs_s_half, NULL, &s_half_max, NULL, NULL);
+
+            // threshold - all elements < 0.0001 * S_half_max = 0
+            threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
         }
-
-        //[x, y] = np.meshgrid(np.arange(1, N + 0.01, 1), np.arange(1, N + 0.01, 1))
-        meshgrid(1.0, (double)N2, N2, 1.0, (double)N2, N2, x, y);
-
-        // i, j = np.int32(N / 2), np.int32(N / 2)
-        // s = np.sqrt((x - i) ** 2 + (y - j) ** 2)
-        cv::Mat s;
-        cv::Mat tmp_x = (x - N).mul(x - N);
-        cv::Mat tmp_y = (y - N).mul(y - N);
-        cv::sqrt(tmp_x + tmp_y, s);
-
-        // In_1 = In_m(s, p_obj['delta0'] / p_obj['D'] * N, I0_arr)
-        cv::Mat In_1 = In_m(s, delta0_D * N2, I0_arr);
-        cv::Mat In_2 = In_m(s, delta0_D * N2, I2_arr);
-        cv::Mat C = (In_1 + In_2) * (1.0 / i0_val);
-
-        // C[p.get_N(), p.get_N()] = 1
-        C.at<double>(N, N) = 1.0;
-
-        //C = C * I0(0) * c2 * (p.get_D_r0()) ** (5.0 / 3.0) / (2 ** (5.0 / 3.0)) * (2 * p.wavelength / (CV_PI * p.D)) ** 2 * 2 * CV_PI;
-        C = C * (i0_val * c2 * c3);
-
-        // test of complex vector under the hood
-        std::vector<std::complex<double>> c_fft_vec(C.rows * C.cols, 0.0);
-
-        cv::Mat c_fft = cv::Mat(C.rows, C.cols, CV_64FC2, c_fft_vec.data());
-        cv::dft(C, c_fft, cv::DFT_COMPLEX_OUTPUT, C.rows);
-
-        S_vec.clear();
-        S_vec.resize(C.rows * C.cols);
-        s_half = cv::Mat(C.rows, C.cols, CV_64FC2, S_vec.data());
-        sqrt_cmplx(c_fft, s_half);
-
-        // find the maximum magnitude of the FFT
-        double s_half_max;
-        cv::Mat abs_s_half = abs_cmplx(s_half);
-
-        cv::minMaxIdx(abs_s_half, NULL, &s_half_max, NULL, NULL);
-
-        // threshold - all elements < 0.0001 * S_half_max = 0
-        threshold_cmplx(abs_s_half, s_half, 0.0001 * s_half_max);
-
+        catch (std::exception& e)
+        {
+            std::string error_string = "Error: " + std::string(e.what()) + "\n";
+            error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+            throw std::runtime_error(error_string);
+        }
     }   // end of generate_psd
 
     //-----------------------------------------------------------------------------
@@ -290,12 +384,6 @@ private:
         kernel = kernel * (1.0 / matsum);	// get the matrix to sum up to 1...
 
     }	// end of create_gaussian_kernel
-
-    //-----------------------------------------------------------------------------
-    inline void calc_r0()
-    {
-        r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
-    }   // end of calc_r0
 
     //-----------------------------------------------------------------------------
     inline void calc_zern_cov_matrix()

@@ -28,23 +28,26 @@ typedef void* HINSTANCE;
 
 // OpenCV includes
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
-#include <opencv2/video.hpp>
-#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/video.hpp>
+//#include <opencv2/imgcodecs.hpp>
 
 // custom includes
 #include <num2string.h>
 #include <file_ops.h>
 #include <opencv_helper.h>
+#include <lens_pixel_size.h>
 
 //#define USE_LIB
 
 #if defined(USE_LIB)
-#include "turb_sim_lib.h"
+//#include "turb_sim_lib.h"
 
-typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double w_, double obj_size_);
+typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
 typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_apply_rgb_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+
 #else
 #include "turbulence_param.h"
 #include "turbulence_sim.h"
@@ -92,12 +95,17 @@ int main(int argc, char** argv)
     auto stop_time = std::chrono::system_clock::now();
     auto elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
-    cv::Mat img_f1, img_f2;
-
     std::string window_name = "image";
 
     std::string lib_filename;
 
+    std::vector<int32_t> compression_params;
+    compression_params.push_back(cv::IMWRITE_PNG_COMPRESSION);
+    compression_params.push_back(2);
+
+    std::string base_directory;
+    std::string baseline_filename;
+    std::string real_filename;
 
     //if (argc == 1)
     //{
@@ -109,8 +117,8 @@ int main(int argc, char** argv)
     //}
 
     // setup the windows to display the results
-    cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    //cv::resizeWindow(window_name, 2*img_w, img_h);
+    //cv::namedWindow(window_name, cv::WINDOW_NORMAL);
+    //cv::namedWindow("color", cv::WINDOW_NORMAL);
 
     // do work here
     try
@@ -118,7 +126,7 @@ int main(int argc, char** argv)
 
         //cv::Mat r;
         //cv::sqrt(cv::abs(X.mul(X)) + cv::abs(Y.mul(Y)), r);
-        //cv::Mat circ = cv::Mat(64, 64, CV_32FC1, cv::Scalar::all(0.0));
+        cv::Mat circ = cv::Mat::zeros(80, 80, CV_64FC1);
 
         //for (idx = 0; idx < 64; ++idx)
         //{
@@ -129,8 +137,7 @@ int main(int argc, char** argv)
         //    }
         //}
         
-        //cv::circle(circ, cv::Point(31, 31), 31, 255, 0, cv::LineTypes::LINE_8, 0);
-
+        //cv::circle(circ, cv::Point(39, 39), (80-2)>>1, 255, 0, cv::LineTypes::LINE_8, 0);
 
 #if defined(USE_LIB)
     // load in the library
@@ -145,6 +152,7 @@ int main(int argc, char** argv)
 
         lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)GetProcAddress(turb_lib, "init_turbulence_params");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
+        lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)GetProcAddress(turb_lib, "apply_rgb_turbulence");
 
     #else
         lib_filename = "../../turb_sim_lib/build/turb_sim.so";
@@ -157,20 +165,30 @@ int main(int argc, char** argv)
 
         lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)dlsym(turb_lib, "init_turbulence_params");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
+        lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)dlsym(turb_lib, "apply_rgb_turbulence");
 
     #endif
 
 #endif      
+        
+#if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
+        base_directory = "D:/data/turbulence/";
+        //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
+        
+        //baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        //real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
-        bp = 1;
+        baseline_filename = "../../data/test_image_fp1.png";
+        real_filename = "../../data/test_image_fp2.png";
+        
+#else
+        base_directory = "../../data/";
+        //baseline_filename = base_directory + "checker_board_32x32.png";
+        //real_filename = base_directory + "checker_board_32x32.png";
 
-//        std::string filename = "../../data/checker_board_32x32.png";
-        //std::string filename = "D:/data/turbulence/sharpest/z2000/baseline_z2000_r0600.png";
-        std::string base_directory = "d:/data/turbulence/";
-//        std::string base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
-
-        std::string baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r1000.png";
-        std::string real_filename = base_directory + "sharpest/z2000/1000/image_z01999_f46264_e02776_i00.png";
+        baseline_filename = "../../data/test_image_fp1.png";
+        real_filename = "../../data/test_image_fp2.png";
+#endif
 
         cv::Mat img;
         cv::Mat rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
@@ -179,92 +197,157 @@ int main(int argc, char** argv)
         if (rw_img.channels() >= 3)
         {
             rw_img.convertTo(rw_img, CV_64FC3);
-            rw_img = get_channel(rw_img, 1);
+            //rw_img = get_channel(rw_img, 1);
         }
         else
         {
-            rw_img.convertTo(rw_img, CV_64FC1);
+            cv::cvtColor(rw_img, rw_img, cv::COLOR_GRAY2BGR);
+            rw_img.convertTo(rw_img, CV_64FC3);
         }
 
         if (tmp_img.channels() >= 3)
         {
             tmp_img.convertTo(tmp_img, CV_64FC3);
-            tmp_img = get_channel(tmp_img, 1);
+            //tmp_img = get_channel(tmp_img, 1);
         }
         else
         {
-            tmp_img.convertTo(tmp_img, CV_64FC1);
+            //tmp_img.convertTo(tmp_img, CV_64FC3);
+            cv::cvtColor(tmp_img, tmp_img, cv::COLOR_GRAY2BGR);
+            tmp_img.convertTo(tmp_img, CV_64FC3);
         }
-
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 150;
+        uint32_t N = 512;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
-        double pixel = 0.004217;    // 0.004217; 0.00246
         double D = 0.095;
-        double L = 1000;
-        double wavelenth = 525e-9;
+        uint32_t zoom = 2000;
+
+        double L = 0600;
+        //double wavelenth = 525e-9;
+        double pixel = get_pixel_size(zoom, L);   // 0.004217; 0.00246
+
         double obj_size = N * pixel;
-        //double k = 2 * CV_PI / wavelenth;
-        double Cn2 = 7.0e-14;
+        double Cn2 = 5e-14;
+
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
+        cv::Mat img_blur;
+        bool use_color = true;
+
 #if defined(USE_LIB)
-        init_turbulence_params(N, D, L, Cn2, wavelenth, obj_size);
+        
+        init_turbulence_params(N, D, L, Cn2, obj_size, use_color);
+        if(use_color)
+            img_blur = cv::Mat::zeros(N, N, CV_64FC3);
+        else
+            img_blur = cv::Mat::zeros(N, N, CV_64FC1);
+
 #else
-        turbulence_param P(N, D, L, Cn2, wavelenth, obj_size);
+        std::cout << "Initializing the turbulence parameters" << std::endl;
+        std::vector<turbulence_param> Pv;
+        L = 600;
+        pixel = get_pixel_size(zoom, L);
+        obj_size = N * pixel;
+
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 639e-9, obj_size));
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 525e-9, obj_size));
+        //Pv.push_back(turbulence_param(N, D, L, Cn2, 471e-9, obj_size));
+
+        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size, true));
+
+        //for (idx = 0; idx < 23; ++idx)
+        //{
+        //    L = 10.0 * idx + 600.0;
+        //    pixel = turbulence_param::get_pixel_size(zoom, L);
+        //    obj_size = N * pixel;
+        //    Pv.push_back(turbulence_param(N, D, L, Cn2, wavelenth, obj_size));
+        //}
+
 #endif
 
         //-----------------------------------------------------------------------------
         cv::Mat img_tilt;
-        cv::Mat img_blur = cv::Mat::zeros(N, N, CV_64FC1);
-        cv::Mat montage;
+        cv::Mat img_tilt2, img_blur2;
+
+        //cv::Mat img_blur_r, img_blur_g, img_blur_b;
+        //std::vector<cv::Mat> img_v(3);
+        //std::vector<cv::Mat> img_blur_v(3);
+        //std::vector<cv::Mat> img_tilt_v(3);
+
+        cv::Mat montage, montage2;
         char key = 0;
 
-        cv::resizeWindow(window_name, 4*N, 2*N);
+        cv::resizeWindow(window_name, 6*N, 2*N);
+
+        auto rng_seed = time(NULL);
+
+        bp = 1;
+        
+        std::cout << "Running the turbulence generation" << std::endl;
 
         while(key != 'q')
         {
             start_time = std::chrono::system_clock::now();
 
-
-
 #if defined(USE_LIB)
 
-            apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+            //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+            apply_rgb_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+
+
 #else
-            generate_tilt_image(img, P, rng, img_tilt);
+            for (int jdx = 0; jdx < 1; ++jdx)
+            {
+                //rng_seed = 1672270304;// time(NULL);
+                //// red - 2, green - 1, blue - 0
+                //rng = cv::RNG(rng_seed);
 
-            generate_blur_image(img_tilt, P, rng, img_blur);
+                generate_tilt_image(img, Pv[0], rng, img_tilt);
+                
+                //rng = cv::RNG(rng_seed);
+                generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+
+                cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
+
+                generate_tilt_image(rw_img, Pv[0], rng, img_tilt);
+
+                //rng = cv::RNG(rng_seed);
+                generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+
+                cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
+
+            }
 #endif
-
-            //img_blur.convertTo(img_blur, CV_8UC1);
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);
 
             std::cout << "time (s): " << elapsed_time.count() << std::endl;
 
-            cv::hconcat(rw_img, img_blur, montage);
-            cv::imshow(window_name, montage/255.0);
-            key = cv::waitKey(50);
+            //cv::hconcat(img_blur_v[0], img_blur_v[1], montage);
+            //cv::hconcat(img, img_tilt, montage);
+            cv::hconcat(rw_img, img_blur, montage2);
+
+            //cv::imshow(window_name, montage / 255.0);
+            //cv::imshow("color", montage2 / 255.0);
+
+            key = 'q';// cv::waitKey(0);
         }
         bp = 2;
 
     }
     catch(std::exception& e)
     {
-        std::cout << "Error: " << e.what() << std::endl;
-        std::cout << "Filename: " << __FILE__ << std::endl;
-        std::cout << "Line #: " << __LINE__ << std::endl;
+        std::cout << e.what() << std::endl;
     }
 
-    cv::destroyAllWindows();
+    //cv::destroyAllWindows();
     std::cout << std::endl << "End of Program.  Press Enter to close..." << std::endl;
 	std::cin.ignore();
 

@@ -1,5 +1,5 @@
-#ifndef _OPENCV_HELPER_H_
-#define _OPENCV_HELPER_H_
+#ifndef _TURB_OPENCV_HELPER_H_
+#define _TURB_OPENCV_HELPER_H_
 
 
 #include <cstdint>
@@ -119,7 +119,7 @@ cv::Mat circ(int32_t rows, int32_t cols)
 void sqrt_cmplx(cv::Mat& src, cv::Mat &dst)
 {
     std::complex<double> tmp;
-    //cv::Mat result = cv::Mat::zeros(src.rows, src.cols, src.type());
+    //dst = cv::Mat::zeros(src.rows, src.cols, src.type());
 
     cv::MatIterator_<cv::Vec2d> itr, end;
     cv::MatIterator_<cv::Vec2d> dst_itr = dst.begin<cv::Vec2d>();
@@ -381,4 +381,4 @@ void fftshift(cv::Mat& img)
     tmp.copyTo(q2);
 }   // end of fftshift
 
-#endif  // _OPENCV_HELPER_H_
+#endif  // _TURB_OPENCV_HELPER_H_

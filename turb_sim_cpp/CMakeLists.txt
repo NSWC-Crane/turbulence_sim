@@ -33,6 +33,8 @@ message("Platform: " ${PLATFORM})
 string(FIND ${PROJECT_SOURCE_DIR} "/" INDEX REVERSE)
 string(SUBSTRING ${PROJECT_SOURCE_DIR} 0 ${INDEX} PR_ROOT)
 
+set(default_build_type "Release")
+
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -142,9 +144,9 @@ if(WIN32)
     endif()
     
 elseif(UNIX)
-#    target_link_libraries(${exe_name} ${project_libs} ${CMAKE_DL_LIBS})    
-    target_link_libraries(${exe_name} ${project_libs})    
-    #target_link_libraries(${exe_name} PRIVATE GSL::gsl GSL::gslcblas)
+
+    target_link_libraries(${exe_name} ${project_libs} pthread)    
+#    target_link_libraries(${exe_name} ${project_libs} gsl gslcblas)
 
 endif()
 
