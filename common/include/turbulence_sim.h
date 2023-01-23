@@ -43,8 +43,8 @@ inline void index_generate(double start, double stop, uint32_t num, std::vector<
         //while(x_step <= stop)
         for(jdx=0; jdx<num; ++jdx)
         {
-            xx.push_back(std::floor(x_step + 0.5));
-            yy.push_back(std::floor(y_step + 0.5));
+            xx.push_back((T)std::floor(x_step + 0.5));
+            yy.push_back((T)std::floor(y_step + 0.5));
             x_step += step;
         }
     }
@@ -362,7 +362,7 @@ void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv
                     cv::Mat temp_psf;
                     //cv::Mat img_patch = cv::Mat::zeros(N, N, CV_64FC1);
                     cv::Mat tmp_conv;
-                    double psf_sum;
+                    //double psf_sum;
 
                     // loop over the range of values
                     for (int idx = bi; idx < ei; ++idx)

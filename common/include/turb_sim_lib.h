@@ -26,7 +26,19 @@ extern "C" {
 
     //-----------------------------------------------------------------------------
     // perform the initilization of the turbulence params
-    TS_LIB void init_turbulence_params(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
+    TS_LIB void init_turbulence_generator(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
+
+    //-----------------------------------------------------------------------------
+    // adds another turbulence parameter
+    TS_LIB void add_turbulence_param(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_);
+
+    //-----------------------------------------------------------------------------
+    // allows the user to set the random number generator seed whenever they want
+    TS_LIB void set_rng_seed(size_t seed);
+
+    //-----------------------------------------------------------------------------
+    // function to update the Cn2 value for all of the turbulence parameters
+    TS_LIB void update_cn2(double Cn2_);
 
     //-----------------------------------------------------------------------------
     // apply the turbulence to a single channel image
