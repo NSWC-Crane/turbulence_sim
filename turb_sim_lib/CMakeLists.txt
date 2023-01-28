@@ -134,12 +134,15 @@ add_definitions(-DBUILD_LIB)
 
 include_directories(${project_includes})
 
+
 if(WIN32)
 
     add_definitions(-DLIB_EXPORTS)
 
     add_library(${LIB_NAME} SHARED ${SOURCES})
     set_target_properties(${LIB_NAME} PROPERTIES VERSION ${PROJECT_VERSION})
+    set_property(TARGET ${LIB_NAME} PROPERTY DEBUG_POSTFIX d)
+    
     target_link_libraries(${LIB_NAME} ${project_libs})
 
     if(MSVC AND (${CMAKE_VERSION} VERSION_GREATER "3.6.0"))

@@ -44,9 +44,11 @@ typedef void* HINSTANCE;
 #if defined(USE_LIB)
 //#include "turb_sim_lib.h"
 
-typedef void (*lib_init_turbulence_generator)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
-typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
-typedef void (*lib_apply_rgb_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+//typedef void (*lib_init_turbulence_generator)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, char uc_);
+typedef void (*lib_init_turbulence_generator)(char uc_);
+typedef void (*lib_add_turbulence_param)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_);
+typedef void (*lib_apply_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_apply_rgb_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
 
 #else
 #include "turbulence_param.h"
@@ -158,6 +160,7 @@ int main(int argc, char** argv)
         }
 
         lib_init_turbulence_generator init_turbulence_generator = (lib_init_turbulence_generator)GetProcAddress(turb_lib, "init_turbulence_generator");
+        lib_add_turbulence_param add_turbulence_param = (lib_add_turbulence_param)GetProcAddress(turb_lib, "add_turbulence_param");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
         lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)GetProcAddress(turb_lib, "apply_rgb_turbulence");
 
@@ -185,8 +188,8 @@ int main(int argc, char** argv)
         //baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
         //real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
-        baseline_filename = "../../data/test_image_fp1.png";
-        real_filename = "../../data/test_image_fp2.png";
+        baseline_filename = "../../data/random_image_512x512.png";    //"../data/random_image_512x512.png"; test_image_fp1
+        real_filename = "../../data/random_image_512x512.png";
         
 #else
         base_directory = "../../data/";
@@ -254,7 +257,8 @@ int main(int argc, char** argv)
         else
             img_blur = cv::Mat::zeros(N, N, CV_64FC1);
 
-        init_turbulence_generator(N, D, L, Cn2, obj_size, use_color);
+        init_turbulence_generator(1);
+        add_turbulence_param(N, D, L, Cn2, obj_size);
 
 #else
         std::cout << "Initializing the turbulence parameters" << std::endl;
@@ -313,7 +317,7 @@ int main(int argc, char** argv)
 #if defined(USE_LIB)
 
                 //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
-                apply_rgb_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+                apply_rgb_turbulence(0, N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
 
 #else
                 generate_tilt_image(img, Pv[0], rng, img_tilt);
@@ -321,12 +325,12 @@ int main(int argc, char** argv)
                 //rng = cv::RNG(rng_seed);
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
 #endif
-                cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
+                //cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
 
 #if defined(USE_LIB)
 
                 //apply_turbulence(N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
-                apply_rgb_turbulence(N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+                apply_rgb_turbulence(0, N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
 
 #else
                 generate_tilt_image(rw_img, Pv[0], rng, img_tilt);
@@ -334,7 +338,7 @@ int main(int argc, char** argv)
                 //rng = cv::RNG(rng_seed);
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
 #endif
-                cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
+                //cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
 
             }
 
