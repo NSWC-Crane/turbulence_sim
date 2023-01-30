@@ -439,6 +439,9 @@ void generate_rgb_psf(uint64_t N, turbulence_param& p, cv::RNG& rng, cv::Mat &ps
         left = (max_width - psf_v[idx].cols) >> 1;
         right = max_width - psf_v[idx].cols - left;
         cv::copyMakeBorder(psf_v[idx], psf_v[idx], top, bot, left, right, cv::BORDER_CONSTANT, cv::Scalar(0));
+
+        psf_sum = cv::sum(psf_v[idx])[0];
+        psf_v[idx] *= 1.0 / psf_sum;
     }
 
     cv::merge(psf_v, psf);
