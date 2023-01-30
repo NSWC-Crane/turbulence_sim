@@ -49,6 +49,8 @@ typedef void (*lib_init_turbulence_generator)(char uc_);
 typedef void (*lib_add_turbulence_param)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_);
 typedef void (*lib_apply_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
 typedef void (*lib_apply_rgb_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_get_rgb_psf)(unsigned int tp_index, unsigned int* img_w, unsigned int* img_h, double* psf_t);
+typedef void (*lib_apply_tilt)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* tilt_img_);
 
 #else
 #include "turbulence_param.h"
@@ -146,7 +148,7 @@ int main(int argc, char** argv)
     #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
 
     #if defined(_DEBUG)
-        lib_filename = "../../turb_sim_lib/build/Debug/turb_sim.dll";
+        lib_filename = "../../turb_sim_lib/build/Debug/turb_simd.dll";
     #else
         //lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
         lib_filename = "d:/Projects/turbulence_sim/turb_sim_lib/build/Release/turb_sim.dll";
@@ -163,6 +165,8 @@ int main(int argc, char** argv)
         lib_add_turbulence_param add_turbulence_param = (lib_add_turbulence_param)GetProcAddress(turb_lib, "add_turbulence_param");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
         lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)GetProcAddress(turb_lib, "apply_rgb_turbulence");
+        lib_get_rgb_psf get_rgb_psf = (lib_get_rgb_psf)GetProcAddress(turb_lib, "get_rgb_psf");
+        lib_apply_tilt apply_tilt = (lib_apply_tilt)GetProcAddress(turb_lib, "apply_tilt");
 
     #else
         lib_filename = "../../turb_sim_lib/build/turb_sim.so";
@@ -176,6 +180,7 @@ int main(int argc, char** argv)
         lib_init_turbulence_generator init_turbulence_generator = (lib_init_turbulence_generator)dlsym(turb_lib, "init_turbulence_generator");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
         lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)dlsym(turb_lib, "apply_rgb_turbulence");
+        lib_get_rgb_psf get_rgb_psf = (lib_get_rgb_psf)dlsym(turb_lib, "get_rgb_psf");
 
     #endif
 
@@ -185,11 +190,11 @@ int main(int argc, char** argv)
         base_directory = "D:/data/turbulence/";
         //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
         
-        //baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
-        //real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
-        baseline_filename = "../../data/random_image_512x512.png";    //"../data/random_image_512x512.png"; test_image_fp1
-        real_filename = "../../data/random_image_512x512.png";
+        //baseline_filename = "../../data/random_image_512x512.png";
+        //real_filename = "../../data/random_image_512x512.png";
         
 #else
         base_directory = "../../data/";
@@ -229,7 +234,7 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 512;
+        uint32_t N = 256;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
@@ -315,6 +320,13 @@ int main(int argc, char** argv)
                 //rng = cv::RNG(rng_seed);
 
 #if defined(USE_LIB)
+                uint32_t psf_w = 0, psf_h = 0;
+                std::vector<double> psf_t(512 * 512, 0);
+                get_rgb_psf(0, &psf_w, &psf_h, psf_t.data());
+                cv::Mat psf = cv::Mat(psf_h, psf_w, CV_64FC3, psf_t.data());
+
+                cv::filter2D(img, img_blur, -1, psf, cv::Point(-1, -1), 0.0, cv::BorderTypes::BORDER_REPLICATE);
+
 
                 //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
                 apply_rgb_turbulence(0, N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
