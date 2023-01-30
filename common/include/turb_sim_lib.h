@@ -49,6 +49,15 @@ extern "C" {
     // apply the turbulence to a 3-color RGB image - image must be in BGR format
     TS_LIB void apply_rgb_turbulence(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
 
+    //-----------------------------------------------------------------------------
+    TS_LIB void get_rgb_psf(unsigned int tp_index, unsigned int* img_w, unsigned int* img_h, double* psf_t);
+
+    //-----------------------------------------------------------------------------
+    TS_LIB void apply_tilt(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* tilt_img_);
+
+    //-----------------------------------------------------------------------------
+    TS_LIB void apply_single_rgb_turbulence(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+
 #ifdef __cplusplus
 }
 #endif

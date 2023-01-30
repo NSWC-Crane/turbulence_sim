@@ -153,3 +153,85 @@ void apply_rgb_turbulence(unsigned int tp_index, unsigned int img_w, unsigned in
     }
 
 }   // end of apply_rgb_turbulence
+
+
+//-----------------------------------------------------------------------------
+void get_rgb_psf(unsigned int tp_index, unsigned int *img_w, unsigned int *img_h, double* psf_t)
+{
+    double scale_factor = std::floor(tp[tp_index].NN / tp[tp_index].get_scaling() + 0.5);
+
+    cv::Mat psf;
+
+    generate_rgb_psf(tp[tp_index].NN, tp[tp_index], rng, psf);
+
+    cv::resize(psf, psf, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+
+    *img_w = *img_h = psf.rows;
+    auto t = psf.total();
+    std::copy(psf.ptr<double>(0), psf.ptr<double>(0) + (psf.total()*3), psf_t);
+
+}
+
+//-----------------------------------------------------------------------------
+void apply_tilt(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* tilt_img_)
+{
+
+    try
+    {
+
+        // convert the image from pointer to cv::Mat
+        cv::Mat img = cv::Mat(img_h, img_w, CV_64FC3, img_);
+        cv::Mat img_tilt = cv::Mat(img_h, img_w, CV_64FC3, tilt_img_);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+
+        generate_tilt_image(img, tp[tp_index], rng, img_tilt);
+
+    }
+    catch (std::exception e)
+    {
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        std::cout << error_string << std::endl;
+    }
+}   // end of apply_tilt
+
+//-----------------------------------------------------------------------------
+void apply_single_rgb_turbulence(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_)
+{
+    //uint32_t index = 0;
+    cv::Mat img_tilt, img_blur;
+    cv::Mat psf;
+
+    double scale_factor = std::floor(tp[tp_index].NN / tp[tp_index].get_scaling() + 0.5);
+
+    try
+    {
+
+        // convert the image from pointer to cv::Mat
+        cv::Mat img = cv::Mat(img_h, img_w, CV_64FC3, img_);
+        cv::Mat turb_img = cv::Mat(img_h, img_w, CV_64FC3, turb_img_);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+
+        generate_tilt_image(img, tp[tp_index], rng, img_tilt);
+
+        //std::cout << "img[0]: " << img.at<double>(0, 0) << "/" << img_[0] << std::endl;
+        //std::cout << "img_tilt[0]: " << img_tilt.at<double>(0, 0) << std::endl;
+        //std::cout << "turb_img[0]: " << turb_img.at<double>(0, 0) << "/" << turb_img_[0] << std::endl;
+        generate_rgb_psf(tp[tp_index].NN, tp[tp_index], rng, psf);
+
+        cv::resize(psf, psf, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
+        cv::filter2D(img_tilt, turb_img, -1, psf, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+
+    }
+    catch (std::exception e)
+    {
+        std::string error_string = "Error: " + std::string(e.what()) + "\n";
+        error_string += "File: " + std::string(__FILE__) + ", Function: " + std::string(__FUNCTION__) + ", Line #: " + std::to_string(__LINE__);
+        std::cout << error_string << std::endl;
+    }
+
+}   // end of apply_rgb_turbulence

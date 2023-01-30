@@ -167,13 +167,11 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
     std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
 
-    uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
-
     try
     {       
         //    patch_size = round(p_obj['N'] / patchN)
         double patch_size = std::floor(1.0*(N / p.patch_num) + 0.5);
-        double scale_factor = std::floor(NN / p.get_scaling() + 0.5);
+        double scale_factor = std::floor(p.NN / p.get_scaling() + 0.5);
 
         int64_t blur_cols = p.blur_kernel.cols;
         int64_t blur_rows = p.blur_kernel.rows;
@@ -236,7 +234,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
                     max_ky = std::min((int64_t)blur_rows, (int64_t)((blur_rows >> 1) + (N - (int64_t)(y))));
 
                     // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-                    generate_psf(NN, p, rng, psf[0], z_i, pad_size);
+                    generate_psf(p.NN, p, rng, psf[0], z_i, pad_size);
 
                     centroid_psf(psf[0], 0.98);
 
@@ -290,8 +288,7 @@ void generate_blur_image(cv::Mat& src, turbulence_param &p, cv::RNG& rng, cv::Ma
 }   // end of generate_blur_image
 
 //-----------------------------------------------------------------------------
-//adapted from here :
-//https://github.itap.purdue.edu/StanleyChanGroup/TurbulenceSim_v1/blob/master/Turbulence_Sim_v1_python/TurbSim_v1_main.py
+// expansion of the single channel blur function to 3 color blurring
 void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv::Mat& dst)
 {
     uint64_t idx;
@@ -307,13 +304,11 @@ void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv
     std::vector<int32_t> xx, yy;
     std::vector<double> coeff;
 
-    uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
-
     try
     {
         //    patch_size = round(p_obj['N'] / patchN)
         double patch_size = std::floor(1.0 * (N / p.patch_num) + 0.5);
-        double scale_factor = std::floor(NN / p.get_scaling() + 0.5);
+        double scale_factor = std::floor(p.NN / p.get_scaling() + 0.5);
 
         int64_t blur_cols = p.blur_kernel.cols;
         int64_t blur_rows = p.blur_kernel.rows;
@@ -395,7 +390,7 @@ void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv
                         }
 
                         // temp, x, y, nothing, nothing2 = psfGen(NN, coeff = aa, L = p_obj['L'], D = p_obj['D'], z_i = 1.2, wavelength = p_obj['wvl'])
-                        generate_rgb_psf(NN, p, rng, temp_psf);
+                        generate_rgb_psf(p.NN, p, rng, temp_psf);
 
                         // psf = resize(psf, (round(NN / p_obj['scaling']), round(NN / p_obj['scaling'])))
                         cv::resize(temp_psf, temp_psf, cv::Size(scale_factor, scale_factor), 0.0, 0.0, cv::INTER_LINEAR);
@@ -431,5 +426,6 @@ void generate_blur_rgb_image(cv::Mat& src, turbulence_param& p, cv::RNG& rng, cv
     }
 
 }   // end of generate_blur_rgb_image
+
 
 #endif  // _TURBULENCE_SIMULATION_H_
