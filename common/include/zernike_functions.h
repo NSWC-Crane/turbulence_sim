@@ -144,11 +144,11 @@ cv::Mat radial_zernike(int64_t n, int64_t m, cv::Mat& x_grid, cv::Mat& y_grid)
     //for k in range(int((n - m) / 2 + 1)) :
     for (idx = 0; idx < (uint64_t)(((n - m) / 2.0) + 1); ++idx)
     {
-        t1 = ((idx & 0x01 == 1) ? -1.0 : 1.0);
+        t1 = (((idx & 0x01) == 1) ? -1.0 : 1.0);
         t2 = std::tgamma(n - idx + 1);
         t3 = (std::tgamma(idx + 1) * std::tgamma(((n + m) / 2.0) - idx + 1) * std::tgamma(((n - m) / 2.0) - idx + 1));
         // temp = (-1) * *k * np.math.factorial(n - k) / (np.math.factorial(k) * np.math.factorial((n + m) / 2 - k) * np.math.factorial((n - m) / 2 - k))
-        tmp = ((idx & 0x01 == 1) ? -1.0 : 1.0) * std::tgamma(n - idx + 1) / (std::tgamma(idx + 1) * std::tgamma(((n + m) / 2.0) - idx + 1) * std::tgamma(((n - m) / 2.0) - idx + 1));
+        tmp = (((idx & 0x01) == 1) ? -1.0 : 1.0) * std::tgamma(n - idx + 1) / (std::tgamma(idx + 1) * std::tgamma(((n + m) / 2.0) - idx + 1) * std::tgamma(((n - m) / 2.0) - idx + 1));
 
         //    radial += temp * rho * *(n - 2 * k)
         cv::pow(rho, (n - 2 * idx), tmp_pow);
