@@ -39,14 +39,18 @@ typedef void* HINSTANCE;
 #include <opencv_helper.h>
 #include <lens_pixel_size.h>
 
-//#define USE_LIB
+#define USE_LIB
 
 #if defined(USE_LIB)
 //#include "turb_sim_lib.h"
 
-typedef void (*lib_init_turbulence_params)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_);
-typedef void (*lib_apply_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
-typedef void (*lib_apply_rgb_turbulence)(unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+//typedef void (*lib_init_turbulence_generator)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_, char uc_);
+typedef void (*lib_init_turbulence_generator)(char uc_);
+typedef void (*lib_add_turbulence_param)(unsigned int N_, double D_, double L_, double Cn2_, double obj_size_);
+typedef void (*lib_apply_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_apply_rgb_turbulence)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* turb_img_);
+typedef void (*lib_get_rgb_psf)(unsigned int tp_index, unsigned int* img_w, unsigned int* img_h, double* psf_t);
+typedef void (*lib_apply_tilt)(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double* img_, double* tilt_img_);
 
 #else
 #include "turbulence_param.h"
@@ -142,7 +146,14 @@ int main(int argc, char** argv)
 #if defined(USE_LIB)
     // load in the library
     #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-        lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
+
+    #if defined(_DEBUG)
+        lib_filename = "../../turb_sim_lib/build/Debug/turb_simd.dll";
+    #else
+        //lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
+        lib_filename = "d:/Projects/turbulence_sim/turb_sim_lib/build/Release/turb_sim.dll";
+    #endif
+
         HINSTANCE turb_lib = LoadLibrary(lib_filename.c_str());
 
         if (turb_lib == NULL)
@@ -150,9 +161,12 @@ int main(int argc, char** argv)
             throw std::runtime_error("error loading library");
         }
 
-        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)GetProcAddress(turb_lib, "init_turbulence_params");
+        lib_init_turbulence_generator init_turbulence_generator = (lib_init_turbulence_generator)GetProcAddress(turb_lib, "init_turbulence_generator");
+        lib_add_turbulence_param add_turbulence_param = (lib_add_turbulence_param)GetProcAddress(turb_lib, "add_turbulence_param");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)GetProcAddress(turb_lib, "apply_turbulence");
         lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)GetProcAddress(turb_lib, "apply_rgb_turbulence");
+        lib_get_rgb_psf get_rgb_psf = (lib_get_rgb_psf)GetProcAddress(turb_lib, "get_rgb_psf");
+        lib_apply_tilt apply_tilt = (lib_apply_tilt)GetProcAddress(turb_lib, "apply_tilt");
 
     #else
         lib_filename = "../../turb_sim_lib/build/turb_sim.so";
@@ -163,9 +177,10 @@ int main(int argc, char** argv)
             throw std::runtime_error("error loading library");
         }
 
-        lib_init_turbulence_params init_turbulence_params = (lib_init_turbulence_params)dlsym(turb_lib, "init_turbulence_params");
+        lib_init_turbulence_generator init_turbulence_generator = (lib_init_turbulence_generator)dlsym(turb_lib, "init_turbulence_generator");
         lib_apply_turbulence apply_turbulence = (lib_apply_turbulence)dlsym(turb_lib, "apply_turbulence");
         lib_apply_rgb_turbulence apply_rgb_turbulence = (lib_apply_rgb_turbulence)dlsym(turb_lib, "apply_rgb_turbulence");
+        lib_get_rgb_psf get_rgb_psf = (lib_get_rgb_psf)dlsym(turb_lib, "get_rgb_psf");
 
     #endif
 
@@ -175,11 +190,11 @@ int main(int argc, char** argv)
         base_directory = "D:/data/turbulence/";
         //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
         
-        //baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
-        //real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
+        real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
 
-        baseline_filename = "../../data/test_image_fp1.png";
-        real_filename = "../../data/test_image_fp2.png";
+        //baseline_filename = "../../data/random_image_512x512.png";
+        //real_filename = "../../data/random_image_512x512.png";
         
 #else
         base_directory = "../../data/";
@@ -219,7 +234,7 @@ int main(int argc, char** argv)
 
         //uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 512;
+        uint32_t N = 256;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
@@ -242,11 +257,13 @@ int main(int argc, char** argv)
 
 #if defined(USE_LIB)
         
-        init_turbulence_params(N, D, L, Cn2, obj_size, use_color);
         if(use_color)
             img_blur = cv::Mat::zeros(N, N, CV_64FC3);
         else
             img_blur = cv::Mat::zeros(N, N, CV_64FC1);
+
+        init_turbulence_generator(1);
+        add_turbulence_param(N, D, L, Cn2, obj_size);
 
 #else
         std::cout << "Initializing the turbulence parameters" << std::endl;
@@ -259,7 +276,7 @@ int main(int argc, char** argv)
         //Pv.push_back(turbulence_param(N, D, L, Cn2, 525e-9, obj_size));
         //Pv.push_back(turbulence_param(N, D, L, Cn2, 471e-9, obj_size));
 
-        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size, true));
+        Pv.push_back(turbulence_param(N, D, L, Cn2, obj_size, use_color));
 
         //for (idx = 0; idx < 23; ++idx)
         //{
@@ -295,35 +312,48 @@ int main(int argc, char** argv)
         {
             start_time = std::chrono::system_clock::now();
 
-#if defined(USE_LIB)
 
-            //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
-            apply_rgb_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
-
-
-#else
             for (int jdx = 0; jdx < 1; ++jdx)
             {
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
                 //rng = cv::RNG(rng_seed);
 
+#if defined(USE_LIB)
+                uint32_t psf_w = 0, psf_h = 0;
+                std::vector<double> psf_t(512 * 512, 0);
+                get_rgb_psf(0, &psf_w, &psf_h, psf_t.data());
+                cv::Mat psf = cv::Mat(psf_h, psf_w, CV_64FC3, psf_t.data());
+
+                cv::filter2D(img, img_blur, -1, psf, cv::Point(-1, -1), 0.0, cv::BorderTypes::BORDER_REPLICATE);
+
+
+                //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+                apply_rgb_turbulence(0, N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+
+#else
                 generate_tilt_image(img, Pv[0], rng, img_tilt);
                 
                 //rng = cv::RNG(rng_seed);
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
+#endif
+                //cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
 
-                cv::imwrite("test_image_fp1_i" + num2str(jdx,"%02d") + ".png", img_blur, compression_params);
+#if defined(USE_LIB)
 
+                //apply_turbulence(N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+                apply_rgb_turbulence(0, N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+
+#else
                 generate_tilt_image(rw_img, Pv[0], rng, img_tilt);
 
                 //rng = cv::RNG(rng_seed);
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
-
-                cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
+#endif
+                //cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
 
             }
-#endif
+
 
             stop_time = std::chrono::system_clock::now();
             elapsed_time = std::chrono::duration_cast<d_sec>(stop_time - start_time);

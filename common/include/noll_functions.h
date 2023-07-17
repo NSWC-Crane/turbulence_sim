@@ -79,7 +79,7 @@ cv::Mat noll_covariance_matrix(uint32_t Z, double D, double r0)
                 // coef1 = 0.0072 * (np.pi ** (8.0/3.0)) * ((D/fried) ** (5.0/3.0)) * np.sqrt((ni + 1) * (nj + 1)) * ((-1) ** ((ni + nj - 2*abs(mi))/2.0))
                 // x^(y) = std::exp(y * std::log(x))                
                 c1 = 0.0072 * std::exp((8.0 / 3.0) * std::log(CV_PI)) * std::exp((5.0 / 3.0) * std::log(D / r0));
-                c1 *= std::sqrt((ni + 1) * (nj + 1)) * ((((ni + nj - 2 * std::abs(mi)) >> 1) & 0x01 == 1) ? -1.0 : 1.0);
+                c1 *= std::sqrt((ni + 1) * (nj + 1)) * (((((ni + nj - 2 * std::abs(mi)) >> 1) & 0x01) == 1) ? -1.0 : 1.0);
 
                 //C[i, j] = coef1*num/den
                 dst.at<double>(idx, jdx) = c1*num/den;

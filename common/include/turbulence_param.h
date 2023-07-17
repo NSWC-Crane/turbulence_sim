@@ -60,6 +60,9 @@ public:
     uint32_t num_zern_coeff = 36;
     //double zern_c1;
 
+    uint32_t NN = 28;    // default=32, For extreme scenarios, this may need to be increased
+
+
     turbulence_param() = default;
 
     turbulence_param(uint32_t N_, double D_, double L_, double Cn2_, double obj_size_, bool uc_=false) : N(N_), D(D_), L(L_), Cn2(Cn2_), obj_size(obj_size_), use_color(uc_)
