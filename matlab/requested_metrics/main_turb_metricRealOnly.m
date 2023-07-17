@@ -248,6 +248,7 @@ x0=10;
 y0=10;
 width=700;
 ht=400;
+grid on;
 set(gcf,'position',[x0,y0,width,ht])
 if savePlots == true
     f = gcf;

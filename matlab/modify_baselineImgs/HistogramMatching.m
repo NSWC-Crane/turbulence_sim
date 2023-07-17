@@ -42,8 +42,10 @@ Sets = [col1 col2];
 % Create cell array to hold mean Images for baseline
 MImageArray = cell(length(Sets),1);
 for indx = 1:length(Sets)
-    [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfo(Sets(indx,1), Sets(indx,2));
-    % Create vector to find average histogram
+    [dirBase, dirSharp, basefileN, ImgNames] = GetImageInfoMod("C:\Data\JSSAP\",Sets(indx,1), Sets(indx,2));
+
+    % Create vector to find average histogram for real images with same
+    % zoom/range
     meanHist = zeros(256, 1);
     for j = 1:length(ImgNames)      
          pathF = fullfile(dirSharp, ImgNames{j});
@@ -54,6 +56,9 @@ for indx = 1:length(Sets)
          meanHist = meanHist + counts;
     end
     meanHist = meanHist./length(ImgNames);
+    plot(meanHist)
+    grid on
+    title("Range " + num2str(Sets(indx,1)) + " Zoom " + num2str(Sets(indx,2)))
     searchHist = meanHist > (0.001 * (M*N));  %% THIS IS ARBITRARY - TEST IT 0.1% of total number of pixels
     indxM =binsLoc(searchHist); %binsLoc is (0,255)
     histM = zeros(256,1);
@@ -64,15 +69,15 @@ for indx = 1:length(Sets)
     % Read in baseline image
     pathB = fullfile(dirBase, basefileN);
     ImageB = imread(pathB);
-    ImageB = ImageB(:,:,2);  % Use green channel
+    %ImageB = ImageB(:,:,2);  % Use green channel
     [MImage,mhist] = histeq(ImageB, histM);
 
     % Write new modified baseline images 
     % Will use Python to create simulated images
     fileM = "Mod_" + basefileN;
     dirM = "C:\Data\JSSAP\modifiedBaselines";
-    imwrite(MImage, fullfile(dirM, fileM));
-    MImageArray{indx} = MImage;
+    %imwrite(MImage, fullfile(dirM, fileM));
+    %MImageArray{indx} = MImage;
 
 %     figure()
 %     histogram(meanHist, binsLoc)

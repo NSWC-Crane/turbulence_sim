@@ -4,18 +4,19 @@
 % and all of the simulated images created with varying cn2/r0 values.
 % The plots show the max metric and the corresponding expected value based
 % on the real image at the range/zoom/Cn2 values.
+% This version calculates the metrics using scanning windows.
 
 clearvars
 clc
 
 % OPTIONS
-savePlots = 0;
+savePlots = 1;
 allreals = 0; % If 1, metrics will be calculated using all real images and all simulated images.
 
 %rangeV = 600:50:1000;
-rangeV = [600];
-%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-zoomV = [2000];
+rangeV = [750];
+zoomV = [2000, 2500, 3000, 3500, 4000, 5000];
+%zoomV = [2000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -29,12 +30,13 @@ end
 % Define directories
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\";
-dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\Windows\";
+dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\Windows2\";
 
 % Collect all information in table
 TmL = table;
 indT = 1;
 
+%% Processing Steps
 % 1.  Find all real image file names in the sharpest directory using range/zoom values 
 % 2.  Find names of all simulated files in directory dirSims by filtering
 %     on range/zoom to get the simulated images created using the Python file
@@ -43,12 +45,12 @@ indT = 1;
 %     real image. 
 % 4.  Enter results into table
 
-
 for rng = rangeV
     % Setup table by range
     TmL = table;
     indT = 1;
     for zoom = zoomV
+        %tic
         display("Range " + num2str(rng) + " Zoom " + num2str(zoom))
         % Get image filenames of real images at range/zoom value
         [dirReal, ImgNames1] = GetRealImageFilenames(data_root, rng, zoom);
@@ -60,11 +62,7 @@ for rng = rangeV
         for i = 1:length(ImgNames1) 
             % Import real image
             imgR = double(imread(fullfile(dirReal, ImgNames1{i})));
-            imgR= imgR(:,:,2);  % Only green channel
-            % Preprocess image
-            
-                       
-            vImgR{i,1} = imgR;
+            vImgR{i,1}= imgR(:,:,2);  % Only green channel
         end
 
         % Get the corresponding simulated images in the directory dirSims
@@ -98,8 +96,14 @@ for rng = rangeV
          
         % Compare simulated images to real images at same zoom/range
         for j = 1:length(vImgR)
+            %% Processing 2 real images (1: subtract mean, 2: normalize image)
             % Remove border
-            vImgR{j,1} = vImgR{j,1}(firstPix:img_w-removeBorder,firstPix:img_w-removeBorder);
+            ImgRP = vImgR{j,1}(firstPix:img_w-removeBorder,firstPix:img_w-removeBorder);
+            % Subtract mean
+            ImgRP = ImgRP - mean(ImgRP,"all");
+            % Normalize: sub
+            ImgRN = ImgRP./std(ImgRP,0,"all");
+
             for i = 1:length(simNamelist)
                 tic;
                 % cstr:  cn2 in filename (used to get r0 later)
@@ -109,42 +113,58 @@ for rng = rangeV
                 % Read in a simulated image in namelist
                 ImgSim = double(imread(fullfile(dirSims, simNamelist{i}))); % Sim Image
               
+                %% Preprocess 2 simulated image (1: subtract mean, 2: normalize image)
                 %Remove border
                 ImgSim = ImgSim(firstPix:img_w-removeBorder,firstPix:img_w-removeBorder);
+                % Subtract mean
+                ImgSim = ImgSim - mean(ImgSim,"all");
+                % Normalized image
+                ImgSimN = ImgSim./std(ImgSim,0,"all");
                    
                 % Collect metrics of windows 
                 if pixScan == 1
                     winMetrics = ones(lastPix,lastPix);
                 end
                
-                parfor col = 1:pixScan:lastPix
-                    for row = 1:pixScan:lastPix
-                
-                        % Create windows in real image (winImgR),
-                        % and simulated image(winImgSim)  
-                        winImgR = vImgR{j,1}(row:row+winSize-1,col:col+winSize-1);
-                        % Patch of simulated image 
-                        winImgSim = ImgSim(row:row+winSize-1,col:col+winSize-1);
-                        
-                        m = turbulence_metric_noBL(winImgR, winImgSim);
-                        winMetrics(row,col) = m;
-                   end
+                %% Windows
+                % parfor loop only can use pixSxan = 1 (1:pixScan:lastPix
+                parfor col = 1:lastPix
+                %for col = 1:lastPix
+                    % Create array of row images for current col
+                    % Vectorized row windows to eliminate one for loop
+                    winImgR = CreateWindowArray(ImgRP,winSize,col,pixScan, lastPix);
+                    winImgSim = CreateWindowArray(ImgSim,winSize,col,pixScan, lastPix);
+                    % Vectorized row windows of normalized image for one column
+                    winImgRN = CreateWindowArray(ImgRN,winSize,col,pixScan, lastPix);
+                    winImgSimN = CreateWindowArray(ImgSimN,winSize,col,pixScan, lastPix);                       
+
+                    m = turbulence_metric_Array(winImgR, winImgSim);
+                    winMetrics(:,col) = m.';
+                    mn = turbulence_metric_Array(winImgRN, winImgSimN);
+                    winNormMetrics(:,col) = mn.';
+
                 end
                 % Calculate mean metric of all patches for this image and save to
                 % table TmL
                 mean_wm = mean(winMetrics,'all'); 
                 std_wm = std(winMetrics,0,'all');
-                TmL(indT,:) = {rng zoom string(cstr{1}) dirSims simNamelist{i} dirReal ImgNames1{j} mean_wm std_wm};
+                mean_wmN = mean(winNormMetrics,'all'); 
+                std_wmN = std(winNormMetrics,0,'all');
+                TmL(indT,:) = {rng zoom string(cstr{1}) dirSims simNamelist{i} dirReal...
+                    ImgNames1{j} mean_wm std_wm mean_wmN std_wmN};
                 indT = indT + 1;
                 fprintf('Completed image: %s\n', fullfile(dirSims, simNamelist{i}));
                 toc;
             end
         end
+        fprintf('Completed Range %d Zoom %d\n', rng, zoom);
+        %toc
     end    
 
 
     %% tables
-    varnames = {'Range', 'Zoom', 'Cn2str', 'SimDir','SimFilename','RealDir','RealFilename', 'MeanWindows', 'STDWindows'};
+    varnames = {'Range', 'Zoom', 'Cn2str', 'SimDir','SimFilename','RealDir','RealFilename',...
+        'MeanWindows', 'STDWindows', 'MeanNormWindows', 'STDNormWindows'};
     TmL = renamevars(TmL, TmL.Properties.VariableNames, varnames);
     TmL.SimFilename = string(TmL.SimFilename);
     TmL.RealFilename = string(TmL.RealFilename);
@@ -171,6 +191,7 @@ for rng = rangeV
         %display(q)
         indG = find(TmL.Range == uniqT.Range(q) & TmL.Zoom == uniqT.Zoom(q) & TmL.Cn2str == uniqT.Cn2str(q));
         uniqT.sMetric(q) = mean(TmL.MeanWindows(indG));
+        uniqT.sNMetric(q) = mean(TmL.MeanNormWindows(indG));
         uniqT.std(q) = std(TmL.MeanWindows(indG));
         indR = find(Tr0.range == uniqT.Range(q) & Tr0.strcn2 == uniqT.Cn2str(q));
         uniqT.r0(q) = Tr0.r0(indR);
@@ -189,7 +210,6 @@ for rng = rangeV
     % Sort uniqT 
     uniqT = sortrows(uniqT,["Range","Zoom","r0"]);
     writetable(uniqT, dirOut + "uniqT_R" + num2str(rng) + ".csv");
-
 
     %% Semilogx Plots
     plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
@@ -254,6 +274,7 @@ for rng = rangeV
     ffg = figure();
     legendL = [];
     upY = .4;
+    %zoomV=[2000,2500];
     for k = 1:length(zoomV) 
         % Get real image's measured cn2 and r0
         ida = find((T_atmos.range == rng) & (T_atmos.zoom == zoomV(k)));
@@ -302,25 +323,68 @@ for rng = rangeV
         %savefig(ffg,fileNf)
         %close(ffg)
     end
+
+
+
+    %% Semilogx Plots Cn2 on Normalized work
+    plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
+    plots_legend = [];
+
+    ffg = figure();
+    legendL = [];
+    upY = .4;
+    %zoomV=[2000,2500];
+    for k = 1:length(zoomV) 
+        % Get real image's measured cn2 and r0
+        ida = find((T_atmos.range == rng) & (T_atmos.zoom == zoomV(k)));
+        r0_c = T_atmos{ida,"r0"};
+        cn_t = T_atmos{ida,"Cn2"};
+        % Setup legend entry
+        txt = "Z" + num2str(zoomV(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+        legendL = [legendL; txt];
+        % Find indexes in uniqT with same range/zoom but different Cn2 values
+        indP = find(uniqT.Range == rng & uniqT.Zoom == zoomV(k));
+        plots_legend(k) = semilogx(uniqT.cn2(indP), uniqT.sNMetric(indP), '-o','Color',plotcolors(k),...
+            'LineWidth',2,'MarkerSize',4);
+        hold on
+        
+        % Collect zoom, max metric location r0
+        MMetric = [uniqT.sNMetric(indP) uniqT.cn2(indP)];
+        [max1, ind1] = max(MMetric(:,1));
+        h = stem(MMetric(ind1,2),1, 'MarkerFaceColor',plotcolors(k)); %,...
+            %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
+        h.Color = plotcolors(k);
+        hold on
+        h2 = stem(cn_t,1,'MarkerFaceColor','k');
+        h2.Color = plotcolors(k);
+        str = "Z" + num2str(zoomV(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + " at cn2 " + num2str(MMetric(ind1,2));
+        annotation('textbox',[.68 .5 .3 upY], ...
+            'String',str,'EdgeColor','none')
+        upY = upY-0.05;
+    end
+    
+    grid on
+    title("Normalized Image Metric: Range: " + num2str(rng)) 
+    legend(plots_legend,legendL, 'location', 'southeastoutside')
+    xlim([min(uniqT.cn2(indP)),max(uniqT.cn2(indP))])
+    xlabel("Cn2")
+    ylabel("Mean Similarity Metric with Normalized Images")
+    x0=10;
+    y0=10;
+    width=900;
+    ht=400;
+    set(gcf,'position',[x0,y0,width,ht])
+    if savePlots == 1
+        f = gcf;
+        fileN = fullfile(dirOut,"NormLogCn2_r" + num2str(rng) + ".png");
+        %fileNf = fullfile(dirOut,"Logr" + num2str(rng) + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        %savefig(ffg,fileNf)
+        %close(ffg)
+    end
 end
 
-% testing
-vtest(:,:,1) = imgR;
-vtest(:,:,2) = imgR;
-vtest(:,:,3) = imgR;
-result = mean(vtest,[1 2]); % All pages are 135.6581
-res_std = std(vtest,0,[1 2]);
-res_fft2 = fft2(vtest);
-ss = sum(vtest,[1 2]);
-% Make conjugate of each image in resFFTshift 
-conjTest = conj(res_fft2(end:-1:1, end:-1:1,:)); % OK!!!
-% HERE: NOT WORKING
-cvtest2 = convn(resFFTshift, conjTest, 'same'); % NOT OK!!!!
-% Use below instead
-[ht,wd,dp] = size(res_fft2);
-for i = 1:dp
-    cvRes(:,:,i) = conv2(res_fft2(:,:,i),conjTest(:,:,i),'same');
-end
+
 
 
 

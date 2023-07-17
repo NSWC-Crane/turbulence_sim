@@ -15,10 +15,10 @@ allreals = false; % If true, metrics will be calculated using all real images an
 subtractMean = true;
 useLaplacian = false;
 
-rangeV = 600:50:1000;
-%rangeV = [650];
+%rangeV = 600:50:1000;
+rangeV = [600, 650];
 zoom = [2000, 2500, 3000, 3500, 4000, 5000];
-%zoom = [2000,2500];
+%zoom = [3000];
 
 platform = string(getenv("PLATFORM"));
 if(platform == "Laptop")
@@ -32,19 +32,7 @@ end
 % Define directories
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\";
-% Location to save plots
-if onePatch == true
-    dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\OnePatch";
-    patchTitle = " (One Patch)";
-else
-    dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\MultiPatches";
-    patchTitle = " (MultiPatches)";
-end
-if useLaplacian == true
- dirOut = dirOut + "\Lap";
-else
- dirOut = dirOut + "\NoLap";
-end
+dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\OneRealAllSims\";
 
 % Laplacian kernel
 lKernel = 0.25*[0,-1,0;-1,4,-1;0,-1,0];
@@ -61,13 +49,14 @@ indT = 1;
 %     real image. 
 % 4.  Enter results into table
 
+
 for rng = rangeV
     for zm = zoom
         display("Range " + num2str(rng) + " Zoom " + num2str(zm))
         
         [dirReal1, ImgNames1] = GetRealImageFilenames(data_root, rng, zm);
         if allreals == false
-            ImgNames1 = ImgNames1(1);
+            ImgNames1 = ImgNames1(15);
         end
         
         % Setup vector of real images vImgR
@@ -106,7 +95,7 @@ for rng = rangeV
         end
         
         % Perform metrics
-        % Setup patches - Assume square images so we'll just use the image height (img_h)
+        % Only using one patch
         [img_h, img_w] = size(vImgR{1,1});
         % Size of subsections of image for metrics
         if onePatch == true
@@ -162,7 +151,7 @@ for rng = rangeV
                         ImgR_patch = vImgR{j,1}(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
                         % Patch of simulated image 
                         ImgSim_patch = ImgSim(prow:prow+szPatch-1,pcol:pcol+szPatch-1);
-
+                        
                         m = turbulence_metric_noBL(ImgR_patch, ImgSim_patch);
                         cc_l(index) = m; % Save results of all patches
                         index = index + 1;
@@ -170,7 +159,7 @@ for rng = rangeV
                 end
                 % Calculate mean metric of all patches for this image and save to
                 % table TmL
-                avg_rl = mean(cc_l); % Laplacian
+                avg_rl = mean(cc_l); 
                 std_rl = std(cc_l);
                 TmL(indT,:) = {rng zm string(cstr{1}) simNamelist{i} ImgNames1{j} numPatches*numPatches avg_rl std_rl}; % Laplacian
                 indT = indT + 1;
@@ -220,51 +209,11 @@ for k = 1:height(TmL)
 end
 
 % % Save TmL table
-% writetable(TmL, data_root + "modifiedBaselines\SimImgs_VaryingCn2Test\TmL.csv");
+writetable(TmL, dirOut + "TmL.csv");
 
 % Sort uniqT 
 uniqT = sortrows(uniqT,["range","zoom","r0"]);
-
-%% Plots
-% for rngP = rangeV
-%     ffg = figure();
-%     legendL = [];
-%     for zmP = zoom
-%         % Get the real image's measured cn2 value and calculated r0
-%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zmP));
-%         r0_c = T_atmos{ida,"r0"};
-%         cn_t = T_atmos{ida,"Cn2_m___2_3_"};
-%         % Setup legend entry
-%         txt = "Z" + num2str(zmP) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
-%         legendL = [legendL; txt];
-%         % Find indexes in uniqT with same range and zoom but different Cn2
-%         % values
-%         indP = find(uniqT.range == rngP & uniqT.zoom == zmP);
-%         plot(uniqT.r0(indP)*100, uniqT.sMetric(indP), '-o',...
-%             'LineWidth',2,...
-%             'MarkerSize',3)
-%         hold on
-%     end
-%     grid on 
-%     title("Laplacian Metric: Range: " + num2str(rngP) + titlePtch)
-%     legend(legendL, 'location', 'northeastoutside')
-%     xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
-%     xlabel("Fried Parameter r_0 (cm)")
-%     ylabel("Mean Similarity Metric")
-%     x0=10;
-%     y0=10;
-%     width=900;
-%     ht=400;
-%     set(gcf,'position',[x0,y0,width,ht]) 
-%     if savePlots == true
-%         f = gcf;
-%         fileN = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".png");
-%         fileNf = fullfile(dirOut, "Lr" + num2str(rngP) + strPtch + ".fig");
-%         exportgraphics(f,fileN,'Resolution',300)
-%         savefig(ffg,fileNf)
-%         close(ffg)
-%     end
-% end
+writetable(uniqT, dirOut + "uniqT.csv");
 
 %% Semilogx Plots
 plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
@@ -305,7 +254,7 @@ for rngP = rangeV
     grid on
     title("Metric: Range: " + num2str(rngP) + titlePtch) 
     legend(plots_legend,legendL, 'location', 'southeastoutside')
-    %xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
+    xlim([min(uniqT.r0(indP)*100),max(uniqT.r0(indP)*100)])
     xlabel("Fried Parameter r_0 (cm)")
     ylabel("Mean Similarity Metric")
     x0=10;
@@ -315,7 +264,64 @@ for rngP = rangeV
     set(gcf,'position',[x0,y0,width,ht])
     if savePlots == true
         f = gcf;
-        fileN = fullfile(dirOut,"Log_r" + num2str(rngP) + strPtch + ".png");
+        fileN = fullfile(dirOut,"ALog_r" + num2str(rngP) + ".png");
+        %fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + strPtch + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        %savefig(ffg,fileNf)
+        %close(ffg)
+    end
+end
+
+%% Semilogx Plots Cn2
+plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
+plots_legend = [];
+for rngP = rangeV
+    ffg = figure();
+    legendL = [];
+    upY = .4;
+    for k = 1:length(zoom) %zmP = zoom
+        % Get real image's measured cn2 and r0
+        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
+        r0_c = T_atmos{ida,"r0"};
+        cn_t = T_atmos{ida,"Cn2"};
+        % Setup legend entry
+        txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+        legendL = [legendL; txt];
+        % Find indexes in uniqT with same range/zoom but different Cn2 values
+        indP = find(uniqT.range == rngP & uniqT.zoom == zoom(k));
+        plots_legend(k) = semilogx(uniqT.cn2(indP), uniqT.sMetric(indP), '-o','Color',plotcolors(k),...
+            'LineWidth',2,'MarkerSize',4);
+        hold on
+        
+        % Collect zoom, max metric location r0
+        MMetric = [uniqT.sMetric(indP) uniqT.cn2(indP)];
+        [max1, ind1] = max(MMetric(:,1));
+        h = stem(MMetric(ind1,2),1, 'MarkerFaceColor',plotcolors(k)); %,...
+            %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
+        h.Color = plotcolors(k);
+        hold on
+        h2 = stem(cn_t,1,'MarkerFaceColor','k');
+        h2.Color = plotcolors(k);
+        str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + " at cn2 " + num2str(MMetric(ind1,2));
+        annotation('textbox',[.68 .5 .3 upY], ...
+            'String',str,'EdgeColor','none')
+        upY = upY-0.05;
+    end
+    
+    grid on
+    title("Metric: Range: " + num2str(rngP) + titlePtch) 
+    legend(plots_legend,legendL, 'location', 'southeastoutside')
+    xlim([min(uniqT.cn2(indP)),max(uniqT.cn2(indP))])
+    xlabel("Cn2")
+    ylabel("Mean Similarity Metric")
+    x0=10;
+    y0=10;
+    width=900;
+    ht=400;
+    set(gcf,'position',[x0,y0,width,ht])
+    if savePlots == true
+        f = gcf;
+        fileN = fullfile(dirOut,"ALogCn2_r" + num2str(rngP) + ".png");
         %fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + strPtch + ".fig");
         exportgraphics(f,fileN,'Resolution',300)
         %savefig(ffg,fileNf)

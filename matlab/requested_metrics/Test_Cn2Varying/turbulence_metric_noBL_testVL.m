@@ -1,6 +1,6 @@
 % function assumes that the Lapplacian has already been taken of both img_0
 % and img_1
-function [m] = turbulence_metric_noBL(img_0, img_1, mtype, rngstr, zmstr)
+function [m] = turbulence_metric_noBL_testVL(img_0, img_1, mtype, rngstr, zmstr)
     % img_0 is the reference image
     % img_1 is the simulated image
     %mtype:  'c' is Closest, 'mm' is Max Metric

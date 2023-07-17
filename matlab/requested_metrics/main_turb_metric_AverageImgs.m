@@ -13,7 +13,7 @@ clc
 savePlots = true;
 
 %rangeV = 600:50:1000;
-rangeV = [600, 650, 700, 750, 800];
+rangeV = [600, 650, 700]; %, 750, 800];
 zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 %zoom = [3500];
 cn2Values = [7e-16, 8e-16, 9e-16, ...
@@ -39,7 +39,7 @@ end
 % Define directories
 % Location of simulated images by Cn2 value
 dirSims = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\";
-dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\AvgImgs\";
+dirOut = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\Plots\AvgImgs2\";
 
 % Collect all information in table
 Tm = table;
@@ -58,7 +58,7 @@ indT = 1;
 % 6.  Enter results into table
 
 % Notes:
-% Subtract mean to normalize data.
+% Subtract mean to normalize data. - commented this out
 % Trim borders of each image (5 pixels).
 % No longer using patches.
 
@@ -76,8 +76,8 @@ for rng = rangeV
             RImg= RImg(:,:,2); 
             % Trim image by removing pixels on borders
             RImg = RImg(6:end-5, 6:end-5);
-            % Normalize image - subtract mean of image
-            RImg = RImg - mean(RImg,'all');
+%             % Normalize image - subtract mean of image
+%             RImg = RImg - mean(RImg,'all');
             totalRefImg = totalRefImg + RImg; 
         end
         % Calcuate average image
@@ -108,8 +108,8 @@ for rng = rangeV
                     SimImg = double(imread(fullfile(dirSims, simNamelist{ind})));
                     % Trim image by removing pixels on borders
                     SimImg = SimImg(6:end-5, 6:end-5);
-                    % Normalize image - subtract mean of image
-                    SimImg= SimImg - mean(SimImg,'all');
+%                     % Normalize image - subtract mean of image
+%                     SimImg= SimImg - mean(SimImg,'all');
                     totalSimImg = totalSimImg + SimImg;
                     ind = ind + 1;
                 end
@@ -156,117 +156,117 @@ end
 % Sort rows 
 Tm = sortrows(Tm,["range","zoom","Cn2"]);
 
-% %% Semilogx Plots
-% plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
-% plots_legend = [];
-% for rngP = rangeV
-%     ffg = figure();
-%     legendL = [];
-%     upY = .4;
-%     for k = 1:length(zoom) %zmP = zoom
-%         % Get real image's measured cn2 and r0
-%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
-%         r0_c = T_atmos{ida,"r0"};
-%         cn_t = T_atmos{ida,"Cn2"};
-%         % Setup legend entry
-%         txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
-%         legendL = [legendL; txt];
-%         % Find indexes in Tm with same range/zoom but different Cn2 values
-%         indP = find(Tm.range == rngP & Tm.zoom == zoom(k));
-%         plots_legend(k) = semilogx(Tm.r0(indP)*100, Tm.simMetric(indP), '-o','Color',plotcolors(k),...
-%             'LineWidth',2,'MarkerSize',4);
-%         hold on
-%         
-%         % Collect zoom, max metric location r0
-%         MMetric = [Tm.simMetric(indP) Tm.r0(indP) Tm.Cn2(indP)];
-%         [max1, ind1] = max(MMetric(:,1));
-%         h = stem(MMetric(ind1,2)*100,1, 'MarkerFaceColor',plotcolors(k)); %,...
-%             %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
-%         h.Color = plotcolors(k);
-%         hold on
-%         h2 = stem(r0_c*100,1,'MarkerFaceColor','k');
-%         h2.Color = plotcolors(k);
-%         str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + ...
-%             " at r0 " + num2str(MMetric(ind1,2)*100) + " cn2 " + num2str(MMetric(ind1,3));
-%         annotation('textbox',[.715 .5 .3 upY], ...
-%             'String',str,'EdgeColor','none')
-%         upY = upY-0.05;
-%     end
-%     
-%     grid on
-%     title("Metric of Averages: Range " + num2str(rngP)) 
-%     legend(plots_legend,legendL, 'location', 'southeastoutside')
-%     xlim([min(Tm.r0(indP)*100),max(Tm.r0(indP)*100)])
-%     xlabel("Fried Parameter r_0 (cm)")
-%     ylabel("Similarity Metric")
-%     x0=10;
-%     y0=10;
-%     width=1100;
-%     ht=500;
-%     set(gcf,'position',[x0,y0,width,ht])
-%     if savePlots == true
-%         f = gcf;
-%         fileN = fullfile(dirOut,"Log_r" + num2str(rngP) + ".png");
-%         %fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + ".fig");
-%         exportgraphics(f,fileN,'Resolution',300)
-%         %savefig(ffg,fileNf)
-%         %close(ffg)
-%     end
-% end
-% 
-% % Plot Cn2 on x-axis
-% plots_legend = [];
-% for rngP = rangeV
-%     ffg = figure();
-%     legendL = [];
-%     upY = .4;
-%     for k = 1:length(zoom) %zmP = zoom
-%         % Get real image's measured cn2 and r0
-%         ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
-%         r0_c = T_atmos{ida,"r0"};
-%         cn_t = T_atmos{ida,"Cn2"};
-%         % Setup legend entry
-%         txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
-%         legendL = [legendL; txt];
-%         % Find indexes in Tm with same range/zoom but different Cn2 values
-%         indP = find(Tm.range == rngP & Tm.zoom == zoom(k));
-%         plots_legend(k) = semilogx(Tm.Cn2(indP), Tm.simMetric(indP), '-o','Color',plotcolors(k),...
-%             'LineWidth',2,'MarkerSize',4);
-%         hold on
-%         
-%         % Collect zoom, max metric location r0
-%         MMetric = [Tm.simMetric(indP) Tm.r0(indP) Tm.Cn2(indP)];
-%         [max1, ind1] = max(MMetric(:,1));
-%         h = stem(MMetric(ind1,3),1, 'MarkerFaceColor',plotcolors(k)); %,...
-%             %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
-%         h.Color = plotcolors(k);
-%         hold on
-%         h2 = stem(cn_t,1,'MarkerFaceColor','k');
-%         h2.Color = plotcolors(k);
-%         str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + ...
-%             " at r0 " + num2str(MMetric(ind1,2)*100) + " cn2 " + num2str(MMetric(ind1,3));
-%         annotation('textbox',[.715 .5 .3 upY], ...
-%             'String',str,'EdgeColor','none')
-%         upY = upY-0.05;
-%     end
-%     
-%     grid on
-%     title("Metric of Averages: Range " + num2str(rngP)) 
-%     legend(plots_legend,legendL, 'location', 'southeastoutside')
-%     xlim([min(Tm.Cn2(indP)),max(Tm.Cn2(indP))])
-%     xlabel("Cn2")
-%     ylabel("Similarity Metric")
-%     x0=10;
-%     y0=10;
-%     width=1100;
-%     ht=500;
-%     set(gcf,'position',[x0,y0,width,ht])
-%     if savePlots == true
-%         f = gcf;
-%         fileN = fullfile(dirOut,"cn2_Log_r" + num2str(rngP) + ".png");
-%         %fileNf = fullfile(dirOut,"cn2_Logr" + num2str(rngP) + ".fig");
-%         exportgraphics(f,fileN,'Resolution',300)
-%         %savefig(ffg,fileNf)
-%         %close(ffg)
-%     end
-% end
+%% Semilogx Plots
+plotcolors = ["#0072BD","#D95319","#EDB120","#7E2F8E", "#77AC30","#4DBEEE","#A2142F"];
+plots_legend = [];
+for rngP = rangeV
+    ffg = figure();
+    legendL = [];
+    upY = .4;
+    for k = 1:length(zoom) %zmP = zoom
+        % Get real image's measured cn2 and r0
+        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
+        r0_c = T_atmos{ida,"r0"};
+        cn_t = T_atmos{ida,"Cn2"};
+        % Setup legend entry
+        txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+        legendL = [legendL; txt];
+        % Find indexes in Tm with same range/zoom but different Cn2 values
+        indP = find(Tm.range == rngP & Tm.zoom == zoom(k));
+        plots_legend(k) = semilogx(Tm.r0(indP)*100, Tm.simMetric(indP), '-o','Color',plotcolors(k),...
+            'LineWidth',2,'MarkerSize',4);
+        hold on
+        
+        % Collect zoom, max metric location r0
+        MMetric = [Tm.simMetric(indP) Tm.r0(indP) Tm.Cn2(indP)];
+        [max1, ind1] = max(MMetric(:,1));
+        h = stem(MMetric(ind1,2)*100,1, 'MarkerFaceColor',plotcolors(k)); %,...
+            %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
+        h.Color = plotcolors(k);
+        hold on
+        h2 = stem(r0_c*100,1,'MarkerFaceColor','k');
+        h2.Color = plotcolors(k);
+        str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + ...
+            " at r0 " + num2str(MMetric(ind1,2)*100) + " cn2 " + num2str(MMetric(ind1,3));
+        annotation('textbox',[.715 .5 .3 upY], ...
+            'String',str,'EdgeColor','none')
+        upY = upY-0.05;
+    end
+    
+    grid on
+    title("Metric of Averages: Range " + num2str(rngP)) 
+    legend(plots_legend,legendL, 'location', 'southeastoutside')
+    xlim([min(Tm.r0(indP)*100),max(Tm.r0(indP)*100)])
+    xlabel("Fried Parameter r_0 (cm)")
+    ylabel("Similarity Metric")
+    x0=10;
+    y0=10;
+    width=1100;
+    ht=500;
+    set(gcf,'position',[x0,y0,width,ht])
+    if savePlots == true
+        f = gcf;
+        fileN = fullfile(dirOut,"Log_r" + num2str(rngP) + ".png");
+        %fileNf = fullfile(dirOut,"Logr" + num2str(rngP) + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        %savefig(ffg,fileNf)
+        %close(ffg)
+    end
+end
+
+% Plot Cn2 on x-axis
+plots_legend = [];
+for rngP = rangeV
+    ffg = figure();
+    legendL = [];
+    upY = .4;
+    for k = 1:length(zoom) %zmP = zoom
+        % Get real image's measured cn2 and r0
+        ida = find((T_atmos.range == rngP) & (T_atmos.zoom == zoom(k)));
+        r0_c = T_atmos{ida,"r0"};
+        cn_t = T_atmos{ida,"Cn2"};
+        % Setup legend entry
+        txt = "Z" + num2str(zoom(k)) + " r0 " + num2str(r0_c*100) + " Cn2 " + num2str(cn_t);
+        legendL = [legendL; txt];
+        % Find indexes in Tm with same range/zoom but different Cn2 values
+        indP = find(Tm.range == rngP & Tm.zoom == zoom(k));
+        plots_legend(k) = semilogx(Tm.Cn2(indP), Tm.simMetric(indP), '-o','Color',plotcolors(k),...
+            'LineWidth',2,'MarkerSize',4);
+        hold on
+        
+        % Collect zoom, max metric location r0
+        MMetric = [Tm.simMetric(indP) Tm.r0(indP) Tm.Cn2(indP)];
+        [max1, ind1] = max(MMetric(:,1));
+        h = stem(MMetric(ind1,3),1, 'MarkerFaceColor',plotcolors(k)); %,...
+            %'MarkerEdgeColor',plotcolors(k)) %, 'filled')
+        h.Color = plotcolors(k);
+        hold on
+        h2 = stem(cn_t,1,'MarkerFaceColor','k');
+        h2.Color = plotcolors(k);
+        str = "Z" + num2str(zoom(k)) + ": Max metric " + num2str(MMetric(ind1,1)) + ...
+            " at r0 " + num2str(MMetric(ind1,2)*100) + " cn2 " + num2str(MMetric(ind1,3));
+        annotation('textbox',[.715 .5 .3 upY], ...
+            'String',str,'EdgeColor','none')
+        upY = upY-0.05;
+    end
+    
+    grid on
+    title("Metric of Averages: Range " + num2str(rngP)) 
+    legend(plots_legend,legendL, 'location', 'southeastoutside')
+    xlim([min(Tm.Cn2(indP)),max(Tm.Cn2(indP))])
+    xlabel("Cn2")
+    ylabel("Similarity Metric")
+    x0=10;
+    y0=10;
+    width=1100;
+    ht=500;
+    set(gcf,'position',[x0,y0,width,ht])
+    if savePlots == true
+        f = gcf;
+        fileN = fullfile(dirOut,"cn2_Log_r" + num2str(rngP) + ".png");
+        %fileNf = fullfile(dirOut,"cn2_Logr" + num2str(rngP) + ".fig");
+        exportgraphics(f,fileN,'Resolution',300)
+        %savefig(ffg,fileNf)
+        %close(ffg)
+    end
+end

@@ -50,7 +50,10 @@ else
 end
 
 % Location of modified baseline images
-dirBL = data_root + "modifiedBaselines\";
+%dirBL = data_root + "modifiedBaselines\";
+%dirBL = data_root + "testNewBL\r600_z3500\";
+dirBL = data_root + "baselines2023\";
+
 % combined_sharpest_images_withAtmos.xlsx in data_root directory
 
 % Steps:
@@ -61,18 +64,17 @@ dirBL = data_root + "modifiedBaselines\";
 % 4.  Use range and Cn2 value to create simulated images
 % 5.  Create 20 simulated images
 
-%rangeV = [700];
-rangeV = 600:50:1000;
-%zoom = [2500];
-zoom = [2000, 2500, 3000, 3500, 4000, 5000];
+rangeV = [600];
+%rangeV = 600:50:1000;
+zoom = [3500, 4000, 5000];
+%zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 
 % Common parameters
 % Images will be created with the following Cn2 values
 cn2Values = [7e-16, 8e-16, 9e-16, ...
             1e-15, 2e-15, 3e-15, 4e-15, 5e-15, 6e-15, 7e-15, 8e-15, 9e-15,...
             1e-14, 2e-14, 3e-14, 4e-14, 5e-14, 6e-14, 7e-14, 8e-14, 9e-14,...
-            1e-13, 2e-13, 3e-13, 4e-13, 5e-13, 6e-13, 7e-13, 8e-13, 9e-13,...
-            1e-12];
+            1e-13, 2e-13, 3e-13];
 numSims = 20;  % Number of simulated images created of same zoom/range/cn2 
 D = 0.095;
 wavelength = 525e-9;
@@ -131,15 +133,15 @@ for rng = rangeV
             
             calllib(lib_name, 'init_turbulence_params', img_w, D, rng, Cn2, wavelength, obj_size);
        
-            % Create 20 simulated images (make sure to save as uint8)
-            for idx=1:20
+            % Create 1 simulated images (make sure to save as uint8)
+            for idx=1:1
                 calllib(lib_name, 'apply_turbulence', img_w, img_h, img_t, img_blur_t);
             
                 img_blur = reshape(img_blur_t.Value, [img_h, img_w])';
                 img_blur = uint8(img_blur);
                 cn2s = strrep(num2str(Cn2), '-','');
-                fileI = "NewSim_r" + num2str(rng) + "_z" + num2str(zm) + "_c" + cn2s +     "_N" + num2str(idx) + ".png";
-                pathI = data_root + "modifiedBaselines\NewSimulations\ByVaryingCn2\" + fileI;
+                fileI = "r" + num2str(rng) + "_z" + num2str(zm) + "_c" + cn2s +     "_N" + num2str(idx) + ".png";
+                pathI = data_root + "baselines2023\Simulated\ByVaryingCn2\" + fileI; 
                 imwrite(img_blur, pathI);
             
             end
