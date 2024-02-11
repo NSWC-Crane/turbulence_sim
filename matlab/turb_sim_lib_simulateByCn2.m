@@ -24,8 +24,10 @@ commandwindow;
 %% load the dll/so file
 
 lib_path = '..\turb_sim_lib\build\Release\';
+lib_path = 'C:\Projects\turbulence_sim\turb_sim_lib\build\Release\';
 lib_name = 'turb_sim';
 hfile = '../common/include/turb_sim_lib.h';
+hfile = 'C:\Projects\turbulence_sim\common\include\turb_sim_lib.h';
 
 if(~libisloaded(lib_name))
     [notfound, warnings] = loadlibrary(strcat(lib_path,lib_name,'.dll'), hfile);
@@ -53,6 +55,7 @@ end
 %dirBL = data_root + "modifiedBaselines\";
 %dirBL = data_root + "testNewBL\r600_z3500\";
 dirBL = data_root + "baselines2023\";
+dirBL = data_root + "ModifiedBaselines";
 
 % combined_sharpest_images_withAtmos.xlsx in data_root directory
 
@@ -64,17 +67,19 @@ dirBL = data_root + "baselines2023\";
 % 4.  Use range and Cn2 value to create simulated images
 % 5.  Create 20 simulated images
 
-rangeV = [600];
+rangeV = [700];
 %rangeV = 600:50:1000;
-zoom = [3500, 4000, 5000];
+zoom = [5000];
 %zoom = [2000, 2500, 3000, 3500, 4000, 5000];
 
 % Common parameters
 % Images will be created with the following Cn2 values
-cn2Values = [7e-16, 8e-16, 9e-16, ...
-            1e-15, 2e-15, 3e-15, 4e-15, 5e-15, 6e-15, 7e-15, 8e-15, 9e-15,...
-            1e-14, 2e-14, 3e-14, 4e-14, 5e-14, 6e-14, 7e-14, 8e-14, 9e-14,...
-            1e-13, 2e-13, 3e-13];
+% cn2Values = [7e-16, 8e-16, 9e-16, ...
+%             1e-15, 2e-15, 3e-15, 4e-15, 5e-15, 6e-15, 7e-15, 8e-15, 9e-15,...
+%             1e-14, 2e-14, 3e-14, 4e-14, 5e-14, 6e-14, 7e-14, 8e-14, 9e-14,...
+%             1e-13, 2e-13, 3e-13];
+cn2Values = [4.00e-14];
+
 numSims = 20;  % Number of simulated images created of same zoom/range/cn2 
 D = 0.095;
 wavelength = 525e-9;
@@ -131,11 +136,14 @@ for rng = rangeV
             img_t = libpointer('doublePtr', img);
             img_blur_t = libpointer('doublePtr', img_blur);
             
-            calllib(lib_name, 'init_turbulence_params', img_w, D, rng, Cn2, wavelength, obj_size);
-       
+            % calllib(lib_name, 'init_turbulence_params', img_w, D, rng, Cn2, wavelength, obj_size);
+            calllib(lib_name, 'init_turbulence_generator', 0);
+            calllib(lib_name, 'add_turbulence_param', img_w, D, rng, Cn2, obj_size);
+
             % Create 1 simulated images (make sure to save as uint8)
-            for idx=1:1
-                calllib(lib_name, 'apply_turbulence', img_w, img_h, img_t, img_blur_t);
+            for idx=1:20
+                %apply_turbulence(unsigned int tp_index, unsigned int img_w, unsigned int img_h, double *img_, double *turb_img_);
+                calllib(lib_name, 'apply_turbulence', 0, img_w, img_h, img_t, img_blur_t);
             
                 img_blur = reshape(img_blur_t.Value, [img_h, img_w])';
                 img_blur = uint8(img_blur);

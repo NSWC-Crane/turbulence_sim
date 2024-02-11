@@ -33,6 +33,7 @@ typedef void* HINSTANCE;
 //#include <opencv2/video.hpp>
 //#include <opencv2/imgcodecs.hpp>
 
+
 // custom includes
 #include <num2string.h>
 #include <file_ops.h>
@@ -57,6 +58,31 @@ typedef void (*lib_apply_tilt)(unsigned int tp_index, unsigned int img_w, unsign
 #include "turbulence_sim.h"
 
 #endif
+
+//-----------------------------------------------------------------------------
+void create_gaussian_kernel(int32_t size, double sigma, cv::Mat& kernel)
+{
+    // assumes a 0 mean Gaussian distribution
+    int32_t row, col;
+    double s = 2 * sigma * sigma;
+
+    kernel = cv::Mat::zeros(size, size, CV_64FC1);
+
+    double t = (1.0 / (CV_PI * s));
+
+    for (row = 0; row < size; ++row)
+    {
+        for (col = 0; col < size; ++col)
+        {
+            kernel.at<double>(row, col) = t * std::exp((-((col - (size >> 1)) * (col - (size >> 1))) - ((row - (size >> 1)) * (row - (size >> 1)))) / (s));
+        }
+    }
+
+    double matsum = (double)cv::sum(kernel)[0];
+
+    kernel = kernel * (1.0 / matsum);	// get the matrix to sum up to 1...
+
+}	// end of create_gaussian_kernel
 
 // ----------------------------------------------------------------------------------------
 inline std::ostream& operator<<(std::ostream& out, std::vector<uint8_t>& item)
@@ -111,6 +137,9 @@ int main(int argc, char** argv)
     std::string baseline_filename;
     std::string real_filename;
 
+    cv::Mat kernel;
+    create_gaussian_kernel(5, 5, kernel);
+
     //if (argc == 1)
     //{
     //    std::cout << "Error: Missing confige file" << std::endl;
@@ -122,7 +151,7 @@ int main(int argc, char** argv)
 
     // setup the windows to display the results
     //cv::namedWindow(window_name, cv::WINDOW_NORMAL);
-    //cv::namedWindow("color", cv::WINDOW_NORMAL);
+    cv::namedWindow("color", cv::WINDOW_NORMAL);
 
     // do work here
     try
@@ -151,7 +180,7 @@ int main(int argc, char** argv)
         lib_filename = "../../turb_sim_lib/build/Debug/turb_simd.dll";
     #else
         //lib_filename = "../../turb_sim_lib/build/Release/turb_sim.dll";
-        lib_filename = "d:/Projects/turbulence_sim/turb_sim_lib/build/Release/turb_sim.dll";
+        lib_filename = "C:/Projects/turbulence_sim/turb_sim_lib/build/Release/turb_sim.dll";
     #endif
 
         HINSTANCE turb_lib = LoadLibrary(lib_filename.c_str());
@@ -187,11 +216,15 @@ int main(int argc, char** argv)
 #endif      
         
 #if defined(_WIN32) | defined(__WIN32__) | defined(__WIN32) | defined(_WIN64) | defined(__WIN64)
-        base_directory = "D:/data/turbulence/";
-        //base_directory = "C:/Projects/data/turbulence/sharpest/z2000/";
+        //base_directory = "D:/data/turbulence/";
+        base_directory = "C:/Projects/data/turbulence/";
         
-        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z2000_r0600.png";
-        real_filename = base_directory + "sharpest/z2000/0600/image_z01998_f46229_e14987_i00.png";
+        baseline_filename = base_directory + "ModifiedBaselines/Mod_baseline_z5000_r0700.png";
+        real_filename = base_directory + "sharpest/z5000/0700/image_z05000_f48095_e07485_i00.png";
+
+
+        //baseline_filename = "C:/Projects/data/dfd/ATT_20230221/processed/z5500/baseline_r900_z5500.png";
+        //real_filename = "C:/Projects/data/dfd/ATT_20230221/processed/z5500/baseline_r900_z5500.png";
 
         //baseline_filename = "../../data/random_image_512x512.png";
         //real_filename = "../../data/random_image_512x512.png";
@@ -205,55 +238,70 @@ int main(int argc, char** argv)
         real_filename = "../../data/test_image_fp2.png";
 #endif
 
-        cv::Mat img;
-        cv::Mat rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
-        cv::Mat tmp_img = cv::imread(baseline_filename, cv::IMREAD_ANYCOLOR);
+        bool use_color = false;
 
-        if (rw_img.channels() >= 3)
+        cv::Mat img, rw_img, tmp_img, img_blur;
+
+        if (use_color)
         {
-            rw_img.convertTo(rw_img, CV_64FC3);
-            //rw_img = get_channel(rw_img, 1);
+            rw_img = cv::imread(real_filename, cv::IMREAD_ANYCOLOR);
+            tmp_img = cv::imread(baseline_filename, cv::IMREAD_ANYCOLOR);   // IMREAD_ANYCOLOR, IMREAD_GRAYSCALE
+
+            if (rw_img.channels() >= 3)
+            {
+                rw_img.convertTo(rw_img, CV_64FC3);
+            }
+            else
+            {
+                cv::cvtColor(rw_img, rw_img, cv::COLOR_GRAY2BGR);
+                rw_img.convertTo(rw_img, CV_64FC3);
+            }
+
+            if (tmp_img.channels() >= 3)
+            {
+                tmp_img.convertTo(tmp_img, CV_64FC3);
+                //tmp_img = get_channel(tmp_img, 1);
+            }
+            else
+            {
+                cv::cvtColor(tmp_img, tmp_img, cv::COLOR_GRAY2BGR);
+                tmp_img.convertTo(tmp_img, CV_64FC3);
+            }
         }
         else
         {
-            cv::cvtColor(rw_img, rw_img, cv::COLOR_GRAY2BGR);
-            rw_img.convertTo(rw_img, CV_64FC3);
+            rw_img = cv::imread(real_filename, cv::IMREAD_GRAYSCALE);
+            tmp_img = cv::imread(baseline_filename, cv::IMREAD_GRAYSCALE);   // IMREAD_ANYCOLOR, IMREAD_GRAYSCALE
+
+            rw_img.convertTo(rw_img, CV_64FC1);
+            tmp_img.convertTo(tmp_img, CV_64FC1);
         }
 
-        if (tmp_img.channels() >= 3)
-        {
-            tmp_img.convertTo(tmp_img, CV_64FC3);
-            //tmp_img = get_channel(tmp_img, 1);
-        }
-        else
-        {
-            //tmp_img.convertTo(tmp_img, CV_64FC3);
-            cv::cvtColor(tmp_img, tmp_img, cv::COLOR_GRAY2BGR);
-            tmp_img.convertTo(tmp_img, CV_64FC3);
-        }
-
-        //uint32_t N = tmp_img.rows;
+        uint32_t N = tmp_img.rows;
         //img = tmp_img.clone();
-        uint32_t N = 256;
+        //uint32_t N = 256;
         img = tmp_img(cv::Rect(0, 0, N, N)).clone();
         rw_img = rw_img(cv::Rect(0, 0, N, N)).clone();
 
-        double D = 0.095;
-        uint32_t zoom = 2000;
+        cv::Mat noise = cv::Mat(rw_img.rows, rw_img.cols, CV_64FC3);
+        rng.fill(noise, cv::RNG::NORMAL, 0.0, 4.0);
 
-        double L = 0600;
+        //rw_img += noise;
+
+        double D = 0.095;
+        uint32_t zoom = 5000;
+
+        double L = 700;
         //double wavelenth = 525e-9;
         double pixel = get_pixel_size(zoom, L);   // 0.004217; 0.00246
 
         double obj_size = N * pixel;
-        double Cn2 = 5e-14;
+        double Cn2 = 1e-13;
 
         // cn = 1e-15 -> r0 = 0.1535, Cn = 1e-14 -> r0 = 0.0386, Cn = 1e-13 -> r0 = 0.0097
         //double r0 = 0.0097;
         //double r0 = std::exp(-0.6 * std::log(0.158625 * k * k * Cn2 * L));
 
-        cv::Mat img_blur;
-        bool use_color = true;
 
 #if defined(USE_LIB)
         
@@ -262,7 +310,7 @@ int main(int argc, char** argv)
         else
             img_blur = cv::Mat::zeros(N, N, CV_64FC1);
 
-        init_turbulence_generator(1);
+        init_turbulence_generator(0);
         add_turbulence_param(N, D, L, Cn2, obj_size);
 
 #else
@@ -313,23 +361,23 @@ int main(int argc, char** argv)
             start_time = std::chrono::system_clock::now();
 
 
-            for (int jdx = 0; jdx < 1; ++jdx)
+            for (int jdx = 0; jdx < 20; ++jdx)
             {
                 //rng_seed = 1672270304;// time(NULL);
                 //// red - 2, green - 1, blue - 0
                 //rng = cv::RNG(rng_seed);
 
 #if defined(USE_LIB)
-                uint32_t psf_w = 0, psf_h = 0;
-                std::vector<double> psf_t(512 * 512, 0);
-                get_rgb_psf(0, &psf_w, &psf_h, psf_t.data());
-                cv::Mat psf = cv::Mat(psf_h, psf_w, CV_64FC3, psf_t.data());
+                //uint32_t psf_w = 0, psf_h = 0;
+                //std::vector<double> psf_t(512 * 512, 0);
+                //get_rgb_psf(0, &psf_w, &psf_h, psf_t.data());
+                //cv::Mat psf = cv::Mat(psf_h, psf_w, CV_64FC3, psf_t.data());
 
-                cv::filter2D(img, img_blur, -1, psf, cv::Point(-1, -1), 0.0, cv::BorderTypes::BORDER_REPLICATE);
+                //cv::filter2D(img, img_blur, -1, psf, cv::Point(-1, -1), 0.0, cv::BorderTypes::BORDER_REPLICATE);
 
 
                 //apply_turbulence(N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
-                apply_rgb_turbulence(0, N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
+                //apply_rgb_turbulence(0, N, N, img.ptr<double>(0), img_blur.ptr<double>(0));
 
 #else
                 generate_tilt_image(img, Pv[0], rng, img_tilt);
@@ -341,8 +389,14 @@ int main(int argc, char** argv)
 
 #if defined(USE_LIB)
 
-                //apply_turbulence(N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
-                apply_rgb_turbulence(0, N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+                apply_turbulence(0, N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+                //apply_rgb_turbulence(0, N, N, rw_img.ptr<double>(0), img_blur.ptr<double>(0));
+
+
+                //cv::filter2D(img_blur, img_blur, img_blur.type(), kernel, cv::Point(-1, -1), 0.0, cv::BORDER_REFLECT_101);
+
+                rng.fill(noise, cv::RNG::NORMAL, 0.0, 3.0);
+                //img_blur += noise;
 
 #else
                 generate_tilt_image(rw_img, Pv[0], rng, img_tilt);
@@ -351,6 +405,7 @@ int main(int argc, char** argv)
                 generate_blur_rgb_image(img_tilt, Pv[0], rng, img_blur);
 #endif
                 //cv::imwrite("test_image_fp2_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
+                //cv::imwrite("test_image_i" + num2str(jdx, "%02d") + ".png", img_blur, compression_params);
 
             }
 
@@ -365,9 +420,9 @@ int main(int argc, char** argv)
             cv::hconcat(rw_img, img_blur, montage2);
 
             //cv::imshow(window_name, montage / 255.0);
-            //cv::imshow("color", montage2 / 255.0);
+            cv::imshow("color", montage2 / 255.0);
 
-            key = 'q';// cv::waitKey(0);
+            key = 'q';// cv::waitKey(1);
         }
         bp = 2;
 
